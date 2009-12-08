@@ -1,0 +1,171 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+# Maep autoconf script
+#
+# Copyright (C) 2009 Till Harbaum <till@harbaum.org>
+#
+# This file is part of Maep.
+#
+# GPXView is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# GPXView is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GPXView.  If not, see <http://www.gnu.org/licenses/>.
+
+AC_PREREQ(2.61)
+AC_INIT([Maeo],[1.0],[till@harbaum.org])
+AC_CONFIG_SRCDIR([src/main.c])
+
+PACKAGE="maep"
+AC_SUBST(PACKAGE)
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+
+# Checks for libraries.
+
+# Checks for header files.
+#AC_HEADER_STDC
+#AC_CHECK_HEADERS([libintl.h locale.h stdlib.h string.h sys/time.h unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+#AC_C_CONST
+#AC_C_INLINE
+#AC_TYPE_SIZE_T
+#AC_HEADER_TIME
+#AC_STRUCT_TM
+#AC_HEADER_STDBOOL
+
+# Checks for library functions.
+#AC_FUNC_MALLOC
+#AC_FUNC_MKTIME
+#AC_FUNC_STRFTIME
+#AC_FUNC_STRTOD
+#AC_CHECK_FUNCS([gettimeofday localtime_r memset pow setlocale sqrt strcasecmp strchr strcspn strdup strerror strrchr strstr strtoul tzset])
+
+# check for gnome-vfs-module-2.0
+PKG_CHECK_MODULES([gnome_vfs_module], [gnome-vfs-module-2.0], [], [AC_MSG_ERROR(
+[gnome-vfs-module-2.0 missing])])
+CFLAGS="$CFLAGS $gnome_vfs_module_CFLAGS"
+LIBS="$LIBS $gnome_vfs_module_LIBS"
+
+# check for libsoup
+PKG_CHECK_MODULES([libsoup24], [libsoup-2.4], [
+  EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
+  CFLAGS="$CFLAGS $libsoup24_CFLAGS"
+  LIBS="$LIBS $libsoup24_LIBS"
+], [
+  PKG_CHECK_MODULES([libsoup22], [libsoup-2.2], [
+    EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
+    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DLIBSOUP22"
+    LIBS="$LIBS $libsoup22_LIBS"
+  ], [
+    AC_MSG_ERROR([ERROR: libsoup-2.4/2.2 missing])
+  ])
+])
+
+# check for libsoup
+PKG_CHECK_MODULES([gconf], [gconf-2.0], [
+  CFLAGS="$CFLAGS $gconf_CFLAGS"
+  LIBS="$LIBS $gconf_LIBS"
+], [
+    AC_MSG_ERROR([ERROR: gconf missing])
+])
+
+# check for maemo
+AC_MSG_CHECKING([for Maemo])
+PKG_CHECK_EXISTS(maemo-version, [
+  MAEMO="yes"
+  AC_MSG_RESULT(yes)
+
+  PKG_CHECK_MODULES([hildon], [hildon-1], [], [AC_MSG_ERROR([hildon-1 missing])])
+  CFLAGS="$CFLAGS  -DUSE_MAEMO $hildon_CFLAGS"
+  LIBS="$LIBS $hildon_LIBS"
+
+  PKG_CHECK_MODULES([osso], [libosso], [], [AC_MSG_ERROR([libosso missing])])
+  CFLAGS="$CFLAGS $osso_CFLAGS"
+  LIBS="$LIBS $osso_LIBS"
+
+  # prefer gpsbt over liblocation as we got complaints regarding liblocation
+  # stability
+  PKG_CHECK_EXISTS(gpsbt, [
+    PKG_CHECK_MODULES([gpsbt], [gpsbt], [], [])
+    CFLAGS="$CFLAGS -DENABLE_GPSBT $gpsbt_CFLAGS"
+    LIBS="$LIBS $gpsbt_LIBS"
+  ], [
+    AC_MSG_NOTICE([gpsbt not found, trying liblocation])
+
+    PKG_CHECK_EXISTS(liblocation, [ 
+      PKG_CHECK_MODULES([liblocation], [liblocation], [], [])
+      CFLAGS="$CFLAGS -DENABLE_LIBLOCATION $liblocation_CFLAGS"
+      LIBS="$LIBS $liblocation_LIBS"
+    ], [
+      AC_MSG_NOTICE([WARNING: No liblocation nor gpsbt found, disabling gps auto start!])
+    ])
+  ]) 
+
+  PKG_CHECK_EXISTS(maemo-version, [
+    VERSION=`pkg-config --modversion maemo-version`
+    AC_MSG_NOTICE([Configuring for Maemo $VERSION])
+    CFLAGS="$CFLAGS -DMAEMO_VERSION=\\\"$VERSION\\\""
+    MAJOR=`echo $VERSION | cut -b1 -`
+    CFLAGS="$CFLAGS -DMAEMO_VERSION_MAJOR=$MAJOR"
+
+    MAEMO_VERSION_MAJOR=$MAJOR
+    AC_SUBST(MAEMO_VERSION_MAJOR)
+  ], [
+    AC_MSG_ERROR([maemo-version not found])
+  ])
+
+  INSTALL_PLATTFORM="install-maemo"
+
+  # fremantle uses icons of 48x48 pixels for the app installer,
+  # older versions used 26x26
+  if [[ "$MAJOR" == "5" ]]; then
+     ICONNAME=maep.48.png
+     datarootdir=/opt
+  else	
+     ICONNAME=maep.26.png
+  fi
+
+  AC_MSG_NOTICE([Using application installer icon "$ICONNAME"])
+  
+  # add icon entry to debian/control
+  ICON=" Maemo icon $ICONNAME
+XB-Maemo-Icon-26:
+"
+
+  # generate base64 icon, remove first and last line 
+  # and add a space before each line
+  ICON="$ICON`uuencode -m data/$ICONNAME $ICONNAME | sed '1d;$d;s/^/ /' -`"
+
+], [
+  AC_MSG_RESULT(no)
+
+  # check for gtk+-2.0
+  PKG_CHECK_MODULES([gtk], [gtk+-2.0], [], [AC_MSG_ERROR([gtk+-2.0 missing!])])
+  CFLAGS="$CFLAGS $gtk_CFLAGS"
+  LIBS="$LIBS $gtk_LIBS"	   
+
+  INSTALL_PLATTFORM="install-debian"
+
+  ICON=" No icon"
+])
+
+AC_SUBST(EXTRA_OBJS)
+AC_SUBST(ICON)
+AC_SUBST(INSTALL_PLATTFORM)
+AC_CONFIG_FILES([Makefile src/Makefile data/Makefile debian/control])
+
+AC_OUTPUT

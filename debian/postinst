@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# The clock might be wrong and we know that we need to update the icon
+# cache so we just force it.
+
+gtk-update-icon-cache -f /usr/share/icons/hicolor
+
+MAEMO_SELECT_MENU=/usr/bin/maemo-select-menu-location
+
+oldversion="$2"
+if [ -z "$oldversion" ]; then
+  if [ -f $MAEMO_SELECT_MENU ]
+  then
+    maemo-select-menu-location maep.desktop
+  fi
+fi
+
+exit 0
