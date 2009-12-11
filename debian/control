@@ -9,7 +9,10 @@ Package: maep
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: Simple tile map
- Maep is a tile based map utility for services openstreetmap google maps.
-# XSBC-Bugtracker: https://garage.maemo.org/tracker/?group_id=973
+ Maep is a tile based map utility for services like openstreetmap, google maps
+ and virtual earth. This is the same map renderer that's also being used by
+ GPXView and OSM2Go. Maep is meant to easily be included into other programs
+ and to become a universal map widget for the Maemo5 platform.
+XSBC-Bugtracker: https://garage.maemo.org/tracker/?group_id=1150
 XB-Maemo-Display-Name: Maep
 # No icon

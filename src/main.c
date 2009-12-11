@@ -113,36 +113,6 @@ gconf_get_float(GConfClient *client, char *key, gfloat def_value) {
   return gconf_client_get_float(client, key, NULL);
 }
 
-/* setting the map center requires that the screen size of the */
-/* map is known. Thus we need to do this in the configure event */
-static gboolean on_map_configure(GtkWidget *widget,
-				 GdkEventConfigure *event,
-				 gpointer data) {
-  /* check if map setup is complete and initialize map if not */
-  if(!(gboolean)g_object_get_data(G_OBJECT(widget), "setup_complete")) {
-    gint zoom;
-    gfloat lat, lon;
-
-    /* for some reason there's a configure event with 1/1 */
-    /* on diablo. We just ignore these! */
-    if((widget->allocation.width < 100) || (widget->allocation.height < 100)) 
-      return FALSE;
-
-    /* get zoom, latitude and longitude from gconf if possible */
-    GConfClient *gconf_client = gconf_client_get_default();
-    zoom = gconf_get_int(gconf_client, GCONF_KEY_ZOOM, 3);
-    lat  = gconf_get_float(gconf_client, GCONF_KEY_LATITUDE, 50.0);
-    lon  = gconf_get_float(gconf_client, GCONF_KEY_LONGITUDE, 21.0);
-    
-    osm_gps_map_set_mapcenter(OSM_GPS_MAP(widget), lat, lon, zoom);
-    
-    /* set marker that the map setup is complete */
-    g_object_set_data(G_OBJECT(widget), "setup_complete", (gpointer)TRUE);
-  }
-
-  return FALSE;
-}
-
 /* save the entire map state into gconf to be able */
 /* to restore the state at the next startup */
 void map_save_state(GtkWidget *widget) {
@@ -234,9 +204,15 @@ static GtkWidget *map_new(void) {
 
   const char *proxy = get_proxy_uri();
 
-  gint source = gconf_get_int(gconf_client_get_default(), 
+  GConfClient *gconf_client = gconf_client_get_default();
+  gint source = gconf_get_int(gconf_client, 
 			      GCONF_KEY_SOURCE, MAP_SOURCE);
 
+  /* get zoom, latitude and longitude from gconf if possible */
+  gint zoom = gconf_get_int(gconf_client, GCONF_KEY_ZOOM, 3);
+  gfloat lat = gconf_get_float(gconf_client, GCONF_KEY_LATITUDE, 50.0);
+  gfloat lon = gconf_get_float(gconf_client, GCONF_KEY_LONGITUDE, 21.0);
+    
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
                  "tile-cache",               path,
@@ -247,10 +223,10 @@ static GtkWidget *map_new(void) {
                  NULL);
 
   g_free(path);
-  osm_gps_map_osd_classic_init(OSM_GPS_MAP(widget));
 
-  g_signal_connect(G_OBJECT(widget), "configure-event",
-		   G_CALLBACK(on_map_configure), NULL);
+  osm_gps_map_set_mapcenter(OSM_GPS_MAP(widget), lat, lon, zoom);
+
+  osm_gps_map_osd_classic_init(OSM_GPS_MAP(widget));
 
   /* connect to GPS */
   g_object_set_data(G_OBJECT(widget), "gps_state", 

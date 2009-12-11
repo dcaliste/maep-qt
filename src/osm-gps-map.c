@@ -1987,6 +1987,13 @@ osm_gps_map_configure (GtkWidget *widget, GdkEventConfigure *event)
                         widget->allocation.height + EXTRA_BORDER * 2,
                         -1);
 
+    // pixel_x,y, offsets
+    gint pixel_x = lon2pixel(priv->map_zoom, priv->center_rlon);
+    gint pixel_y = lat2pixel(priv->map_zoom, priv->center_rlat);
+
+    priv->map_x = pixel_x - widget->allocation.width/2;
+    priv->map_y = pixel_y - widget->allocation.height/2;
+
 #ifdef ENABLE_OSD
 
 #ifdef OSD_DOUBLE_BUFFER
