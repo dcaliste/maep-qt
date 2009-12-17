@@ -2352,6 +2352,8 @@ osm_gps_map_source_get_friendly_name(OsmGpsMapSource_t source)
             return "OpenStreetMap II";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
             return "OpenCycleMap";
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+            return "Public Transport";
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
             return "OSMC Trails";
         case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
@@ -2397,6 +2399,8 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
             return "http://c.andy.sandbox.cloudmade.com/tiles/cycle/#Z/#X/#Y.png";
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+            return "http://tile.xn--pnvkarte-m4a.de/tilegen/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
             return "http://topo.geofabrik.de/trails/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
@@ -2437,6 +2441,7 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
             return "png";
         case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
@@ -2471,6 +2476,7 @@ osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source)
             return 18;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
             return OSM_MAX_ZOOM;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:

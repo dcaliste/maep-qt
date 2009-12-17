@@ -1,7 +1,8 @@
 maep (1.0.1) unstable; urgency=low
 
   * Keep map centered on configure, no need for app to catch event anymore
-
+  * Added Public Transport map from öpnvkarte.de
+	
  -- Till Harbaum <till@harbaum.org>  Fri, 11 Dec 2009 11:05:37 +0100
 
 maep (1.0) unstable; urgency=low

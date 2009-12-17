@@ -4,6 +4,7 @@
  * osm-gps-map.h
  * Copyright (C) Marcus Bauer 2008 <marcus.bauer@gmail.com>
  * Copyright (C) John Stowers 2009 <john.stowers@gmail.com>
+ * Copyright (C) Till Harbaum 2009 <till@harbaum.org>
  *
  * Contributions by
  * Everaldo Canuto 2009 <everaldo.canuto@gmail.com>
@@ -66,6 +67,7 @@ typedef enum {
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER,
     OSM_GPS_MAP_SOURCE_OPENCYCLEMAP,
+    OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT,
     OSM_GPS_MAP_SOURCE_GOOGLE_STREET,
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET,
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
