@@ -26,7 +26,7 @@ VERSION = $${VERSION_PREFIX}@PACKAGE_VERSION@$${VERSION_SUFFIX}
 
 bindir = @bindir@
 
-OBJS = main.o gps.o $(EXTRA_OBJS) 
+OBJS = main.o menu.o gps.o $(EXTRA_OBJS) 
 
 DEFS = -DVERSION=\"$(VERSION)\" -DPREFIX=\"$(prefix)\" -DICONPATH=\"$(datadir)/$(APP)/\" -DAPP=\"$(APP)\"
 CFLAGS = -Wall -O2 $(DEFS) @CFLAGS@

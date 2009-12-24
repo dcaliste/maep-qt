@@ -30,6 +30,7 @@
 
 #include <gtk/gtk.h>
 #include "config.h"
+#include "menu.h"
 
 #include <locale.h>
 #include <libintl.h>
@@ -306,6 +307,9 @@ int main(int argc, char *argv[]) {
 
   g_signal_connect(G_OBJECT(window), "destroy", 
 		   G_CALLBACK(on_window_destroy), NULL);
+
+  /* attach menu to main window */
+  menu_create(window);
 
   /* create map widget */
   GtkWidget *map = map_new();
