@@ -255,11 +255,15 @@ on_window_realize(GtkWidget *widget, gpointer data) {
 #endif
 
 static void on_window_destroy (GtkWidget *widget, gpointer data) {
-  gps_state_t *state = g_object_get_data(G_OBJECT(widget), "gps_state");
-  if(state) gps_release(state);
-
-  map_save_state(GTK_WIDGET(data));
   gtk_main_quit();
+}
+
+static void on_map_destroy (GtkWidget *widget, gpointer data) {
+  gps_state_t *state = g_object_get_data(G_OBJECT(widget), "gps_state");
+  g_assert(state);
+
+  gps_release(state);
+  map_save_state(widget);
 }
 
 int main(int argc, char *argv[]) {
@@ -300,11 +304,14 @@ int main(int argc, char *argv[]) {
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 480);
 #endif
 
+  g_signal_connect(G_OBJECT(window), "destroy", 
+		   G_CALLBACK(on_window_destroy), NULL);
+
   /* create map widget */
   GtkWidget *map = map_new();
 
-  g_signal_connect(G_OBJECT(window), "destroy", 
-		   G_CALLBACK(on_window_destroy), map);
+  g_signal_connect(G_OBJECT(map), "destroy", 
+		   G_CALLBACK(on_map_destroy), NULL);
 
   gtk_container_add(GTK_CONTAINER(window), map);
 

@@ -1,3 +1,9 @@
+maep (1.0.2) unstable; urgency=low
+
+  * Fixed GPS disable on diablo/chinook
+
+ -- Till Harbaum <till@harbaum.org>  Thu, 24 Dec 2009 20:38:43 +0100
+
 maep (1.0.1) unstable; urgency=low
 
   * Keep map centered on configure, no need for app to catch event anymore
