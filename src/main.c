@@ -308,8 +308,9 @@ int main(int argc, char *argv[]) {
   g_signal_connect(G_OBJECT(window), "destroy", 
 		   G_CALLBACK(on_window_destroy), NULL);
 
-  /* attach menu to main window */
-  menu_create(window);
+  /* attach menu to main window, this may create a new container */
+  /* for the main view */
+  GtkWidget *container = menu_create(window);
 
   /* create map widget */
   GtkWidget *map = map_new();
@@ -317,7 +318,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(G_OBJECT(map), "destroy", 
 		   G_CALLBACK(on_map_destroy), NULL);
 
-  gtk_container_add(GTK_CONTAINER(window), map);
+  gtk_container_add(GTK_CONTAINER(container), map);
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();

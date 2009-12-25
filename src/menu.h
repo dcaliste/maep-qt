@@ -20,6 +20,6 @@
 #ifndef MENU_H
 #define MENU_H
 
-void menu_create(GtkWidget *window);
+GtkWidget *menu_create(GtkWidget *window);
 
 #endif // MENU_H
