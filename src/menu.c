@@ -16,31 +16,34 @@
  */
 
 #include <gtk/gtk.h>
+
 #include "config.h"
+#include "about.h"
 
 typedef enum { MENU_ENTRY, MENU_CHECK_ENTRY, 
 	       MENU_SEPARATOR, MENU_END } menu_type_t;
 
-typedef struct {
+typedef struct menu_entry_s {
   menu_type_t type;
   char *title;
-  /* callback */
+  void(*cb)(GtkWidget *, gpointer);
 } menu_entry_t;
 
-static const menu_entry_t main_menu[] = {
-  { MENU_ENTRY,           "About"         },
-  { MENU_SEPARATOR,       NULL            },
-  { MENU_CHECK_ENTRY,     "Capture Track" },
-  { MENU_ENTRY,           "Clear Track"   },
-  { MENU_ENTRY,           "Import Track"  },
-  { MENU_ENTRY,           "Export Track"  },
-
-  { MENU_END,             NULL            }
-};
-
 static void 
-cb_menu_about(GtkMenuItem *item, gpointer data) {
+cb_menu_about(GtkWidget *item, gpointer data) {
+  about_box(gtk_widget_get_toplevel(GTK_WIDGET(item)));
 }
+
+static const menu_entry_t main_menu[] = {
+  { MENU_ENTRY,           "About",         cb_menu_about },
+  { MENU_SEPARATOR,       NULL,            NULL },
+  { MENU_CHECK_ENTRY,     "Capture Track", NULL },
+  { MENU_ENTRY,           "Clear Track",   NULL },
+  { MENU_ENTRY,           "Import Track",  NULL },
+  { MENU_ENTRY,           "Export Track",  NULL },
+
+  { MENU_END,             NULL,            NULL }
+};
 
 void menu_build(GtkWidget *menu, const menu_entry_t *entry) {
 
@@ -51,6 +54,9 @@ void menu_build(GtkWidget *menu, const menu_entry_t *entry) {
     case MENU_ENTRY:
       item = gtk_menu_item_new_with_label( _(entry->title) );
       gtk_menu_append(GTK_MENU_SHELL(menu), item);
+      if(entry->cb)
+	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), NULL);
+      
       break;
 
     case MENU_SEPARATOR:
@@ -62,8 +68,6 @@ void menu_build(GtkWidget *menu, const menu_entry_t *entry) {
       break;
     }
 
-    //    g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(cb_menu_close), appdata);
-  
     entry++;
   }
 }

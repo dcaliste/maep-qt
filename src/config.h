@@ -20,8 +20,18 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <gtk/gtk.h>
+
 #include <locale.h>
 #include <libintl.h>
+
+#ifdef USE_MAEMO
+#include <hildon/hildon-program.h>
+#include <libosso.h>
+#if MAEMO_VERSION_MAJOR >= 5
+#define MAEMO5
+#endif
+#endif
 
 #define LOCALEDIR PREFIX "/share/locale"
 #define PACKAGE   "maep"

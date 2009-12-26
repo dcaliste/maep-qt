@@ -18,17 +18,14 @@
 #include <stdlib.h>
 
 #ifdef USE_MAEMO
-#include <hildon/hildon-program.h>
 #include <libosso.h>
+#endif
 
-#if (MAEMO_VERSION_MAJOR == 5)
+#ifdef MAEMO5
 #include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 #endif
 
-#endif
-
-#include <gtk/gtk.h>
 #include "config.h"
 #include "menu.h"
 
@@ -236,7 +233,7 @@ static GtkWidget *map_new(void) {
   return widget;
 }
 
-#if (MAEMO_VERSION_MAJOR == 5) && !defined(__i386__)
+#if defined(MAEMO5) && !defined(__i386__)
 /* get access to zoom buttons */
 static void
 on_window_realize(GtkWidget *widget, gpointer data) {
@@ -256,6 +253,14 @@ on_window_realize(GtkWidget *widget, gpointer data) {
 #endif
 
 static void on_window_destroy (GtkWidget *widget, gpointer data) {
+#ifdef USE_MAEMO
+  osso_context_t *osso_context =  g_object_get_data(G_OBJECT(widget), "osso-context");
+  g_assert(osso_context);
+
+  if(osso_context)
+    osso_deinitialize(osso_context);
+#endif
+
   gtk_main_quit();
 }
 
@@ -289,7 +294,10 @@ int main(int argc, char *argv[]) {
   GtkWidget *window = hildon_window_new();
   hildon_program_add_window(program, HILDON_WINDOW(window));
 
-#if MAEMO_VERSION_MAJOR == 5
+  g_object_set_data(G_OBJECT(window), "osso-context",
+	    osso_initialize("org.harbaum."APP, VERSION, TRUE, NULL));
+
+#if MAEMO_VERSION_MAJOR >= 5
   gtk_window_set_title(GTK_WINDOW(window), "Mæp");
 #ifndef __i386__
   g_signal_connect(G_OBJECT(window), "realize", 

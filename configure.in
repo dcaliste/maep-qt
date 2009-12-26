@@ -115,6 +115,20 @@ PKG_CHECK_EXISTS(maemo-version, [
     ])
   ]) 
 
+  PKG_CHECK_EXISTS(tablet-browser-interface, [
+    CFLAGS="$CFLAGS -DENABLE_BROWSER_INTERFACE"
+  ], [AC_MSG_NOTICE([WARNING: No tablet-browser-interface found, disabling microb interface!])])
+
+  PKG_CHECK_EXISTS(maemo-version, [
+    VERSION=`pkg-config --modversion maemo-version`
+    AC_MSG_NOTICE([Configuring for Maemo $VERSION])
+    CFLAGS="$CFLAGS -DMAEMO_VERSION=\\\"$VERSION\\\""
+    MAJOR=`echo $VERSION | cut -b1 -`
+    CFLAGS="$CFLAGS -DMAEMO_VERSION_MAJOR=$MAJOR"
+  ], [
+    AC_MSG_ERROR([maemo-version not found])
+  ])
+
   PKG_CHECK_EXISTS(maemo-version, [
     VERSION=`pkg-config --modversion maemo-version`
     AC_MSG_NOTICE([Configuring for Maemo $VERSION])
@@ -157,6 +171,11 @@ XB-Maemo-Icon-26:
   PKG_CHECK_MODULES([gtk], [gtk+-2.0], [], [AC_MSG_ERROR([gtk+-2.0 missing!])])
   CFLAGS="$CFLAGS $gtk_CFLAGS"
   LIBS="$LIBS $gtk_LIBS"	   
+
+  # non-maemo device use gnome to call the web browser
+  PKG_CHECK_MODULES([gnome2], [libgnome-2.0], [], [AC_MSG_ERROR([libgnome-2.0 missing])])
+  CFLAGS="$CFLAGS $gnome2_CFLAGS -DENABLE_BROWSER_INTERFACE"
+  LIBS="$LIBS $gnome2_LIBS"
 
   INSTALL_PLATTFORM="install-debian"
 

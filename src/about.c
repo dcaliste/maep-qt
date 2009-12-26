@@ -17,16 +17,28 @@
  * along with Maep.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "appdata.h"
+#include "config.h"
+#include "misc.h"
+#include "icon.h"
+#include "about.h"
 
-#ifndef FREMANTLE
+#ifndef MAEMO5
 #define LINK_COLOR "blue"
 #else
 #define LINK_COLOR "lightblue"
 #endif
 
 #ifdef ENABLE_BROWSER_INTERFACE
-static void browser_url(appdata_t *appdata, char *url) {
+#include <strings.h>
+#ifndef USE_MAEMO
+#include <libgnome/gnome-url.h>
+#else
+#include <tablet-browser-interface.h>
+#endif
+#endif
+
+#ifdef ENABLE_BROWSER_INTERFACE
+static void browser_url(char *url) {
 #ifndef USE_HILDON
   /* taken from gnome-open, part of libgnome */
   GError *err = NULL;
@@ -45,17 +57,16 @@ static gboolean on_link_clicked(GtkWidget *widget, GdkEventButton *event,
   const char *str = 
     gtk_label_get_text(GTK_LABEL(gtk_bin_get_child(GTK_BIN(widget))));
   
-  browser_url((appdata_t*)user_data, (char*)str);
+  browser_url((char*)str);
   return TRUE;
 }
 #endif
 
-static GtkWidget *link_new(appdata_t *appdata, const char *url) {
+static GtkWidget *link_new(const char *url) {
 #ifdef ENABLE_BROWSER_INTERFACE
-  if(appdata) {
+  if(!strncasecmp(url, "http://", 7)) {
     GtkWidget *label = gtk_label_new("");
-    char *str = g_strdup_printf("<span color=\"" LINK_COLOR 
-				"\"><u>%s</u></span>", url);
+    char *str = g_strdup_printf("<span color=\"" LINK_COLOR "\"><u>%s</u></span>", url);
     gtk_label_set_markup(GTK_LABEL(label), str);
     g_free(str);
     
@@ -63,7 +74,7 @@ static GtkWidget *link_new(appdata_t *appdata, const char *url) {
     gtk_container_add(GTK_CONTAINER(eventbox), label);
     
     g_signal_connect(eventbox, "button-press-event", 
-		     G_CALLBACK(on_link_clicked), appdata); 
+		     G_CALLBACK(on_link_clicked), NULL); 
     return eventbox;
   }
 #endif
@@ -75,11 +86,8 @@ static GtkWidget *link_new(appdata_t *appdata, const char *url) {
 }
 
 #ifdef ENABLE_BROWSER_INTERFACE
-void on_paypal_button_clicked(GtkButton *button, appdata_t *appdata) {
-  //  gtk_dialog_response(GTK_DIALOG(context->dialog), GTK_RESPONSE_ACCEPT); 
-  browser_url(appdata, 
-	      "https://www.paypal.com/cgi-bin/webscr"
-	      "?cmd=_s-xclick&hosted_button_id=7400558");
+void on_paypal_button_clicked(GtkButton *button) {
+  browser_url("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558");
 }
 #endif
 
@@ -128,30 +136,23 @@ GtkWidget *license_page_new(void) {
   FILE *file = fopen(name, "r");
   g_free(name);
 
-  if(!file) {
-    /* loading from installation path failed, try to load */
-    /* from local directory (for debugging) */
-    name = g_strdup("./data/COPYING");
-    file = fopen(name, "r");
-    g_free(name);
-  }
-
   if(file) {
     fseek(file, 0l, SEEK_END);
     int flen = ftell(file);
     fseek(file, 0l, SEEK_SET);
 
     char *buffer = g_malloc(flen+1);
-    fread(buffer, 1, flen, file);
+    if(fread(buffer, 1, flen, file) != flen)
+      gtk_label_set_text(GTK_LABEL(label), _("Load error"));
+    else {
+      buffer[flen]=0;
+      gtk_label_set_text(GTK_LABEL(label), buffer);
+    }
+
     fclose(file);
-
-    buffer[flen]=0;
-
-    gtk_label_set_text(GTK_LABEL(label), buffer);
-
     g_free(buffer);
   } else
-    gtk_label_set_text(GTK_LABEL(label), _("Load error"));
+    gtk_label_set_text(GTK_LABEL(label), _("Open error"));
 
 #ifndef USE_PANNABLE_AREA
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
@@ -170,7 +171,7 @@ GtkWidget *license_page_new(void) {
 #endif
 }
 
-GtkWidget *copyright_page_new(appdata_t *appdata) {
+GtkWidget *copyright_page_new(void) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   /* ------------------------ */
@@ -179,13 +180,14 @@ GtkWidget *copyright_page_new(appdata_t *appdata) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
   GtkWidget *ihbox = gtk_hbox_new(FALSE, 20);
   gtk_box_pack_start(GTK_BOX(ihbox), 
-#ifdef FREMANTLE
-		     icon_widget_load(&appdata->icon, "maep"),
+#ifdef MAEMO5
+		     icon_get(ihbox, "maep.64"),
 #else
-		     icon_widget_load(&appdata->icon, "maep.32"),
+		     icon_get(ihbox, "maep.32"),
 #endif
 		     FALSE, FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(ihbox), label_xbig("Maep"), 
+
+  gtk_box_pack_start(GTK_BOX(ihbox), label_xbig("Mæp"), 
 		     FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(hbox), ihbox, TRUE, FALSE, 0);
@@ -213,8 +215,8 @@ GtkWidget *copyright_page_new(appdata_t *appdata) {
 	      gtk_label_new(_("Copyright 2008-2009")), FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(ivbox), 
-      link_new(appdata, "http://www.harbaum.org/till/maemo#maep"),
-			      FALSE, FALSE, 0);
+      link_new("http://www.harbaum.org/till/maemo#maep"),
+		     FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
@@ -265,17 +267,18 @@ GtkWidget *authors_page_new(void) {
 #endif
 }  
 
-GtkWidget *donate_page_new(appdata_t *appdata) {
+GtkWidget *donate_page_new(void) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("If you like Maep and want to support its future development "
+      label_wrap(_("If you like Mæp and want to support its future development "
 		   "please consider donating to the developer. You can either "
 		   "donate via paypal to")));
   
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-			      link_new(NULL, "till@harbaum.org"));
+			      link_new("till@harbaum.org"));
   
+#ifdef ENABLE_BROWSER_INTERFACE
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("or you can just click the button below which will open "
 		   "the appropriate web page in your browser.")));
@@ -283,38 +286,39 @@ GtkWidget *donate_page_new(appdata_t *appdata) {
   GtkWidget *ihbox = gtk_hbox_new(FALSE, 0);
   GtkWidget *button = gtk_button_new();
   gtk_button_set_image(GTK_BUTTON(button), 
-#ifdef FREMANTLE
-		     icon_widget_load(&appdata->icon, "paypal.64")
+#ifdef MAEMO5
+		     icon_get(ihbox, "paypal.64")
 #else
-		     icon_widget_load(&appdata->icon, "paypal.32")
+		     icon_get(ihbox, "paypal.32")
 #endif
 		       );
   gtk_button_set_relief(GTK_BUTTON(button), GTK_RELIEF_NONE);
   g_signal_connect(button, "clicked", 
-		   G_CALLBACK(on_paypal_button_clicked), appdata); 
+		   G_CALLBACK(on_paypal_button_clicked), NULL); 
   gtk_box_pack_start(GTK_BOX(ihbox), button, TRUE, FALSE, 0);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), ihbox);
+#endif
 
   return vbox;
 }  
 
-GtkWidget *bugs_page_new(appdata_t *appdata) {
+GtkWidget *bugs_page_new(void) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("Please report bugs or feature requests via the Maep "
+      label_wrap(_("Please report bugs or feature requests via the Mæp "
 		   "bug tracker. This bug tracker can directly be reached via "
 		   "the following link:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-       link_new(appdata, "http://garage.maemo.org/tracker/?group_id=1150"));
+      link_new("http://garage.maemo.org/tracker/?group_id=1150"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("You might also be interested in joining the mailing lists "
 		   "or the forum:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-	      link_new(appdata, "http://garage.maemo.org/projects/maep/"));
+	      link_new("http://garage.maemo.org/projects/maep/"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("Thank you for contributing!")));
@@ -322,12 +326,12 @@ GtkWidget *bugs_page_new(appdata_t *appdata) {
   return vbox;
 }  
 
-void about_box(appdata_t *appdata) {
-  GtkWidget *dialog = gtk_dialog_new_with_buttons(_("About Maep"),
-	  GTK_WINDOW(appdata->window), GTK_DIALOG_MODAL,
+void about_box(GtkWidget *parent) {
+  GtkWidget *dialog = gtk_dialog_new_with_buttons(_("About Mæp"),
+	  GTK_WINDOW(parent), GTK_DIALOG_MODAL,
           GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
 
-#ifdef USE_HILDON
+#ifdef USE_MAEMO
   gtk_window_set_default_size(GTK_WINDOW(dialog), 640, 480);
 #else
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
@@ -335,11 +339,11 @@ void about_box(appdata_t *appdata) {
 
   GtkWidget *notebook = notebook_new();
 
-  notebook_append_page(notebook, copyright_page_new(appdata), _("Copyright"));
-  notebook_append_page(notebook, license_page_new(),          _("License"));
-  notebook_append_page(notebook, authors_page_new(),          _("Authors"));
-  notebook_append_page(notebook, donate_page_new(appdata),    _("Donate"));
-  notebook_append_page(notebook, bugs_page_new(appdata),      _("Bugs"));
+  notebook_append_page(notebook, copyright_page_new(), _("Copyright"));
+  notebook_append_page(notebook, license_page_new(),   _("License"));
+  notebook_append_page(notebook, authors_page_new(),   _("Authors"));
+  notebook_append_page(notebook, donate_page_new(),    _("Donate"));
+  notebook_append_page(notebook, bugs_page_new(),      _("Bugs"));
 
   gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox),
 			      notebook);

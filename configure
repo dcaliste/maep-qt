@@ -606,6 +606,8 @@ LIBOBJS
 INSTALL_PLATTFORM
 ICON
 EXTRA_OBJS
+gnome2_LIBS
+gnome2_CFLAGS
 gtk_LIBS
 gtk_CFLAGS
 MAEMO_VERSION_MAJOR
@@ -706,7 +708,9 @@ gpsbt_LIBS
 liblocation_CFLAGS
 liblocation_LIBS
 gtk_CFLAGS
-gtk_LIBS'
+gtk_LIBS
+gnome2_CFLAGS
+gnome2_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1362,6 +1366,9 @@ Some influential environment variables:
               linker flags for liblocation, overriding pkg-config
   gtk_CFLAGS  C compiler flags for gtk, overriding pkg-config
   gtk_LIBS    linker flags for gtk, overriding pkg-config
+  gnome2_CFLAGS
+              C compiler flags for gnome2, overriding pkg-config
+  gnome2_LIBS linker flags for gnome2, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3895,6 +3902,42 @@ fi
 fi
 
   if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"tablet-browser-interface\"") >&5
+  ($PKG_CONFIG --exists --print-errors "tablet-browser-interface") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+
+    CFLAGS="$CFLAGS -DENABLE_BROWSER_INTERFACE"
+
+else
+  { $as_echo "$as_me:$LINENO: WARNING: No tablet-browser-interface found, disabling microb interface!" >&5
+$as_echo "$as_me: WARNING: No tablet-browser-interface found, disabling microb interface!" >&6;}
+fi
+
+  if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"maemo-version\"") >&5
+  ($PKG_CONFIG --exists --print-errors "maemo-version") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+
+    VERSION=`pkg-config --modversion maemo-version`
+    { $as_echo "$as_me:$LINENO: Configuring for Maemo $VERSION" >&5
+$as_echo "$as_me: Configuring for Maemo $VERSION" >&6;}
+    CFLAGS="$CFLAGS -DMAEMO_VERSION=\\\"$VERSION\\\""
+    MAJOR=`echo $VERSION | cut -b1 -`
+    CFLAGS="$CFLAGS -DMAEMO_VERSION_MAJOR=$MAJOR"
+
+else
+
+    { { $as_echo "$as_me:$LINENO: error: maemo-version not found" >&5
+$as_echo "$as_me: error: maemo-version not found" >&2;}
+   { (exit 1); exit 1; }; }
+
+fi
+
+  if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"maemo-version\"") >&5
   ($PKG_CONFIG --exists --print-errors "maemo-version") 2>&5
   ac_status=$?
@@ -4026,6 +4069,85 @@ $as_echo "yes" >&6; }
 fi
   CFLAGS="$CFLAGS $gtk_CFLAGS"
   LIBS="$LIBS $gtk_LIBS"
+
+  # non-maemo device use gnome to call the web browser
+
+pkg_failed=no
+{ $as_echo "$as_me:$LINENO: checking for gnome2" >&5
+$as_echo_n "checking for gnome2... " >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$gnome2_CFLAGS"; then
+        pkg_cv_gnome2_CFLAGS="$gnome2_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libgnome-2.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libgnome-2.0") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_gnome2_CFLAGS=`$PKG_CONFIG --cflags "libgnome-2.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$gnome2_LIBS"; then
+        pkg_cv_gnome2_LIBS="$gnome2_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libgnome-2.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libgnome-2.0") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_gnome2_LIBS=`$PKG_CONFIG --libs "libgnome-2.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        gnome2_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libgnome-2.0"`
+        else
+	        gnome2_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libgnome-2.0"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$gnome2_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+                { { $as_echo "$as_me:$LINENO: error: libgnome-2.0 missing" >&5
+$as_echo "$as_me: error: libgnome-2.0 missing" >&2;}
+   { (exit 1); exit 1; }; }
+elif test $pkg_failed = untried; then
+	{ { $as_echo "$as_me:$LINENO: error: libgnome-2.0 missing" >&5
+$as_echo "$as_me: error: libgnome-2.0 missing" >&2;}
+   { (exit 1); exit 1; }; }
+else
+	gnome2_CFLAGS=$pkg_cv_gnome2_CFLAGS
+	gnome2_LIBS=$pkg_cv_gnome2_LIBS
+        { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+	:
+fi
+  CFLAGS="$CFLAGS $gnome2_CFLAGS -DENABLE_BROWSER_INTERFACE"
+  LIBS="$LIBS $gnome2_LIBS"
 
   INSTALL_PLATTFORM="install-debian"
 
