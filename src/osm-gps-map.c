@@ -1325,6 +1325,7 @@ center_coord_update(GtkWidget *widget) {
     gint pixel_x = priv->map_x + widget->allocation.width/2;
     gint pixel_y = priv->map_y + widget->allocation.height/2;
 
+    printf("coord update\n");
     priv->center_rlon = pixel2lon(priv->map_zoom, pixel_x);
     priv->center_rlat = pixel2lat(priv->map_zoom, pixel_y);
 }
@@ -1718,7 +1719,6 @@ static void
 osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
     g_return_if_fail (OSM_IS_GPS_MAP (object));
-    float lat,lon;
     OsmGpsMap *map = OSM_GPS_MAP(object);
     OsmGpsMapPrivate *priv = map->priv;
 
@@ -1755,14 +1755,10 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             g_value_set_int(value, priv->min_zoom);
             break;
         case PROP_LATITUDE:
-            lat = pixel2lat(priv->map_zoom,
-                            priv->map_y + (GTK_WIDGET(map)->allocation.height / 2));
-            g_value_set_float(value, rad2deg(lat));
+            g_value_set_float(value, rad2deg(priv->center_rlat));
             break;
         case PROP_LONGITUDE:
-            lon = pixel2lon(priv->map_zoom,
-                            priv->map_x + (GTK_WIDGET(map)->allocation.width / 2));
-            g_value_set_float(value, rad2deg(lon));
+            g_value_set_float(value, rad2deg(priv->center_rlon));
             break;
         case PROP_MAP_X:
             g_value_set_int(value, priv->map_x);

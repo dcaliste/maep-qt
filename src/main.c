@@ -262,8 +262,8 @@ static void on_window_destroy (GtkWidget *widget, gpointer data) {
 static void on_map_destroy (GtkWidget *widget, gpointer data) {
   gps_state_t *state = g_object_get_data(G_OBJECT(widget), "gps_state");
   g_assert(state);
-
   gps_release(state);
+
   map_save_state(widget);
 }
 
@@ -283,14 +283,14 @@ int main(int argc, char *argv[]) {
 #ifdef USE_MAEMO
   /* Create the hildon program and setup the title */
   HildonProgram *program = HILDON_PROGRAM(hildon_program_get_instance());
-  g_set_application_name("Maep");
+  g_set_application_name("Mæp");
   
   /* Create HildonWindow and set it to HildonProgram */
   GtkWidget *window = hildon_window_new();
   hildon_program_add_window(program, HILDON_WINDOW(window));
 
 #if MAEMO_VERSION_MAJOR == 5
-  gtk_window_set_title(GTK_WINDOW(window), "Maep");
+  gtk_window_set_title(GTK_WINDOW(window), "Mæp");
 #ifndef __i386__
   g_signal_connect(G_OBJECT(window), "realize", 
 		   G_CALLBACK(on_window_realize), NULL);
@@ -303,6 +303,8 @@ int main(int argc, char *argv[]) {
   GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   /* Set a decent default size for the window. */
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 480);
+
+  gtk_window_set_title(GTK_WINDOW(window), "Mæp");
 #endif
 
   g_signal_connect(G_OBJECT(window), "destroy", 
