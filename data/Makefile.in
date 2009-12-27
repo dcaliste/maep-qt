@@ -22,5 +22,8 @@ install-maemo:
 	install -m 644 $(APP).64.png $(DESTDIR)$(prefix)/share/icons/hicolor/scalable/hildon/$(APP).png
 
 install: @INSTALL_PLATTFORM@
+	install -d $(DESTDIR)$(datadir)/$(APP)
+	install -m 644 COPYING *.png $(DESTDIR)$(datadir)/$(APP)
+
 
 

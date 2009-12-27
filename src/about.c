@@ -25,6 +25,7 @@
 #ifndef MAEMO5
 #define LINK_COLOR "blue"
 #else
+#include <hildon/hildon-pannable-area.h>
 #define LINK_COLOR "lightblue"
 #endif
 
@@ -38,18 +39,20 @@
 #endif
 
 #ifdef ENABLE_BROWSER_INTERFACE
+#ifndef USE_MAEMO
 static void browser_url(char *url) {
-#ifndef USE_HILDON
   /* taken from gnome-open, part of libgnome */
   GError *err = NULL;
   gnome_url_show(url, &err);
+}
 #else
-  osso_rpc_run_with_defaults(appdata->osso_context, "osso_browser",
+static void browser_url(osso_context_t *osso_context, char *url) {
+  osso_rpc_run_with_defaults(osso_context, "osso_browser",
 			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,
 			     DBUS_TYPE_STRING, url,
 			     DBUS_TYPE_BOOLEAN, FALSE, DBUS_TYPE_INVALID);
-#endif
 }
+#endif
 
 static gboolean on_link_clicked(GtkWidget *widget, GdkEventButton *event,
 				gpointer user_data) {
@@ -57,16 +60,22 @@ static gboolean on_link_clicked(GtkWidget *widget, GdkEventButton *event,
   const char *str = 
     gtk_label_get_text(GTK_LABEL(gtk_bin_get_child(GTK_BIN(widget))));
   
-  browser_url((char*)str);
+  browser_url(
+#ifdef USE_MAEMO
+	      (osso_context_t *)user_data,
+#endif
+	      (char*)str);  
+
   return TRUE;
 }
 #endif
 
-static GtkWidget *link_new(const char *url) {
+static GtkWidget *link_new(GtkWidget *parent, const char *url) {
 #ifdef ENABLE_BROWSER_INTERFACE
   if(!strncasecmp(url, "http://", 7)) {
     GtkWidget *label = gtk_label_new("");
-    char *str = g_strdup_printf("<span color=\"" LINK_COLOR "\"><u>%s</u></span>", url);
+    char *str = g_strdup_printf("<span color=\"" LINK_COLOR 
+				"\"><u>%s</u></span>", url);
     gtk_label_set_markup(GTK_LABEL(label), str);
     g_free(str);
     
@@ -74,7 +83,14 @@ static GtkWidget *link_new(const char *url) {
     gtk_container_add(GTK_CONTAINER(eventbox), label);
     
     g_signal_connect(eventbox, "button-press-event", 
-		     G_CALLBACK(on_link_clicked), NULL); 
+		     G_CALLBACK(on_link_clicked), 
+#ifndef USE_MAEMO
+		     NULL
+#else
+		     g_object_get_data(G_OBJECT(parent), "osso-context")
+#endif
+		     );
+
     return eventbox;
   }
 #endif
@@ -86,8 +102,13 @@ static GtkWidget *link_new(const char *url) {
 }
 
 #ifdef ENABLE_BROWSER_INTERFACE
-void on_paypal_button_clicked(GtkButton *button) {
-  browser_url("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558");
+void on_paypal_button_clicked(GtkButton *button, gpointer user_data) {
+  browser_url(
+#ifdef USE_MAEMO
+	      (osso_context_t *)user_data,
+#endif
+	      "https://www.paypal.com/cgi-bin/webscr?"
+	      "cmd=_s-xclick&hosted_button_id=7400558");
 }
 #endif
 
@@ -127,7 +148,7 @@ GtkWidget *label_wrap(char *str) {
   return label;
 }
 
-GtkWidget *license_page_new(void) {
+GtkWidget *license_page_new(GtkWidget *parent) {
   char *name = find_file("COPYING");
 
   GtkWidget *label = label_wrap("");
@@ -154,7 +175,7 @@ GtkWidget *license_page_new(void) {
   } else
     gtk_label_set_text(GTK_LABEL(label), _("Open error"));
 
-#ifndef USE_PANNABLE_AREA
+#ifndef MAEMO5
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
   				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
@@ -171,7 +192,7 @@ GtkWidget *license_page_new(void) {
 #endif
 }
 
-GtkWidget *copyright_page_new(void) {
+GtkWidget *copyright_page_new(GtkWidget *parent) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   /* ------------------------ */
@@ -215,8 +236,8 @@ GtkWidget *copyright_page_new(void) {
 	      gtk_label_new(_("Copyright 2008-2009")), FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(ivbox), 
-      link_new("http://www.harbaum.org/till/maemo#maep"),
-		     FALSE, FALSE, 0);
+	     link_new(parent, "http://www.harbaum.org/till/maemo#maep"),
+	     FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
@@ -234,7 +255,7 @@ static void author_add(GtkWidget *box, char *str) {
   gtk_box_pack_start(GTK_BOX(box), left_label(str), FALSE, FALSE, 0);
 }
 
-GtkWidget *authors_page_new(void) {
+GtkWidget *authors_page_new(GtkWidget *parent) {
   GtkWidget *ivbox, *vbox = gtk_vbox_new(FALSE, 16);
 
   /* -------------------------------------------- */
@@ -250,7 +271,7 @@ GtkWidget *authors_page_new(void) {
   author_add(ivbox, "Marcus Bauer <marcus.bauer@gmail.com>"),
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
-#ifndef USE_PANNABLE_AREA
+#ifndef MAEMO5
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
   				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
@@ -267,7 +288,7 @@ GtkWidget *authors_page_new(void) {
 #endif
 }  
 
-GtkWidget *donate_page_new(void) {
+GtkWidget *donate_page_new(GtkWidget *parent) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
@@ -276,7 +297,7 @@ GtkWidget *donate_page_new(void) {
 		   "donate via paypal to")));
   
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-			      link_new("till@harbaum.org"));
+		      link_new(parent, "till@harbaum.org"));
   
 #ifdef ENABLE_BROWSER_INTERFACE
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
@@ -294,7 +315,14 @@ GtkWidget *donate_page_new(void) {
 		       );
   gtk_button_set_relief(GTK_BUTTON(button), GTK_RELIEF_NONE);
   g_signal_connect(button, "clicked", 
-		   G_CALLBACK(on_paypal_button_clicked), NULL); 
+		   G_CALLBACK(on_paypal_button_clicked), 
+#ifndef USE_MAEMO
+		   NULL
+#else
+		   g_object_get_data(G_OBJECT(parent), "osso-context")
+#endif
+		   );
+ 
   gtk_box_pack_start(GTK_BOX(ihbox), button, TRUE, FALSE, 0);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), ihbox);
 #endif
@@ -302,7 +330,7 @@ GtkWidget *donate_page_new(void) {
   return vbox;
 }  
 
-GtkWidget *bugs_page_new(void) {
+GtkWidget *bugs_page_new(GtkWidget *parent) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
@@ -311,14 +339,14 @@ GtkWidget *bugs_page_new(void) {
 		   "the following link:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      link_new("http://garage.maemo.org/tracker/?group_id=1150"));
+      link_new(parent, "http://garage.maemo.org/tracker/?group_id=1150"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("You might also be interested in joining the mailing lists "
 		   "or the forum:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-	      link_new("http://garage.maemo.org/projects/maep/"));
+      link_new(parent, "http://garage.maemo.org/projects/maep/"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("Thank you for contributing!")));
@@ -339,11 +367,11 @@ void about_box(GtkWidget *parent) {
 
   GtkWidget *notebook = notebook_new();
 
-  notebook_append_page(notebook, copyright_page_new(), _("Copyright"));
-  notebook_append_page(notebook, license_page_new(),   _("License"));
-  notebook_append_page(notebook, authors_page_new(),   _("Authors"));
-  notebook_append_page(notebook, donate_page_new(),    _("Donate"));
-  notebook_append_page(notebook, bugs_page_new(),      _("Bugs"));
+  notebook_append_page(notebook, copyright_page_new(parent), _("Copyright"));
+  notebook_append_page(notebook, license_page_new(parent),   _("License"));
+  notebook_append_page(notebook, authors_page_new(parent),   _("Authors"));
+  notebook_append_page(notebook, donate_page_new(parent),    _("Donate"));
+  notebook_append_page(notebook, bugs_page_new(parent),      _("Bugs"));
 
   gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox),
 			      notebook);

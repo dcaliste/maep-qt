@@ -20,6 +20,7 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "misc.h"
 
 static const char *data_paths[] = {
@@ -91,7 +92,6 @@ GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook) {
 #endif                                                                 
 }                                                                      
 
-
 #ifdef MAEMO5
 static void on_notebook_button_clicked(GtkWidget *button, gpointer data) {
   GtkNotebook *nb =                                                       
@@ -128,10 +128,8 @@ void notebook_append_page(GtkWidget *notebook,
   gtk_signal_connect(GTK_OBJECT(button), "clicked",
            GTK_SIGNAL_FUNC(on_notebook_button_clicked), notebook);
 
-#if defined(USE_HILDON) && (MAEMO_VERSION_MAJOR == 5)
   hildon_gtk_widget_set_theme_size(button,           
            (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH));
-#endif                                                           
 
   gtk_box_pack_start_defaults(
               GTK_BOX(g_object_get_data(G_OBJECT(notebook), "hbox")),

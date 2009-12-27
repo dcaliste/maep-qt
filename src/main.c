@@ -21,13 +21,13 @@
 #include <libosso.h>
 #endif
 
+#include "config.h"
+#include "menu.h"
+
 #ifdef MAEMO5
 #include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 #endif
-
-#include "config.h"
-#include "menu.h"
 
 #include <locale.h>
 #include <libintl.h>

@@ -129,19 +129,6 @@ PKG_CHECK_EXISTS(maemo-version, [
     AC_MSG_ERROR([maemo-version not found])
   ])
 
-  PKG_CHECK_EXISTS(maemo-version, [
-    VERSION=`pkg-config --modversion maemo-version`
-    AC_MSG_NOTICE([Configuring for Maemo $VERSION])
-    CFLAGS="$CFLAGS -DMAEMO_VERSION=\\\"$VERSION\\\""
-    MAJOR=`echo $VERSION | cut -b1 -`
-    CFLAGS="$CFLAGS -DMAEMO_VERSION_MAJOR=$MAJOR"
-
-    MAEMO_VERSION_MAJOR=$MAJOR
-    AC_SUBST(MAEMO_VERSION_MAJOR)
-  ], [
-    AC_MSG_ERROR([maemo-version not found])
-  ])
-
   INSTALL_PLATTFORM="install-maemo"
 
   # fremantle uses icons of 48x48 pixels for the app installer,

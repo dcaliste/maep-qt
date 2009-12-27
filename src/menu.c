@@ -31,7 +31,7 @@ typedef struct menu_entry_s {
 
 static void 
 cb_menu_about(GtkWidget *item, gpointer data) {
-  about_box(gtk_widget_get_toplevel(GTK_WIDGET(item)));
+  about_box(GTK_WIDGET(data));
 }
 
 static const menu_entry_t main_menu[] = {
@@ -45,22 +45,28 @@ static const menu_entry_t main_menu[] = {
   { MENU_END,             NULL,            NULL }
 };
 
-void menu_build(GtkWidget *menu, const menu_entry_t *entry) {
-
+void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
   while(entry->type != MENU_END) {
     GtkWidget *item = NULL;
 
     switch(entry->type) {
     case MENU_ENTRY:
+#ifndef MAEMO5
       item = gtk_menu_item_new_with_label( _(entry->title) );
       gtk_menu_append(GTK_MENU_SHELL(menu), item);
       if(entry->cb)
-	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), NULL);
-      
+	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), window);
+#else
+      item = gtk_button_new_with_label( _(entry->title) );
+      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), window);
+      hildon_app_menu_append(HILDON_APP_MENU(menu), GTK_BUTTON(item));
+#endif
       break;
 
     case MENU_SEPARATOR:
+#ifndef MAEMO5
       gtk_menu_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+#endif
       break;
 
     default:
@@ -73,11 +79,15 @@ void menu_build(GtkWidget *menu, const menu_entry_t *entry) {
 }
 
 GtkWidget *menu_create(GtkWidget *window) {
-
-  printf("creating menu\n");
-
+#ifdef MAEMO5
+  HildonAppMenu *menu = HILDON_APP_MENU(hildon_app_menu_new());
+  menu_build(window, GTK_WIDGET(menu), main_menu);
+  gtk_widget_show_all(GTK_WIDGET(menu));
+  hildon_window_set_app_menu(HILDON_WINDOW(window), menu);
+  return window;
+#else
   GtkWidget *menu = gtk_menu_new();
-  menu_build(menu, main_menu);
+  menu_build(window, menu, main_menu);
 
 #ifdef USE_MAEMO
   hildon_window_set_menu(HILDON_WINDOW(window), GTK_MENU(menu));
@@ -101,5 +111,6 @@ GtkWidget *menu_create(GtkWidget *window) {
   gtk_box_pack_start_defaults(GTK_BOX(vbox), bin);
 
   return bin;
+#endif
 #endif 
 }
