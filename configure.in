@@ -60,6 +60,11 @@ PKG_CHECK_MODULES([gnome_vfs_module], [gnome-vfs-module-2.0], [], [AC_MSG_ERROR(
 CFLAGS="$CFLAGS $gnome_vfs_module_CFLAGS"
 LIBS="$LIBS $gnome_vfs_module_LIBS"
 
+# check for libxml-2.0
+PKG_CHECK_MODULES([libxml2], [libxml-2.0], [], [AC_MSG_ERROR([libxml-2.0 missing])])
+CFLAGS="$CFLAGS $libxml2_CFLAGS"
+LIBS="$LIBS $libxml2_LIBS"
+
 # check for libsoup
 PKG_CHECK_MODULES([libsoup24], [libsoup-2.4], [
   EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
