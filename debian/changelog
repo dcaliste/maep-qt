@@ -1,3 +1,13 @@
+maep (1.1) unstable; urgency=low
+
+  * Added application menu
+  * Added about box
+  * Added /opt-ified icon processing
+  * Added browser interface
+  * In progress: track handling
+
+ -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
+
 maep (1.0.2) unstable; urgency=low
 
   * Fixed GPS disable on diablo/chinook

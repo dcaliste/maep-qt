@@ -20,6 +20,11 @@
 #include "config.h"
 #include "about.h"
 
+#ifdef MAEMO5
+#include <hildon/hildon-button.h>
+#include <hildon/hildon-check-button.h>
+#endif
+
 typedef enum { MENU_ENTRY, MENU_CHECK_ENTRY, 
 	       MENU_SEPARATOR, MENU_END } menu_type_t;
 
@@ -57,11 +62,32 @@ void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
       if(entry->cb)
 	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), window);
 #else
-      item = gtk_button_new_with_label( _(entry->title) );
+      item = hildon_button_new_with_text(
+	     HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH,
+	     HILDON_BUTTON_ARRANGEMENT_VERTICAL,
+	     _(entry->title), NULL);
+
       g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), window);
       hildon_app_menu_append(HILDON_APP_MENU(menu), GTK_BUTTON(item));
 #endif
       break;
+
+    case MENU_CHECK_ENTRY:
+#ifndef MAEMO5
+      item = gtk_check_menu_item_new_with_label( _(entry->title) );
+      gtk_menu_append(GTK_MENU_SHELL(menu), item);
+      if(entry->cb)
+	g_signal_connect(item, "toggled", GTK_SIGNAL_FUNC(entry->cb), window);
+#else
+      item = hildon_check_button_new(HILDON_SIZE_AUTO);
+      gtk_button_set_label(GTK_BUTTON(item), _(entry->title));
+      gtk_button_set_alignment(GTK_BUTTON(item), 0.5, 0.5);
+
+      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), window);
+      hildon_app_menu_append(HILDON_APP_MENU(menu), GTK_BUTTON(item));
+#endif
+      break;
+
 
     case MENU_SEPARATOR:
 #ifndef MAEMO5

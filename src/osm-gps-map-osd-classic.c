@@ -18,6 +18,7 @@
  */
 
 #include "config.h" 
+
 #include <stdlib.h>  // abs
 #include <string.h>
 #include <math.h>    // M_PI/cos()
