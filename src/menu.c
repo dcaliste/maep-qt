@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "about.h"
+#include "track.h"
 
 #ifdef MAEMO5
 #include <hildon/hildon-button.h>
@@ -36,7 +37,13 @@ typedef struct menu_entry_s {
 
 static void 
 cb_menu_about(GtkWidget *item, gpointer data) {
-  about_box(GTK_WIDGET(data));
+  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
+  about_box(toplevel);
+}
+
+static void 
+cb_menu_track_import(GtkWidget *item, gpointer data) {
+  track_import(GTK_WIDGET(data));
 }
 
 static const menu_entry_t main_menu[] = {
@@ -44,13 +51,15 @@ static const menu_entry_t main_menu[] = {
   { MENU_SEPARATOR,       NULL,            NULL },
   { MENU_CHECK_ENTRY,     "Capture Track", NULL },
   { MENU_ENTRY,           "Clear Track",   NULL },
-  { MENU_ENTRY,           "Import Track",  NULL },
+  { MENU_ENTRY,           "Import Track",  cb_menu_track_import },
   { MENU_ENTRY,           "Export Track",  NULL },
 
   { MENU_END,             NULL,            NULL }
 };
 
-void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
+void menu_build(GtkWidget *map, 
+		GtkWidget *menu, const menu_entry_t *entry) {
+
   while(entry->type != MENU_END) {
     GtkWidget *item = NULL;
 
@@ -60,14 +69,14 @@ void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
       item = gtk_menu_item_new_with_label( _(entry->title) );
       gtk_menu_append(GTK_MENU_SHELL(menu), item);
       if(entry->cb)
-	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), window);
+	g_signal_connect(item, "activate", GTK_SIGNAL_FUNC(entry->cb), map);
 #else
       item = hildon_button_new_with_text(
 	     HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH,
 	     HILDON_BUTTON_ARRANGEMENT_VERTICAL,
 	     _(entry->title), NULL);
 
-      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), window);
+      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), map);
       hildon_app_menu_append(HILDON_APP_MENU(menu), GTK_BUTTON(item));
 #endif
       break;
@@ -77,13 +86,13 @@ void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
       item = gtk_check_menu_item_new_with_label( _(entry->title) );
       gtk_menu_append(GTK_MENU_SHELL(menu), item);
       if(entry->cb)
-	g_signal_connect(item, "toggled", GTK_SIGNAL_FUNC(entry->cb), window);
+	g_signal_connect(item, "toggled", GTK_SIGNAL_FUNC(entry->cb), map);
 #else
       item = hildon_check_button_new(HILDON_SIZE_AUTO);
       gtk_button_set_label(GTK_BUTTON(item), _(entry->title));
       gtk_button_set_alignment(GTK_BUTTON(item), 0.5, 0.5);
 
-      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), window);
+      g_signal_connect_after(item, "clicked", G_CALLBACK(entry->cb), map);
       hildon_app_menu_append(HILDON_APP_MENU(menu), GTK_BUTTON(item));
 #endif
       break;
@@ -104,16 +113,16 @@ void menu_build(GtkWidget *window, GtkWidget *menu, const menu_entry_t *entry) {
   }
 }
 
-GtkWidget *menu_create(GtkWidget *window) {
+GtkWidget *menu_create(GtkWidget *window, GtkWidget *map) {
 #ifdef MAEMO5
   HildonAppMenu *menu = HILDON_APP_MENU(hildon_app_menu_new());
-  menu_build(window, GTK_WIDGET(menu), main_menu);
+  menu_build(map, GTK_WIDGET(menu), main_menu);
   gtk_widget_show_all(GTK_WIDGET(menu));
   hildon_window_set_app_menu(HILDON_WINDOW(window), menu);
   return window;
 #else
   GtkWidget *menu = gtk_menu_new();
-  menu_build(window, menu, main_menu);
+  menu_build(map, menu, main_menu);
 
 #ifdef USE_MAEMO
   hildon_window_set_menu(HILDON_WINDOW(window), GTK_MENU(menu));

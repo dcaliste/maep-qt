@@ -24,12 +24,19 @@
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <string.h>
 #include <strings.h>
 
 #define DATE_FORMAT "%FT%T"
 
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
+#endif
+
+#ifdef USE_MAEMO
+#define GTK_FM_OK  GTK_RESPONSE_OK
+#else
+#define GTK_FM_OK  GTK_RESPONSE_ACCEPT
 #endif
 
 static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
@@ -224,4 +231,75 @@ static track_t *track_read(char *filename) {
   //  track_info(track);
   
   return track;
+}
+
+#if 0
+track_t *track_import(char *name) {
+  printf("import %s\n", name);
+
+  
+
+  track_t *track = track_read(appdata->osm, name);
+  //  track_menu_set(appdata, track != NULL);
+
+  //  if(track) 
+  //    map_track_draw(appdata->map, track);
+
+  return track;
+}
+#endif
+
+void track_import(GtkWidget *map) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  
+  /* open a file selector */
+  GtkWidget *dialog;
+  
+#ifdef USE_HILDON
+  dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
+					  GTK_FILE_CHOOSER_ACTION_OPEN);
+#else
+  dialog = gtk_file_chooser_dialog_new (_("Import track file"),
+			GTK_WINDOW(toplevel),
+			GTK_FILE_CHOOSER_ACTION_OPEN,
+			GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+			GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+			NULL);
+#endif
+
+  char *track_path = NULL;  // get from gconf
+  
+  if(track_path) {
+    if(!g_file_test(track_path, G_FILE_TEST_EXISTS)) {
+      char *last_sep = strrchr(track_path, '/');
+      if(last_sep) {
+	*last_sep = 0;  // seperate path from file 
+	
+	/* the user just created a new document */
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), 
+					    track_path);
+	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), 
+					  last_sep+1);
+	
+	/* restore full filename */
+	*last_sep = '/';
+      }
+    } else 
+      gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), 
+				    track_path);
+  }
+  
+  gtk_widget_show_all (GTK_WIDGET(dialog));
+  if (gtk_dialog_run (GTK_DIALOG(dialog)) == GTK_FM_OK) {
+    char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+    /* load a track */
+    track_t *track = track_read(filename);
+    if(track) {
+      //      gconf_set("track_path", track_path);
+    }
+    g_free (filename);
+  }
+
+  gtk_widget_destroy (dialog);
 }
