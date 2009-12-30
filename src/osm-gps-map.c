@@ -1325,7 +1325,6 @@ center_coord_update(GtkWidget *widget) {
     gint pixel_x = priv->map_x + widget->allocation.width/2;
     gint pixel_y = priv->map_y + widget->allocation.height/2;
 
-    printf("coord update\n");
     priv->center_rlon = pixel2lon(priv->map_zoom, pixel_x);
     priv->center_rlat = pixel2lat(priv->map_zoom, pixel_y);
 }

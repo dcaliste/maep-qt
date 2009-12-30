@@ -21,6 +21,9 @@
 
 #include "config.h"
 #include "track.h"
+#include "osm-gps-map.h"
+#include "converter.h"
+#include "misc.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -49,9 +52,8 @@ static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
     return FALSE;
   }
 
-  /* TODO: convert into radians */
-  pos->rlat = g_ascii_strtod(str_lat, NULL);
-  pos->rlon = g_ascii_strtod(str_lon, NULL);
+  pos->rlat = deg2rad(g_ascii_strtod(str_lat, NULL));
+  pos->rlon = deg2rad(g_ascii_strtod(str_lon, NULL));
 
   xmlFree(str_lon);
   xmlFree(str_lat);
@@ -249,11 +251,35 @@ track_t *track_import(char *name) {
 }
 #endif
 
+void track_draw(GtkWidget *map, track_t *track) {
+  if(!track) return;
+
+  osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
+
+  track_seg_t *seg = track->track_seg;
+  while(seg) {
+    GSList *points = NULL;
+    track_point_t *point = seg->track_point;
+    
+    while(point) {
+      points = g_slist_append(points, &point->coord);
+      point = point->next;
+    }
+    seg = seg->next;
+    
+    osm_gps_map_add_track(OSM_GPS_MAP(map), points);
+  }
+}
+
+
+/* this imports a track and adds it to the set of existing tracks */
 void track_import(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   
   /* open a file selector */
   GtkWidget *dialog;
+
+  track_t *track = NULL;
   
 #ifdef USE_HILDON
   dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
@@ -267,7 +293,7 @@ void track_import(GtkWidget *map) {
 			NULL);
 #endif
 
-  char *track_path = NULL;  // get from gconf
+  char *track_path = gconf_get_string("track_path");
   
   if(track_path) {
     if(!g_file_test(track_path, G_FILE_TEST_EXISTS)) {
@@ -294,12 +320,15 @@ void track_import(GtkWidget *map) {
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
     /* load a track */
-    track_t *track = track_read(filename);
-    if(track) {
-      //      gconf_set("track_path", track_path);
-    }
+    track = track_read(filename);
+    if(track) 
+      gconf_set_string("track_path", filename);
+
     g_free (filename);
   }
+
+  track_draw(map, track);
+
 
   gtk_widget_destroy (dialog);
 }

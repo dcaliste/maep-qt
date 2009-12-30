@@ -20,8 +20,43 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 
+#include <gconf/gconf.h>
+#include <gconf/gconf-client.h>
+#include <string.h>
+
 #include "config.h"
 #include "misc.h"
+
+#define GCONF_PATH         "/apps/" APP "/%s"
+
+void gconf_set_string(char *m_key, char *str) {
+  GConfClient *client = gconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+
+  if(!str || !strlen(str)) {
+    gconf_client_unset(client, key, NULL); 
+    g_free(key);
+    return;
+  }
+
+  gconf_client_set_string(client, key, str, NULL);
+  g_free(key);
+}
+
+char *gconf_get_string(char *m_key) {
+  GConfClient *client = gconf_client_get_default();
+
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GConfValue *value = gconf_client_get(client, key, NULL);
+  if(!value) {
+    g_free(key);
+    return NULL;
+  }
+
+  char *ret = gconf_client_get_string(client, key, NULL);
+  g_free(key);
+  return ret;
+}
 
 static const char *data_paths[] = {
   "~/." APP,                 // in home directory

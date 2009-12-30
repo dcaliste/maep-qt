@@ -28,4 +28,7 @@ GtkWidget *notebook_new(void);
 void notebook_append_page(GtkWidget *notebook, GtkWidget *page, char *label);
 GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook);
 
+void gconf_set_string(char *key, char *str);
+char *gconf_get_string(char *key);
+
 #endif // MISC_H
