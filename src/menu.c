@@ -46,11 +46,16 @@ cb_menu_track_import(GtkWidget *item, gpointer data) {
   track_import(GTK_WIDGET(data));
 }
 
+static void 
+cb_menu_track_clear(GtkWidget *item, gpointer data) {
+  track_clear(GTK_WIDGET(data));
+}
+
 static const menu_entry_t main_menu[] = {
   { MENU_ENTRY,           "About",         cb_menu_about },
   { MENU_SEPARATOR,       NULL,            NULL },
   { MENU_CHECK_ENTRY,     "Capture Track", NULL },
-  { MENU_ENTRY,           "Clear Track",   NULL },
+  { MENU_ENTRY,           "Clear Track",   cb_menu_track_clear },
   { MENU_ENTRY,           "Import Track",  cb_menu_track_import },
   { MENU_ENTRY,           "Export Track",  NULL },
 

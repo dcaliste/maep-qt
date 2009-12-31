@@ -208,9 +208,6 @@ static track_t *track_parse_doc(xmlDocPtr doc) {
 }
 
 static track_t *track_read(char *filename) {
-  printf("============================================================\n");
-  printf("loading track %s\n", filename);
- 
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
@@ -230,31 +227,15 @@ static track_t *track_read(char *filename) {
   }
 
   track->dirty = TRUE;
-  //  track_info(track);
   
   return track;
 }
-
-#if 0
-track_t *track_import(char *name) {
-  printf("import %s\n", name);
-
-  
-
-  track_t *track = track_read(appdata->osm, name);
-  //  track_menu_set(appdata, track != NULL);
-
-  //  if(track) 
-  //    map_track_draw(appdata->map, track);
-
-  return track;
-}
-#endif
 
 void track_draw(GtkWidget *map, track_t *track) {
-  if(!track) return;
+  /* erase any previous track */
+  track_clear(map);
 
-  osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
+  if(!track) return;
 
   track_seg_t *seg = track->track_seg;
   while(seg) {
@@ -262,15 +243,20 @@ void track_draw(GtkWidget *map, track_t *track) {
     track_point_t *point = seg->track_point;
     
     while(point) {
-      points = g_slist_append(points, &point->coord);
+      /* we need to create a copy of the coordinate since */
+      /* the map will free them */
+      coord_t *new_point = g_memdup(&point->coord, sizeof(coord_t));
+      points = g_slist_append(points, new_point);
       point = point->next;
     }
     seg = seg->next;
     
     osm_gps_map_add_track(OSM_GPS_MAP(map), points);
   }
-}
 
+  /* save track reference in map */
+  g_object_set_data(G_OBJECT(map), "track", track);
+}
 
 /* this imports a track and adds it to the set of existing tracks */
 void track_import(GtkWidget *map) {
@@ -329,6 +315,38 @@ void track_import(GtkWidget *map) {
 
   track_draw(map, track);
 
-
   gtk_widget_destroy (dialog);
+}
+
+/* --------------------------------------------------------------- */
+
+void track_point_free(track_point_t *point) {
+  g_free(point);
+}
+
+void track_seg_free(track_seg_t *seg) {
+  track_point_t *point = seg->track_point;
+  while(point) {
+    track_point_t *next = point->next;
+    track_point_free(point);
+    point = next;
+  }
+
+  g_free(seg);
+}
+
+void track_clear(GtkWidget *map) {
+  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  if (!track) return;
+
+  g_object_set_data(G_OBJECT(map), "track", NULL);
+  osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
+
+  track_seg_t *seg = track->track_seg;
+  while(seg) {
+    track_seg_t *next = seg->next;
+    track_seg_free(seg);
+    seg = next;
+  }
+  g_free(track);
 }

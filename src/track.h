@@ -43,5 +43,6 @@ typedef struct track_s {
 } track_t;
 
 void track_import(GtkWidget *map);
+void track_clear(GtkWidget *map);
 
 #endif // TRACK_H
