@@ -2611,8 +2611,12 @@ osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
         priv->map_x = lon2pixel(priv->map_zoom, priv->center_rlon) - width_center;
         priv->map_y = lat2pixel(priv->map_zoom, priv->center_rlat) - height_center;
 
+        factor = pow(2, priv->map_zoom-zoom_old);
         g_debug("Zoom changed from %d to %d factor:%f x:%d",
                 zoom_old, priv->map_zoom, factor, priv->map_x);
+
+        /* adjust gps precision indicator */
+        priv->ui_gps_point_outer_radius *= factor;
 
 #ifdef ENABLE_OSD
         /* OSD may contain a scale, so we may have to re-render it */

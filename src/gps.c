@@ -298,7 +298,7 @@ gpointer gps_thread(gpointer data) {
 	/* update every second, wait here to make sure a complete */
 	/* reply is received */
 	sleep(1);
-	
+
 	if(bytes_read == (strlen(msg)+1)) {
 	  vfs_result = gnome_vfs_socket_read(gps_state->socket,
 	     str, sizeof(str)-1, &bytes_read, NULL);
