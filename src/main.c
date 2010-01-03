@@ -227,8 +227,10 @@ static GtkWidget *map_new(void) {
   osm_gps_map_osd_classic_init(OSM_GPS_MAP(widget));
 
   /* connect to GPS */
-  g_object_set_data(G_OBJECT(widget), "gps_state", 
-		    gps_init(gps_callback, widget));
+  gps_state_t *gps = gps_init();
+  gps_register_callback(gps, gps_callback, widget);
+
+  g_object_set_data(G_OBJECT(widget), "gps_state", gps);
 
   return widget;
 }

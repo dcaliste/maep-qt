@@ -84,6 +84,11 @@ struct gps_data_t {
 typedef void (*gps_cb)(int status, struct gps_fix_t *fix, void *data);
 #define GPS_CB(f) ((gps_cb)(f))
 
+typedef struct {
+  gps_cb cb;
+  void *data;
+} gps_callback_t;
+
 #ifdef ENABLE_LIBLOCATION
 #include <location/location-gps-device.h>
 #include <location/location-gpsd-control.h>
@@ -110,12 +115,13 @@ typedef struct gps_state {
   struct gps_fix_t	fix;   
 #endif
 
-  gps_cb cb;
-  void *cb_data;
+  GSList *callbacks;
 
 } gps_state_t;
 
-gps_state_t *gps_init(gps_cb cb, void *data);
-void gps_release();
+gps_state_t *gps_init(void);
+void gps_register_callback(gps_state_t *gps_state, gps_cb cb, void *data);
+void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb);
+void gps_release(gps_state_t *gps_state);
 
 #endif // GPS_H

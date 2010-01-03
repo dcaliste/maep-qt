@@ -350,3 +350,10 @@ void track_clear(GtkWidget *map) {
   }
   g_free(track);
 }
+
+void track_capture_enable(GtkWidget *map, gboolean enable) {
+  printf("%sabling track capture\n", enable?"en":"dis");
+
+  g_object_set_data(G_OBJECT(map), "track-enable", (gpointer)enable);
+
+}

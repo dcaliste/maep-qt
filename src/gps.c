@@ -31,6 +31,36 @@
 #endif
 
 #include "gps.h"
+#include "track.h"
+
+
+void gps_register_callback(gps_state_t *gps_state, gps_cb cb, void *data) {
+  gps_callback_t *callback = g_new0(gps_callback_t, 1);
+
+  callback->cb = cb;
+  callback->data = data;
+
+  gps_state->callbacks = g_slist_append(gps_state->callbacks, callback);
+}
+
+static gint compare(gconstpointer a, gconstpointer b) {
+  return ((gps_callback_t*)a)->cb != b;
+}
+
+void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb) {
+  /* find callback in list */
+  GSList *list = g_slist_find_custom(gps_state->callbacks, cb, compare);
+  g_assert(list);
+
+  /* and de-chain and free it */
+  g_free(list->data);
+  gps_state->callbacks = g_slist_remove(gps_state->callbacks, list->data);
+}
+
+static void gps_unregister_all(gps_state_t *gps_state) {
+  g_slist_foreach(gps_state->callbacks, (GFunc)g_free, NULL);
+  g_slist_free(gps_state->callbacks);
+}
 
 #ifndef ENABLE_LIBLOCATION
 
@@ -228,16 +258,24 @@ static void gps_unpack(char *buf, struct gps_data_t *gpsdata) {
   }
 }
 
+static void cb_func(gpointer data, gpointer user_data) {
+  gps_callback_t *callback = (gps_callback_t*)data;
+  gps_state_t *gps_state = (gps_state_t*)user_data;
+
+  callback->cb(gps_state->gpsdata.last_reported.status,
+	       &gps_state->gpsdata.last_reported.fix, 
+	       callback->data);
+}
+
 /* async gps callback */
 static gboolean gps_idle_cb(gpointer data) {
   gps_state_t *gps_state = (gps_state_t*)data;
 
-  if(gps_state->cb) {
+  if(gps_state->callbacks) {
     g_mutex_lock(gps_state->mutex);
 
-    gps_state->cb(gps_state->gpsdata.last_reported.status,
-		  &gps_state->gpsdata.last_reported.fix, 
-		  gps_state->cb_data);
+    /* tell all clients */
+    g_slist_foreach(gps_state->callbacks, cb_func, gps_state);
 
     g_mutex_unlock(gps_state->mutex);
   }
@@ -362,11 +400,8 @@ gpointer gps_thread(gpointer data) {
   return NULL;
 }
 
-gps_state_t *gps_init(gps_cb cb, void *data) {
+gps_state_t *gps_init(void) {
   gps_state_t *gps_state = g_new0(gps_state_t, 1);
-
-  gps_state->cb = cb;
-  gps_state->cb_data = data;
 
   /* start a new thread to listen to gpsd */
   gps_state->mutex = g_mutex_new();
@@ -377,6 +412,8 @@ gps_state_t *gps_init(gps_cb cb, void *data) {
 }
 
 void gps_release(gps_state_t *gps_state) { 
+  gps_unregister_all(gps_state);
+
 #ifdef USE_MAEMO
   gpsbt_stop(&gps_state->context);
 #endif
@@ -384,6 +421,14 @@ void gps_release(gps_state_t *gps_state) {
 }
 
 #else
+
+static void cb_func(gpointer data, gpointer user_data) {
+  gps_callback_t *callback = (gps_callback_t*)data;
+  gps_state_t *gps_state = (gps_state_t*)user_data;
+
+  callback->cb(gps_state->fields & LOCATION_GPS_DEVICE_LATLONG_SET,
+	       &gps_state->fix, callback->data);
+}
 
 static void
 location_changed(LocationGPSDevice *device, gps_state_t *gps_state) {
@@ -399,9 +444,8 @@ location_changed(LocationGPSDevice *device, gps_state_t *gps_state) {
   if(gps_state->fields & LOCATION_GPS_DEVICE_TRACK_SET)
     gps_state->fix.track = device->fix->track;
 
-  if(gps_state->cb)
-    gps_state->cb(gps_state->fields & LOCATION_GPS_DEVICE_LATLONG_SET,
-		  &gps_state->fix, gps_state->cb_data);
+  /* tell all clients */
+  g_slist_foreach(gps_state->callbacks, cb_func, gps_state);
 }
 
 gps_state_t *gps_init(gps_cb cb, void *data) {
@@ -436,7 +480,7 @@ gps_state_t *gps_init(gps_cb cb, void *data) {
 }
 
 void gps_release(gps_state_t *gps_state) {
-  if(!gps_state->device) return;
+  gps_unregister_all(gps_state);
 
   if(gps_state->control
 #if MAEMO_VERSION_MAJOR < 5
@@ -454,4 +498,3 @@ void gps_release(gps_state_t *gps_state) {
 }
 
 #endif // USE_LIBLOCATION
-

@@ -32,6 +32,7 @@ typedef enum { MENU_ENTRY, MENU_CHECK_ENTRY,
 typedef struct menu_entry_s {
   menu_type_t type;
   char *title;
+  char *id;
   void(*cb)(GtkWidget *, gpointer);
 } menu_entry_t;
 
@@ -51,15 +52,33 @@ cb_menu_track_clear(GtkWidget *item, gpointer data) {
   track_clear(GTK_WIDGET(data));
 }
 
-static const menu_entry_t main_menu[] = {
-  { MENU_ENTRY,           "About",         cb_menu_about },
-  { MENU_SEPARATOR,       NULL,            NULL },
-  { MENU_CHECK_ENTRY,     "Capture Track", NULL },
-  { MENU_ENTRY,           "Clear Track",   cb_menu_track_clear },
-  { MENU_ENTRY,           "Import Track",  cb_menu_track_import },
-  { MENU_ENTRY,           "Export Track",  NULL },
+static gboolean menu_get_active(GtkWidget *item) {
+#ifdef MAEMO5
+  return hildon_check_button_get_active(HILDON_CHECK_BUTTON(item));
+#else
+  return gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(item));
+#endif
+}
 
-  { MENU_END,             NULL,            NULL }
+static void 
+cb_menu_track_capture(GtkWidget *item, gpointer data) {
+  track_capture_enable(GTK_WIDGET(data), menu_get_active(item)); 
+}
+
+static void 
+cb_menu_track_export(GtkWidget *item, gpointer data) {
+  printf("export track\n");
+}
+
+static const menu_entry_t main_menu[] = {
+  { MENU_ENTRY,       "About",         NULL,      cb_menu_about },
+  { MENU_SEPARATOR,   NULL,            NULL,      NULL },
+  { MENU_CHECK_ENTRY, "Capture Track", NULL,      cb_menu_track_capture },
+  { MENU_ENTRY,       "Clear Track",   "trk-clr", cb_menu_track_clear },
+  { MENU_ENTRY,       "Import Track",  NULL,      cb_menu_track_import },
+  { MENU_ENTRY,       "Export Track",  "trk-exp", cb_menu_track_export },
+
+  { MENU_END,         NULL,            NULL,      NULL }
 };
 
 void menu_build(GtkWidget *map, 
@@ -113,6 +132,10 @@ void menu_build(GtkWidget *map,
       printf("unsupported menu type\n");
       break;
     }
+
+    /* save item reference if requested */
+    if(entry->id)
+      g_object_set_data(G_OBJECT(menu), entry->id, item);
 
     entry++;
   }
