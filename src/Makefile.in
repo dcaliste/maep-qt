@@ -51,3 +51,16 @@ dep:
 	makedepend -Y -fMakefile.in *.c
 
 
+# DO NOT DELETE
+
+about.o: config.h misc.h icon.h about.h
+converter.o: osm-gps-map-types.h osm-gps-map.h config.h converter.h
+gps.o: gps.h track.h osm-gps-map.h config.h
+icon.o: icon.h misc.h
+main.o: config.h menu.h track.h osm-gps-map.h osm-gps-map-osd-classic.h gps.h
+menu.o: config.h about.h track.h osm-gps-map.h
+misc.o: config.h misc.h
+osm-gps-map.o: config.h converter.h osm-gps-map-types.h osm-gps-map.h
+osm-gps-map-osd-classic.o: config.h osm-gps-map.h converter.h
+osm-gps-map-osd-classic.o: osm-gps-map-osd-classic.h
+track.o: config.h track.h osm-gps-map.h converter.h misc.h

@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "menu.h"
+#include "track.h"
 
 #ifdef MAEMO5
 #include <gdk/gdkx.h>
@@ -232,6 +233,8 @@ static GtkWidget *map_new(void) {
 
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
 
+  track_restore(widget);
+
   return widget;
 }
 
@@ -267,6 +270,8 @@ static void on_window_destroy (GtkWidget *widget, gpointer data) {
 }
 
 static void on_map_destroy (GtkWidget *widget, gpointer data) {
+  track_save(widget);
+
   gps_state_t *state = g_object_get_data(G_OBJECT(widget), "gps_state");
   g_assert(state);
   gps_release(state);

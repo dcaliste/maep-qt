@@ -174,3 +174,35 @@ void notebook_append_page(GtkWidget *notebook,
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(label));
 #endif                                                                         
 }                             
+
+gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...) {
+
+  va_list args;
+  va_start( args, fmt );
+  char *buf = g_strdup_vprintf(fmt, args);
+  va_end( args );
+
+#ifndef MAEMO5
+#define RESPONSE_YES  GTK_RESPONSE_YES
+
+  GtkWidget *dialog = gtk_message_dialog_new(
+		     GTK_WINDOW(parent),
+                     GTK_DIALOG_DESTROY_WITH_PARENT,
+		     GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
+                     buf);
+
+  gtk_window_set_title(GTK_WINDOW(dialog), title);
+#else
+#define RESPONSE_YES  GTK_RESPONSE_OK
+
+  GtkWidget *dialog = 
+    hildon_note_new_confirmation(GTK_WINDOW(parent), buf);
+#endif
+
+  gboolean yes = (gtk_dialog_run(GTK_DIALOG(dialog)) == RESPONSE_YES);
+
+  gtk_widget_destroy(dialog);
+
+  g_free(buf);
+  return yes;
+}

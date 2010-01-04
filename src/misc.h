@@ -31,4 +31,6 @@ GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook);
 void gconf_set_string(char *key, char *str);
 char *gconf_get_string(char *key);
 
+gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
+
 #endif // MISC_H

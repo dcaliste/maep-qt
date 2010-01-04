@@ -25,6 +25,7 @@
 #include "converter.h"
 #include "misc.h"
 
+#include <math.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <string.h>
@@ -41,6 +42,27 @@
 #else
 #define GTK_FM_OK  GTK_RESPONSE_ACCEPT
 #endif
+
+static void filemgr_setup(GtkWidget *dialog, gboolean save) {
+  char *track_path = gconf_get_string("track_path");
+
+  if(track_path) {
+    if(!g_file_test(track_path, G_FILE_TEST_EXISTS)) {
+      char *last_sep = strrchr(track_path, '/');
+      if(last_sep) {
+	*last_sep = 0;  // seperate path from file 
+	
+	/* the user just created a new document */
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), 
+					    track_path);
+	if(save)
+	  gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), 
+					    last_sep+1);
+      }
+    } else 
+      gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), track_path);
+  }
+}
 
 static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
   char *str_lat = (char*)xmlGetProp(node, BAD_CAST "lat");
@@ -75,14 +97,12 @@ static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
 
-#if 0 // not yet supported
       /* elevation (altitude) */
       if(strcasecmp((char*)cur_node->name, "ele") == 0) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
 	point->altitude = g_ascii_strtod(str, NULL);
  	xmlFree(str);
       }
-#endif
 
       /* time */
       if(strcasecmp((char*)cur_node->name, "time") == 0) {
@@ -279,28 +299,7 @@ void track_import(GtkWidget *map) {
 			NULL);
 #endif
 
-  char *track_path = gconf_get_string("track_path");
-  
-  if(track_path) {
-    if(!g_file_test(track_path, G_FILE_TEST_EXISTS)) {
-      char *last_sep = strrchr(track_path, '/');
-      if(last_sep) {
-	*last_sep = 0;  // seperate path from file 
-	
-	/* the user just created a new document */
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), 
-					    track_path);
-	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), 
-					  last_sep+1);
-	
-	/* restore full filename */
-	*last_sep = '/';
-      }
-    } else 
-      gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), 
-				    track_path);
-  }
-  
+  filemgr_setup(dialog, FALSE);
   gtk_widget_show_all (GTK_WIDGET(dialog));
   if (gtk_dialog_run (GTK_DIALOG(dialog)) == GTK_FM_OK) {
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -311,9 +310,9 @@ void track_import(GtkWidget *map) {
       gconf_set_string("track_path", filename);
 
     g_free (filename);
-  }
 
-  track_draw(map, track);
+    track_draw(map, track);
+  }
 
   gtk_widget_destroy (dialog);
 }
@@ -356,4 +355,157 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
 
   g_object_set_data(G_OBJECT(map), "track-enable", (gpointer)enable);
 
+}
+
+/* ----------------------  saving track --------------------------- */
+
+void track_save_points(track_point_t *point, xmlNodePtr node) {
+  while(point) {
+    char str[G_ASCII_DTOSTR_BUF_SIZE];
+
+    xmlNodePtr node_point = xmlNewChild(node, NULL, BAD_CAST "trkpt", NULL);
+
+    g_ascii_formatd(str, sizeof(str), "%.07f", rad2deg(point->coord.rlat));
+    xmlNewProp(node_point, BAD_CAST "lat", BAD_CAST str);
+    
+    g_ascii_formatd(str, sizeof(str), "%.07f", rad2deg(point->coord.rlon));
+    xmlNewProp(node_point, BAD_CAST "lon", BAD_CAST str);
+
+    if(!isnan(point->altitude)) {
+      g_ascii_formatd(str, sizeof(str), "%.02f", point->altitude);
+      xmlNewTextChild(node_point, NULL, BAD_CAST "ele", BAD_CAST str);
+    }
+
+    if(point->time) {
+      strftime(str, sizeof(str), DATE_FORMAT, localtime(&point->time));
+      xmlNewTextChild(node_point, NULL, BAD_CAST "time", BAD_CAST str);
+    }
+
+    point = point->next;
+  }
+}
+
+void track_save_segs(track_seg_t *seg, xmlNodePtr node) {
+  while(seg) {
+    xmlNodePtr node_seg = xmlNewChild(node, NULL, BAD_CAST "trkseg", NULL);
+    track_save_points(seg->track_point, node_seg);
+    seg = seg->next;
+  }
+}
+
+void track_write(char *name, track_t *track) {
+  LIBXML_TEST_VERSION;
+ 
+  xmlDocPtr doc = xmlNewDoc(BAD_CAST "1.0");
+  xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "gpx");
+  xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
+  xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
+	     "http://www.topografix.com/GPX/1/0");
+
+  xmlNodePtr trk_node = xmlNewChild(root_node, NULL, BAD_CAST "trk", NULL);
+  xmlDocSetRootElement(doc, root_node);
+  
+  track_save_segs(track->track_seg, trk_node);
+
+  xmlSaveFormatFileEnc(name, doc, "UTF-8", 1);
+  xmlFreeDoc(doc);
+  xmlCleanupParser();
+
+  track->dirty = FALSE;
+}
+
+void track_export(GtkWidget *map) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+
+  /* the menu should be disabled when no track is present */
+  g_assert(track);
+
+  /* open a file selector */
+  GtkWidget *dialog;
+
+#ifdef USE_HILDON
+  dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
+					  GTK_FILE_CHOOSER_ACTION_SAVE);
+#else
+  dialog = gtk_file_chooser_dialog_new(_("Export track file"),
+				       GTK_WINDOW(toplevel),
+				       GTK_FILE_CHOOSER_ACTION_SAVE,
+				       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				       GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+				       NULL);
+#endif
+
+  filemgr_setup(dialog, TRUE);
+
+  if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_FM_OK) {
+    gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+    if(filename) {
+      printf("export to %s\n", filename);
+
+      if(!g_file_test(filename, G_FILE_TEST_EXISTS) ||
+	 yes_no_f(dialog, _("Overwrite existing file?"), 
+		  _("The file already exists. "
+		    "Do you really want to replace it?"))) {
+
+	gconf_set_string("track_path", filename);
+
+	track_write(filename, track);
+      }
+    }
+  }
+  
+  gtk_widget_destroy (dialog);
+}
+
+#ifdef USE_MAEMO
+#ifdef MAEMO5
+#define TRACK_PATH  "/home/user/." APP
+#else
+#define TRACK_PATH  "/media/mmc2/" APP
+#endif
+#else
+#define TRACK_PATH  "~/." APP
+#endif
+
+static char *build_path(void) {
+  const char track_path[] = TRACK_PATH;
+
+  if(track_path[0] == '~') {
+    char *p = getenv("HOME");
+    if(!p) return NULL;
+
+    return g_strdup_printf("%s/%s/track.trk", p, track_path+1);
+  }
+
+  return g_strdup_printf("%s/track.trk", track_path);
+}
+
+void track_restore(GtkWidget *map) {
+  char *path = build_path();
+
+  printf("restoring track from %s\n", path);
+  g_free(path);
+}
+
+void track_save(GtkWidget *map) {
+  char *path = build_path();
+
+  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  if(!track) {
+    remove(path);
+    g_free(path);
+    return;
+  }
+
+  /* make sure directory exists */
+  char *last_sep = strrchr(path, '/');
+  g_assert(last_sep);
+  *last_sep = 0;
+  g_mkdir_with_parents(path, 0700);
+  *last_sep = '/';
+
+  printf("saving to %s\n", path);
+  
+  g_free(path);
 }

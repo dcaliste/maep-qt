@@ -25,6 +25,7 @@
 /* a point is just that */
 typedef struct track_point_s {
   coord_t coord;
+  float altitude;
   time_t time;
   struct track_point_s *next;
 } track_point_t;
@@ -43,7 +44,11 @@ typedef struct track_s {
 } track_t;
 
 void track_import(GtkWidget *map);
+void track_export(GtkWidget *map);
 void track_clear(GtkWidget *map);
 void track_capture_enable(GtkWidget *map, gboolean enable); 
+
+void track_restore(GtkWidget *map);
+void track_save(GtkWidget *map);
 
 #endif // TRACK_H

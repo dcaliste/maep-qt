@@ -67,7 +67,7 @@ cb_menu_track_capture(GtkWidget *item, gpointer data) {
 
 static void 
 cb_menu_track_export(GtkWidget *item, gpointer data) {
-  printf("export track\n");
+  track_export(GTK_WIDGET(data));
 }
 
 static const menu_entry_t main_menu[] = {
