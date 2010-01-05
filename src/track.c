@@ -24,6 +24,8 @@
 #include "osm-gps-map.h"
 #include "converter.h"
 #include "misc.h"
+#include "menu.h"
+#include "gps.h"
 
 #include <math.h>
 #include <libxml/parser.h>
@@ -32,6 +34,7 @@
 #include <strings.h>
 
 #define DATE_FORMAT "%FT%T"
+#define TRACK_CAPTURE_ENABLED "track_capture_enabled"
 
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
@@ -47,7 +50,7 @@ static void filemgr_setup(GtkWidget *dialog, gboolean save) {
   char *track_path = gconf_get_string("track_path");
 
   if(track_path) {
-    if(!g_file_test(track_path, G_FILE_TEST_EXISTS)) {
+    if(!g_file_test(track_path, G_FILE_TEST_IS_REGULAR)) {
       char *last_sep = strrchr(track_path, '/');
       if(last_sep) {
 	*last_sep = 0;  // seperate path from file 
@@ -276,6 +279,10 @@ void track_draw(GtkWidget *map, track_t *track) {
 
   /* save track reference in map */
   g_object_set_data(G_OBJECT(map), "track", track);
+
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  menu_enable(toplevel, "Track/Clear", TRUE);
+  menu_enable(toplevel, "Track/Export", TRUE);
 }
 
 /* this imports a track and adds it to the set of existing tracks */
@@ -339,6 +346,11 @@ void track_clear(GtkWidget *map) {
   if (!track) return;
 
   g_object_set_data(G_OBJECT(map), "track", NULL);
+
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  menu_enable(toplevel, "Track/Clear", FALSE);
+  menu_enable(toplevel, "Track/Export", FALSE);
+
   osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
 
   track_seg_t *seg = track->track_seg;
@@ -350,11 +362,58 @@ void track_clear(GtkWidget *map) {
   g_free(track);
 }
 
+/* this callback is called from the gps layer as long as */
+/* captureing is enabled */
+static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
+  static coord_t last = { NAN, NAN };
+
+  OsmGpsMap *map = OSM_GPS_MAP(data);
+
+  /* save gps position in track */
+  
+  if(status) {
+    if(!isnan(last.rlat) && !isnan(last.rlon)) {
+
+      GSList *points = NULL;
+      coord_t *new_point = g_memdup(&last, sizeof(coord_t));
+      points = g_slist_append(points, new_point);
+      new_point = g_new0(coord_t, 1);
+      new_point->rlat = deg2rad(fix->latitude);
+      new_point->rlon = deg2rad(fix->longitude);
+      points = g_slist_append(points, new_point);
+    
+      osm_gps_map_add_track(OSM_GPS_MAP(map), points);
+    }
+
+    last.rlat = deg2rad(fix->latitude);
+    last.rlon = deg2rad(fix->longitude);
+
+  } else {
+    printf("interrupting track\n");
+    last.rlat = last.rlon = NAN;
+  }
+}
+
 void track_capture_enable(GtkWidget *map, gboolean enable) {
   printf("%sabling track capture\n", enable?"en":"dis");
 
-  g_object_set_data(G_OBJECT(map), "track-enable", (gpointer)enable);
+  /* verify that tracking isn't already in the requested state */
+  gboolean cur_state = 
+    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED);
 
+  g_assert(cur_state != enable);
+
+  /* save new tracking state */
+  g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED, (gpointer)enable);
+
+  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+
+  if(enable) 
+    gps_register_callback(gps_state, gps_callback, map);
+  else {
+    gps_unregister_callback(gps_state, gps_callback);
+    gps_callback(0, NULL, map);
+  }
 }
 
 /* ----------------------  saving track --------------------------- */
@@ -472,10 +531,14 @@ static char *build_path(void) {
   const char track_path[] = TRACK_PATH;
 
   if(track_path[0] == '~') {
+    int skip = 1;
     char *p = getenv("HOME");
     if(!p) return NULL;
 
-    return g_strdup_printf("%s/%s/track.trk", p, track_path+1);
+    while(track_path[strlen(track_path)-skip] == '/')
+      skip++;
+
+    return g_strdup_printf("%s/%s/track.trk", p, track_path+skip);
   }
 
   return g_strdup_printf("%s/track.trk", track_path);
@@ -484,16 +547,43 @@ static char *build_path(void) {
 void track_restore(GtkWidget *map) {
   char *path = build_path();
 
-  printf("restoring track from %s\n", path);
+  if(g_file_test(path, G_FILE_TEST_IS_REGULAR)) {
+    track_t *track = track_read(path);
+
+    if(track) 
+      track_draw(map, track);
+
+    /* the track comes fresh from the disk */
+    track->dirty = FALSE;
+  } else {
+    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+    menu_enable(toplevel, "Track/Clear", FALSE);
+    menu_enable(toplevel, "Track/Export", FALSE);
+  }
+
   g_free(path);
+
+  /* we may also have to restore track capture */
+  if(gconf_get_bool(TRACK_CAPTURE_ENABLED, FALSE)) {
+    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+    menu_check_set_active(toplevel, "Track/Capture", TRUE);
+  }
 }
 
 void track_save(GtkWidget *map) {
-  char *path = build_path();
+  /* save state of capture engine */
+  gconf_set_bool(TRACK_CAPTURE_ENABLED, 
+	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED));
 
+  char *path = build_path();
   track_t *track = g_object_get_data(G_OBJECT(map), "track");
   if(!track) {
     remove(path);
+    g_free(path);
+    return;
+  }
+
+  if(!track->dirty) {
     g_free(path);
     return;
   }
@@ -505,7 +595,7 @@ void track_save(GtkWidget *map) {
   g_mkdir_with_parents(path, 0700);
   *last_sep = '/';
 
-  printf("saving to %s\n", path);
+  track_write(path, track);
   
   g_free(path);
 }

@@ -30,6 +30,8 @@ GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook);
 
 void gconf_set_string(char *key, char *str);
 char *gconf_get_string(char *key);
+void gconf_set_bool(char *key, gboolean value);
+gboolean gconf_get_bool(char *key, gboolean default_value);
 
 gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
 

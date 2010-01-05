@@ -58,6 +58,28 @@ char *gconf_get_string(char *m_key) {
   return ret;
 }
 
+void gconf_set_bool(char *m_key, gboolean value) {
+  GConfClient *client = gconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  gconf_client_set_bool(client, key, value, NULL);
+  g_free(key);
+}
+
+gboolean gconf_get_bool(char *m_key, gboolean default_value) {
+  GConfClient *client = gconf_client_get_default();
+
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GConfValue *value = gconf_client_get(client, key, NULL);
+  if(!value) {
+    g_free(key);
+    return default_value;
+  }
+
+  gboolean ret = gconf_client_get_bool(client, key, NULL);
+  g_free(key);
+  return ret;
+}
+
 static const char *data_paths[] = {
   "~/." APP,                 // in home directory
   DATADIR ,                  // final installation path (e.g. /usr/share/maep)

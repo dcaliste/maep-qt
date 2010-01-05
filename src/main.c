@@ -151,7 +151,7 @@ cb_map_gps(osd_button_t but, void *data) {
   }
 }
 
-void gps_callback(int status, struct gps_fix_t *fix, void *data) {
+static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
 
   int gps_status = 
@@ -232,8 +232,6 @@ static GtkWidget *map_new(void) {
   gps_register_callback(gps, gps_callback, widget);
 
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
-
-  track_restore(widget);
 
   return widget;
 }
@@ -336,6 +334,8 @@ int main(int argc, char *argv[]) {
 		   G_CALLBACK(on_map_destroy), NULL);
 
   gtk_container_add(GTK_CONTAINER(container), map);
+
+  track_restore(map);
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();

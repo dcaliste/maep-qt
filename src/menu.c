@@ -21,19 +21,23 @@
 #include "about.h"
 #include "track.h"
 
+#include <string.h>
+
 #ifdef MAEMO5
 #include <hildon/hildon-button.h>
 #include <hildon/hildon-check-button.h>
 #endif
 
-typedef enum { MENU_ENTRY, MENU_CHECK_ENTRY, 
+typedef enum { MENU_ENTRY, MENU_SUBMENU, MENU_CHECK_ENTRY, 
 	       MENU_SEPARATOR, MENU_END } menu_type_t;
 
 typedef struct menu_entry_s {
   menu_type_t type;
   char *title;
-  char *id;
-  void(*cb)(GtkWidget *, gpointer);
+  union {
+    void(*cb)(GtkWidget *, gpointer);
+    const struct menu_entry_s *submenu;
+  };
 } menu_entry_t;
 
 static void 
@@ -70,15 +74,21 @@ cb_menu_track_export(GtkWidget *item, gpointer data) {
   track_export(GTK_WIDGET(data));
 }
 
-static const menu_entry_t main_menu[] = {
-  { MENU_ENTRY,       "About",         NULL,      cb_menu_about },
-  { MENU_SEPARATOR,   NULL,            NULL,      NULL },
-  { MENU_CHECK_ENTRY, "Capture Track", NULL,      cb_menu_track_capture },
-  { MENU_ENTRY,       "Clear Track",   "trk-clr", cb_menu_track_clear },
-  { MENU_ENTRY,       "Import Track",  NULL,      cb_menu_track_import },
-  { MENU_ENTRY,       "Export Track",  "trk-exp", cb_menu_track_export },
+static const menu_entry_t track_menu[] = {
+  { MENU_CHECK_ENTRY, "Capture", { .cb = cb_menu_track_capture } },
+  { MENU_ENTRY,       "Clear",   { .cb = cb_menu_track_clear } } ,
+  { MENU_ENTRY,       "Import",  { .cb = cb_menu_track_import } },
+  { MENU_ENTRY,       "Export",  { .cb = cb_menu_track_export } },
 
-  { MENU_END,         NULL,            NULL,      NULL }
+  { MENU_END,         NULL,      { NULL } }
+};
+
+static const menu_entry_t main_menu[] = {
+  { MENU_ENTRY,       "About",  { .cb = cb_menu_about } },
+  { MENU_SEPARATOR,   NULL,     { NULL } },
+  { MENU_SUBMENU,     "Track",  { .submenu = track_menu } },
+
+  { MENU_END,         NULL,     { NULL } }
 };
 
 void menu_build(GtkWidget *map, 
@@ -125,7 +135,22 @@ void menu_build(GtkWidget *map,
     case MENU_SEPARATOR:
 #ifndef MAEMO5
       gtk_menu_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+#else
+#error MAEMO5 missing
 #endif
+      break;
+
+    case MENU_SUBMENU:
+#ifndef MAEMO5
+      item = gtk_menu_item_new_with_mnemonic( _(entry->title) );
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+      GtkWidget *submenu = gtk_menu_new();
+      menu_build(map, submenu, entry->submenu); 
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), submenu);
+#else
+#error MAEMO5 missing
+#endif
+      g_object_set_data(G_OBJECT(item), "submenu", submenu);
       break;
 
     default:
@@ -134,8 +159,8 @@ void menu_build(GtkWidget *map,
     }
 
     /* save item reference if requested */
-    if(entry->id)
-      g_object_set_data(G_OBJECT(menu), entry->id, item);
+    if(entry->title) 
+      g_object_set_data(G_OBJECT(menu), entry->title, item);
 
     entry++;
   }
@@ -145,12 +170,14 @@ GtkWidget *menu_create(GtkWidget *window, GtkWidget *map) {
 #ifdef MAEMO5
   HildonAppMenu *menu = HILDON_APP_MENU(hildon_app_menu_new());
   menu_build(map, GTK_WIDGET(menu), main_menu);
+  g_object_set_data(G_OBJECT(window), "menu", menu);
   gtk_widget_show_all(GTK_WIDGET(menu));
   hildon_window_set_app_menu(HILDON_WINDOW(window), menu);
   return window;
 #else
   GtkWidget *menu = gtk_menu_new();
   menu_build(map, menu, main_menu);
+  g_object_set_data(G_OBJECT(window), "menu", menu);
 
 #ifdef USE_MAEMO
   hildon_window_set_menu(HILDON_WINDOW(window), GTK_MENU(menu));
@@ -176,4 +203,51 @@ GtkWidget *menu_create(GtkWidget *window, GtkWidget *map) {
   return bin;
 #endif
 #endif 
+}
+
+static void menu_enable_cb(GtkWidget *item, gboolean enable) {
+  gtk_widget_set_sensitive(item, enable);
+}
+
+static void menu_check_set_active_cb(GtkWidget *item, gboolean enable) {
+#ifdef MAEMO5
+  hildon_check_button_set_active(HILDON_CHECK_BUTTON(item), enable); 
+#else
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(item), enable);
+#endif
+}
+
+static void menu_item_do(GtkWidget *window, const char *id, gboolean enable,
+			 void(*cb)(GtkWidget *, gboolean)) {
+  GtkWidget *menu = g_object_get_data(G_OBJECT(window), "menu");
+  g_assert(menu);
+
+  char *slash = NULL;
+  do {
+    slash = strchr(id, '/');
+    if(slash) {
+      char *tmp = g_strndup(id, slash-id);
+
+      GtkWidget *item = g_object_get_data(G_OBJECT(menu), tmp);
+      g_assert(item);
+      menu = g_object_get_data(G_OBJECT(item), "submenu");
+      g_assert(menu);
+
+      g_free(tmp);
+      id = slash+1;
+    } else {
+      GtkWidget *item = g_object_get_data(G_OBJECT(menu), id);
+      g_assert(item);
+      
+      cb(item, enable);
+    }
+  } while(slash);
+}
+
+void menu_enable(GtkWidget *window, const char *id, gboolean enable) {
+  menu_item_do(window, id, enable, menu_enable_cb);
+}
+
+void menu_check_set_active(GtkWidget *window, const char *id, gboolean active) {
+  menu_item_do(window, id, active, menu_check_set_active_cb);
 }
