@@ -6,7 +6,8 @@ maep (1.1) unstable; urgency=low
   * Added browser interface
   * Added track import/export/capture
   * Enabled auto /opt-ification for binary/app icons/...
-
+  * Disable screen saver over ~3kph
+	
  -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
 
 maep (1.0.2) unstable; urgency=low
