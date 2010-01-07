@@ -33,34 +33,7 @@
 #include "gps.h"
 #include "track.h"
 
-
-void gps_register_callback(gps_state_t *gps_state, gps_cb cb, void *data) {
-  gps_callback_t *callback = g_new0(gps_callback_t, 1);
-
-  callback->cb = cb;
-  callback->data = data;
-
-  gps_state->callbacks = g_slist_append(gps_state->callbacks, callback);
-}
-
-static gint compare(gconstpointer a, gconstpointer b) {
-  return ((gps_callback_t*)a)->cb != b;
-}
-
-void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb) {
-  /* find callback in list */
-  GSList *list = g_slist_find_custom(gps_state->callbacks, cb, compare);
-  g_assert(list);
-
-  /* and de-chain and free it */
-  g_free(list->data);
-  gps_state->callbacks = g_slist_remove(gps_state->callbacks, list->data);
-}
-
-static void gps_unregister_all(gps_state_t *gps_state) {
-  g_slist_foreach(gps_state->callbacks, (GFunc)g_free, NULL);
-  g_slist_free(gps_state->callbacks);
-}
+static void gps_unregister_all(gps_state_t *gps_state);
 
 #ifndef ENABLE_LIBLOCATION
 
@@ -448,11 +421,8 @@ location_changed(LocationGPSDevice *device, gps_state_t *gps_state) {
   g_slist_foreach(gps_state->callbacks, cb_func, gps_state);
 }
 
-gps_state_t *gps_init(gps_cb cb, void *data) {
+gps_state_t *gps_init(void) {
   gps_state_t *gps_state = g_new0(gps_state_t, 1);
-
-  gps_state->cb = cb;
-  gps_state->cb_data = data;
 
   gps_state->device = g_object_new(LOCATION_TYPE_GPS_DEVICE, NULL);  
   if(!gps_state->device) {
@@ -498,3 +468,33 @@ void gps_release(gps_state_t *gps_state) {
 }
 
 #endif // USE_LIBLOCATION
+
+void gps_register_callback(gps_state_t *gps_state, gps_cb cb, void *data) {
+  gps_callback_t *callback = g_new0(gps_callback_t, 1);
+
+  callback->cb = cb;
+  callback->data = data;
+
+  gps_state->callbacks = g_slist_append(gps_state->callbacks, callback);
+}
+
+static gint compare(gconstpointer a, gconstpointer b) {
+  return ((gps_callback_t*)a)->cb != b;
+}
+
+void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb) {
+  /* find callback in list */
+  GSList *list = g_slist_find_custom(gps_state->callbacks, cb, compare);
+  g_assert(list);
+
+  /* and de-chain and free it */
+  g_free(list->data);
+  gps_state->callbacks = g_slist_remove(gps_state->callbacks, list->data);
+}
+
+static void gps_unregister_all(gps_state_t *gps_state) {
+  g_slist_foreach(gps_state->callbacks, (GFunc)g_free, NULL);
+  g_slist_free(gps_state->callbacks);
+}
+
+

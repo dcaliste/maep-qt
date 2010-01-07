@@ -102,6 +102,10 @@ PKG_CHECK_EXISTS(maemo-version, [
   CFLAGS="$CFLAGS $osso_CFLAGS"
   LIBS="$LIBS $osso_LIBS"
 
+  PKG_CHECK_MODULES([hildon_fm_2], [hildon-fm-2], [], [AC_MSG_ERROR([hildon-fm-2 missing])])
+  CFLAGS="$CFLAGS $hildon_fm_2_CFLAGS"
+  LIBS="$LIBS $hildon_fm_2_LIBS"
+
   # prefer gpsbt over liblocation as we got complaints regarding liblocation
   # stability
   PKG_CHECK_EXISTS(gpsbt, [

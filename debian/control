@@ -2,7 +2,7 @@ Source: maep
 Section: user/navigation
 Priority: extra
 Maintainer: Till Harbaum <Till@Harbaum.org>
-Build-Depends: debhelper (>= 5), sharutils, maemo-version-dev, libgconf2-dev, mce-dev, libgtk2.0-dev, libhildon1-dev, libosso-dev, libosso-gnomevfs2-dev, liblocation-dev|libgpsmgr-dev, libsoup2.4-dev|libsoup2.2-dev
+Build-Depends: debhelper (>= 5), sharutils, maemo-version-dev, libgconf2-dev, mce-dev, libgtk2.0-dev, libhildon1-dev, libhildonfm2-dev, libosso-dev, libosso-gnomevfs2-dev, liblocation-dev|libgpsmgr-dev, libsoup2.4-dev|libsoup2.2-dev
 Standards-Version: 3.7.2
 
 Package: maep
@@ -15,4 +15,37 @@ Description: Simple tile map
  and to become a universal map widget for the Maemo5 platform.
 XSBC-Bugtracker: https://garage.maemo.org/tracker/?group_id=1150
 XB-Maemo-Display-Name: Maep
-# No icon
+# Maemo icon maep.26.png
+XB-Maemo-Icon-26:
+ iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAABHNCSVQICAgI
+ fAhkiAAAAAlwSFlzAAALPwAACz8BScUy+wAAABl0RVh0U29mdHdhcmUAd3d3
+ Lmlua3NjYXBlLm9yZ5vuPBoAAAUHSURBVEiJzZZtTFNXGMf/97a3pa+UvlBK
+ oYXK6hSKoJPNgUQNcU7dUNjCjJl+0rjNGPCLL8syMhOYS+a2bMs+LNv8MhOy
+ OKabboTNMN2UwcZAoApiASs4oNDa29LS23vvPqg3XEqjy5Jl/0/nPvd/nt95
+ zjn3nAv8RyIexVRT0+BMMVB7Uk2mzTp1jp2LEbxvcqw3ODX9fSRCNzU3Hx38
+ V6DdtccaXPbnD8a4KOnT9FNTzHVMMQMAAD25FHq+gNcyeTwfUDLXr1040nz6
+ 4Hv/CLRjR73RsdLVnWpMz9Q58whOM4uTrVVJB1Tl+gzjrTEmGPANeW50lbe1
+ 1fsWesiEKvY07ix75sWJKW2f9Rt/LaE2a2HQOmDRFyYFzcrHUPraGkrn0OQV
+ raoe3/jsOzULPZKFlaxZV3X5HH2EHIm2gwcHCUkh2/QE9Npc9I+cWRRERyZQ
+ mFuNbFeOhFSHJGQgp1KpMH8yMtI2u2hFDteKzqvMaXKGGRVibu85AIDVUISl
+ 2ZsWBU343RidaAcAZOU7QBp9yMgqujjfI4D27n2/TpdptPfQp0VJOI4V2ivz
+ dgjtfNtzoKRK4fma97zQXvvyOkqpNuVVbDxRlwBaXrz+7ZbAWwmbw2osEtoW
+ fSGMqY+BAIENxYdRXfoxKKkCAMCwEVG/VS/lUtm29Y0i0K5dDc6YJCyFDDCl
+ OqFTZQkdbKbVogQrcquRqs6CTKqC1ViMNFX2PV96iciXnmNBnI0SZWUNTgCQ
+ AoBMk7LbhyFi54ZTUKcYwfMcvv51P25N/YYcc6kowTLbFszGAsJzMDIBjSID
+ BfZtCycDhILmJZSqBsAxKQCoLPoqlgWhTjHeMxAkqko/wjQ9DLUiXdRZTmnw
+ 9LJ9AIA4OweWY7C15DgkJJUA0mUp5FNec4UAMsgd1tRcs3g0BAmjdklC5/mS
+ SuR4ZctPwjotVNZyC7zdnAu4v0ZchIiThFRkCs6OY4YeBsNG8UPnG/jwTCku
+ 9X0AJi5e9GSQB+I5jgDur5FverwXHqI8Y6lDMNy8cwkXuhshk6oQi4cBAB0D
+ X4AHj7X5B0AQCYdKggZ6exFmQzeEioL+yR8jvsjcfJNOZQUAAfJAnQMnca7j
+ 8EMhLBfDdDDI09O+8wKIpukmitWKviFb+pNQpRhBSZWoKD4qSmJOy38oqP3a
+ p6BmHYhE754SQM3NRwdJQs7PeO8IRglJobygFltLjsNmekqIZ+oLsdq5G3F2
+ Dl1DX2KGHk6AjM9cRVf/t2CDSrano34QmHeomjMeD3PT6g3WVVlCzKRzIk1j
+ h0KeCoPWAbXChLWuWqTItGi+fADdN5vQ4/kKgfBtxJgQ/KER9I404+eed2Hy
+ 1PNj7vZDY96WK8CC+2jfq2fdGrsmr6RmXeJHsUCft1TCHxpd9J3Ovx38jQJv
+ S9MLtgcx0dYZ83aVE34jxtyeh3GS7jpZzA71re2sb6hv5fy46D4aHGybTdPl
+ DkrpnErvkJvLduVIkETu0e8Qik6KKwlsQ9rwfs7jbtnZ9fvrnUlB92Ct/XKZ
+ +ROKM1R6/5jRaTKlEpVOkwAauN2Cu+ExAAAVNyHzViPPjKv+8g635v155c2O
+ hBlINmIA2LT5RJ3Nvr4xzkUJyGhea1XIrcssAICOnrNgwwZeRi/h4yEFd9tz
+ 8VD7L3UnkuV6pN+tsrIGp1yhqlEqzRUKlcXFcUAoNN5H351sZeb8TR33t/D/
+ Qn8DbsLVPxUckhIAAAAASUVORK5CYII=

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Till Harbaum <till@harbaum.org>.
+ * Copyright (C) 2009-2010 Till Harbaum <till@harbaum.org>.
  *
  * This file is part of Maep.
  *
@@ -233,7 +233,7 @@ GtkWidget *copyright_page_new(GtkWidget *parent) {
   ivbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(ivbox), 
-	      gtk_label_new(_("Copyright 2008-2009")), FALSE, FALSE, 0);
+	      gtk_label_new(_("Copyright 2009-2010")), FALSE, FALSE, 0);
 
   gtk_box_pack_start(GTK_BOX(ivbox), 
 	     link_new(parent, "http://www.harbaum.org/till/maemo#maep"),

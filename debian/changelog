@@ -4,7 +4,8 @@ maep (1.1) unstable; urgency=low
   * Added about box
   * Added /opt-ified icon processing
   * Added browser interface
-  * In progress: track handling
+  * Added track import/export/capture
+  * Enabled auto /opt-ification for binary/app icons/...
 
  -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
 

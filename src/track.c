@@ -35,6 +35,7 @@
 
 #define DATE_FORMAT "%FT%T"
 #define TRACK_CAPTURE_ENABLED "track_capture_enabled"
+#define TRACK_CAPTURE_LAST    "track_capture_last"
 
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
@@ -44,6 +45,10 @@
 #define GTK_FM_OK  GTK_RESPONSE_OK
 #else
 #define GTK_FM_OK  GTK_RESPONSE_ACCEPT
+#endif
+
+#ifdef MAEMO5
+#include <hildon/hildon-file-chooser-dialog.h>
 #endif
 
 static void filemgr_setup(GtkWidget *dialog, gboolean save) {
@@ -88,6 +93,9 @@ static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
 
 static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
   track_point_t *point = g_new0(track_point_t, 1);
+  point->altitude = NAN;
+  point->coord.rlat = NAN;
+  point->coord.rlon = NAN;
 
   /* parse position */
   if(!track_get_prop_pos(a_node, &point->coord)) {
@@ -147,14 +155,12 @@ track_parse_trkseg(track_t *track, xmlDocPtr doc, xmlNode *a_node) {
 	  /* end segment if point could not be parsed and start a new one */
 	  /* close segment if there is one */
 	  if(point) {
-	    printf("ending track segment leaving bounds\n");
 	    seg = &((*seg)->next);
 	    point = NULL;
 	  }
 	}
       } else
 	printf("found unhandled gpx/trk/trkseg/%s\n", cur_node->name);
-      
     }
   }
 }
@@ -294,7 +300,7 @@ void track_import(GtkWidget *map) {
 
   track_t *track = NULL;
   
-#ifdef USE_HILDON
+#ifdef USE_MAEMO
   dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
 					  GTK_FILE_CHOOSER_ACTION_OPEN);
 #else
@@ -341,17 +347,81 @@ void track_seg_free(track_seg_t *seg) {
   g_free(seg);
 }
 
+
+static void track_point_new(GtkWidget *map, track_point_t *new_point) {
+
+  /* update visual representation */
+  GSList *points = (GSList*)g_object_get_data(G_OBJECT(map), "track_current_draw");
+  
+  /* append new point */
+  coord_t *tmp_point = g_memdup(&(new_point->coord), sizeof(coord_t));
+  GSList *new_points = g_slist_append(points, tmp_point);
+  
+  osm_gps_map_replace_track(OSM_GPS_MAP(map), points, new_points);
+  g_object_set_data(G_OBJECT(map), "track_current_draw", new_points);
+  
+  /* get current segment */
+  track_seg_t *seg = g_object_get_data(G_OBJECT(map), "track_current_segment");
+  
+  if(!seg) {
+    /* append a new segment */
+    track_t *track = g_object_get_data(G_OBJECT(map), "track");
+    if(!track) {
+      /* no tracks at all sp far -> enable menu */
+      GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
+      menu_enable(toplevel, "Track/Clear", TRUE);
+      menu_enable(toplevel, "Track/Export", TRUE);
+      
+      printf("gps: creating new track\n");
+      track = g_new0(track_t, 1);
+      g_object_set_data(G_OBJECT(map), "track", track);
+    }
+    
+    track->dirty = TRUE;
+    
+    printf("gps: creating new segment\n");
+    
+    /* search last segment */
+    if((seg = track->track_seg)) {
+      /* append to existing chain */
+      while(seg->next) seg = seg->next;
+      seg = (seg->next = g_new0(track_seg_t, 1));
+    } else
+      /* create new chain */
+      seg = track->track_seg = g_new0(track_seg_t, 1);
+  }
+  
+  printf("gps: creating new point\n");
+  track_point_t *point = seg->track_point;
+  if(point) {
+    /* append to existing chain */
+    while(point->next) point = point->next;
+    point = (point->next = new_point);
+  } else
+    /* create new chain */
+    point = seg->track_point = new_point;
+  
+  g_object_set_data(G_OBJECT(map), "track_current_segment", seg);
+}
+
 void track_clear(GtkWidget *map) {
   track_t *track = g_object_get_data(G_OBJECT(map), "track");
-  if (!track) return;
 
-  g_object_set_data(G_OBJECT(map), "track", NULL);
+  g_object_set_data(G_OBJECT(map), "track_current", NULL);
 
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   menu_enable(toplevel, "Track/Clear", FALSE);
   menu_enable(toplevel, "Track/Export", FALSE);
 
   osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
+
+  /* also remove everything related to track currently being drawn */
+  g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
+  g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
+
+  if (!track) return;
+
+  g_object_set_data(G_OBJECT(map), "track", NULL);
 
   track_seg_t *seg = track->track_seg;
   while(seg) {
@@ -360,37 +430,56 @@ void track_clear(GtkWidget *map) {
     seg = next;
   }
   g_free(track);
+
+  /* if we are still captureing a track and we have a valid fix, then */
+  /* start a new one immediately */
+  if((gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED)) {
+    track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
+
+    if(last) track_point_new(GTK_WIDGET(map), g_memdup(last, sizeof(track_point_t)));
+  }
 }
 
 /* this callback is called from the gps layer as long as */
 /* captureing is enabled */
 static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
-  static coord_t last = { NAN, NAN };
-
   OsmGpsMap *map = OSM_GPS_MAP(data);
 
-  /* save gps position in track */
-  
+  track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
+
+  /* save point as we may need it later to (re-)enable caturing */
   if(status) {
-    if(!isnan(last.rlat) && !isnan(last.rlon)) {
-
-      GSList *points = NULL;
-      coord_t *new_point = g_memdup(&last, sizeof(coord_t));
-      points = g_slist_append(points, new_point);
-      new_point = g_new0(coord_t, 1);
-      new_point->rlat = deg2rad(fix->latitude);
-      new_point->rlon = deg2rad(fix->longitude);
-      points = g_slist_append(points, new_point);
+    /* create storage if not present yet */
+    if(!last) last = g_new0(track_point_t, 1);
     
-      osm_gps_map_add_track(OSM_GPS_MAP(map), points);
-    }
-
-    last.rlat = deg2rad(fix->latitude);
-    last.rlon = deg2rad(fix->longitude);
-
+    /* save current position for later use */
+    last->altitude = NAN;
+    last->time = time(NULL);
+    last->coord.rlat = deg2rad(fix->latitude);
+    last->coord.rlon = deg2rad(fix->longitude);
+    
+    g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, last);
   } else {
-    printf("interrupting track\n");
-    last.rlat = last.rlon = NAN;
+    /* no fix -> forget about last point */
+    track_point_free(last);
+    g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, NULL);
+  }
+  
+  if(!(gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED)) 
+     return;
+
+  /* save gps position in track */
+  if(status) {
+    track_point_t *point = g_new0(track_point_t, 1);
+    point->altitude = NAN;
+    point->time = time(NULL);
+    point->coord.rlat = deg2rad(fix->latitude);
+    point->coord.rlon = deg2rad(fix->longitude);
+
+    track_point_new(GTK_WIDGET(map), point);
+  } else {
+    g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
+    g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
   }
 }
 
@@ -406,13 +495,17 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
   /* save new tracking state */
   g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED, (gpointer)enable);
 
-  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+  if(enable) {
+    track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
 
-  if(enable) 
-    gps_register_callback(gps_state, gps_callback, map);
-  else {
-    gps_unregister_callback(gps_state, gps_callback);
-    gps_callback(0, NULL, map);
+    /* if a "last" point exists, use it as the start of the new track */
+    if(last) 
+      track_point_new(GTK_WIDGET(map), g_memdup(last, sizeof(track_point_t)));
+
+  } else {
+    /* stop all visual things */
+    g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
+    g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
   }
 }
 
@@ -483,7 +576,7 @@ void track_export(GtkWidget *map) {
   /* open a file selector */
   GtkWidget *dialog;
 
-#ifdef USE_HILDON
+#ifdef USE_MAEMO
   dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
 					  GTK_FILE_CHOOSER_ACTION_SAVE);
 #else
@@ -568,12 +661,26 @@ void track_restore(GtkWidget *map) {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_check_set_active(toplevel, "Track/Capture", TRUE);
   }
+
+  /* install callback for capturing */
+  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+  gps_register_callback(gps_state, gps_callback, map);
 }
 
 void track_save(GtkWidget *map) {
   /* save state of capture engine */
   gconf_set_bool(TRACK_CAPTURE_ENABLED, 
 	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED));
+
+  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+  gps_unregister_callback(gps_state, gps_callback);
+
+  /* free "last" coordinate if present */
+  track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
+  if(last) {
+    g_free(last);
+    g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, NULL);
+  }
 
   char *path = build_path();
   track_t *track = g_object_get_data(G_OBJECT(map), "track");
