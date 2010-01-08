@@ -16,7 +16,7 @@ if [ -z "$oldversion" ]; then
 fi
 
 # check for need of file system conversion
-if [ -e /opt/maep/diskcache_check.sh]; then
+if [ -e /opt/maep/diskcache_check.sh ]; then
     /opt/maep/diskcache_check.sh
 fi
 
