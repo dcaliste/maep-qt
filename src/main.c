@@ -152,15 +152,19 @@ cb_map_gps(osd_button_t but, void *data) {
   }
 }
 
+#ifdef USE_MAEMO
 /* http://mathforum.org/library/drmath/view/51722.html */
 static float get_distance(coord_t *p1, coord_t *p2) {
   return acos(cos(p1->rlat) * cos(p2->rlat) * cos(p2->rlon - p1->rlon) +
 	      sin(p1->rlat) * sin(p2->rlat)) * 6378137.0;
 }
+#endif
 
 static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
+#ifdef USE_MAEMO
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
+#endif
 
   int gps_status = 
     (int)g_object_get_data(G_OBJECT(map), "gps_status"); 
@@ -237,7 +241,7 @@ static GtkWidget *map_new(void) {
   /* It is recommanded that all applications share these same */
   /* map path, so data is only cached once. The path should be: */
   /* ~/.osm-gps-map on standard PC     (users home) */
-  /* /home/user/.osm-gps-map on Maemo5 (ext3 on internal card) */
+  /* /home/user/MyDocs/.maps on Maemo5 (vfat on internal card) */
   /* /media/mmc2/osm-gps-map on Maemo4 (vfat on internal card) */
 #if !defined(USE_MAEMO)
   char *p = getenv("HOME");
@@ -245,11 +249,23 @@ static GtkWidget *map_new(void) {
   char *path = g_strdup_printf("%s/.osm-gps-map", p);
 #else
 #if MAEMO_VERSION_MAJOR == 5
-  char *path = g_strdup("/home/user/.osm-gps-map");
+  /* early maep releases used the ext3 for the tile cache */
+#define OLD_PATH "/home/user/.osm-gps-map"
+#define NEW_PATH "/home/user/MyDocs/.maps"
+  char *path = NULL;
+
+  /* check if the old path exists, and is not a symlink, then use it */
+  if( g_file_test(OLD_PATH, G_FILE_TEST_IS_DIR) &&
+     !g_file_test(OLD_PATH, G_FILE_TEST_IS_SYMLINK))
+    path = g_strdup(OLD_PATH);
+  else
+    path = g_strdup(NEW_PATH);
 #else
   char *path = g_strdup("/media/mmc2/osm-gps-map");
 #endif
 #endif
+
+  printf("Storing tile cache at %s\n", path);
 
   const char *proxy = get_proxy_uri();
 

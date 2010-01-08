@@ -630,6 +630,8 @@ INSTALL_DATA
 LN_S
 SET_MAKE
 PKG_CONFIG
+libcurl_CFLAGS
+libcurl_LIBS
 gnome_vfs_module_CFLAGS
 gnome_vfs_module_LIBS
 libxml2_CFLAGS
@@ -669,6 +671,8 @@ LDFLAGS
 LIBS
 CPPFLAGS
 PKG_CONFIG
+libcurl_CFLAGS
+libcurl_LIBS
 gnome_vfs_module_CFLAGS
 gnome_vfs_module_LIBS
 libxml2_CFLAGS
@@ -1269,6 +1273,10 @@ Some influential environment variables:
   CPPFLAGS    C/C++/Objective C preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
   PKG_CONFIG  path to pkg-config utility
+  libcurl_CFLAGS
+              C compiler flags for libcurl, overriding pkg-config
+  libcurl_LIBS
+              linker flags for libcurl, overriding pkg-config
   gnome_vfs_module_CFLAGS
               C compiler flags for gnome_vfs_module, overriding pkg-config
   gnome_vfs_module_LIBS
@@ -2840,7 +2848,7 @@ fi
 #AC_FUNC_STRTOD
 #AC_CHECK_FUNCS([gettimeofday localtime_r memset pow setlocale sqrt strcasecmp strchr strcspn strdup strerror strrchr strstr strtoul tzset])
 
-# check for gnome-vfs-module-2.0
+# check for libcurl
 
 
 if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
@@ -2961,6 +2969,85 @@ echo "${ECHO_T}no" >&6; }
 	fi
 
 fi
+
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for libcurl" >&5
+echo $ECHO_N "checking for libcurl... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$libcurl_CFLAGS"; then
+        pkg_cv_libcurl_CFLAGS="$libcurl_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libcurl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libcurl") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_libcurl_CFLAGS=`$PKG_CONFIG --cflags "libcurl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$libcurl_LIBS"; then
+        pkg_cv_libcurl_LIBS="$libcurl_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libcurl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libcurl") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_libcurl_LIBS=`$PKG_CONFIG --libs "libcurl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        libcurl_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libcurl"`
+        else
+	        libcurl_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libcurl"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$libcurl_PKG_ERRORS" >&5
+
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                { { echo "$as_me:$LINENO: error: libcurl missing" >&5
+echo "$as_me: error: libcurl missing" >&2;}
+   { (exit 1); exit 1; }; }
+elif test $pkg_failed = untried; then
+	{ { echo "$as_me:$LINENO: error: libcurl missing" >&5
+echo "$as_me: error: libcurl missing" >&2;}
+   { (exit 1); exit 1; }; }
+else
+	libcurl_CFLAGS=$pkg_cv_libcurl_CFLAGS
+	libcurl_LIBS=$pkg_cv_libcurl_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+	:
+fi
+CFLAGS="$CFLAGS $libcurl_CFLAGS"
+LIBS="$LIBS $libcurl_LIBS"
+
+# check for gnome-vfs-module-2.0
 
 pkg_failed=no
 { echo "$as_me:$LINENO: checking for gnome_vfs_module" >&5
@@ -4871,6 +4958,8 @@ INSTALL_DATA!$INSTALL_DATA$ac_delim
 LN_S!$LN_S$ac_delim
 SET_MAKE!$SET_MAKE$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
+libcurl_CFLAGS!$libcurl_CFLAGS$ac_delim
+libcurl_LIBS!$libcurl_LIBS$ac_delim
 gnome_vfs_module_CFLAGS!$gnome_vfs_module_CFLAGS$ac_delim
 gnome_vfs_module_LIBS!$gnome_vfs_module_LIBS$ac_delim
 libxml2_CFLAGS!$libxml2_CFLAGS$ac_delim
@@ -4902,7 +4991,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 82; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

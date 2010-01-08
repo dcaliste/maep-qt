@@ -2,4 +2,3 @@ Things to be implemented/fixed next:
 
 - track merge
 - check liblocation coordinate change (save energy)
-- move map cache to /usr/home/MyDocs/maps on fremantle

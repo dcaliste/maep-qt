@@ -20,10 +20,10 @@ install-maemo:
 	done
 	install -d $(DESTDIR)$(prefix)/share/icons/hicolor/scalable/hildon
 	install -m 644 $(APP).64.png $(DESTDIR)$(prefix)/share/icons/hicolor/scalable/hildon/$(APP).png
+	install -d $(DESTDIR)$(datadir)/$(APP)
+	install diskcache_check.sh $(DESTDIR)$(datadir)/$(APP)
 
 install: @INSTALL_PLATTFORM@
 	install -d $(DESTDIR)$(datadir)/$(APP)
 	install -m 644 COPYING *.png $(DESTDIR)$(datadir)/$(APP)
-
-
 

@@ -54,6 +54,11 @@ AC_PROG_MAKE_SET
 #AC_FUNC_STRTOD
 #AC_CHECK_FUNCS([gettimeofday localtime_r memset pow setlocale sqrt strcasecmp strchr strcspn strdup strerror strrchr strstr strtoul tzset])
 
+# check for libcurl
+PKG_CHECK_MODULES([libcurl], [libcurl], [], [AC_MSG_ERROR([libcurl missing])])
+CFLAGS="$CFLAGS $libcurl_CFLAGS"
+LIBS="$LIBS $libcurl_LIBS"
+
 # check for gnome-vfs-module-2.0
 PKG_CHECK_MODULES([gnome_vfs_module], [gnome-vfs-module-2.0], [], [AC_MSG_ERROR(
 [gnome-vfs-module-2.0 missing])])

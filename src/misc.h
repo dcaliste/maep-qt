@@ -34,5 +34,8 @@ void gconf_set_bool(char *key, gboolean value);
 gboolean gconf_get_bool(char *key, gboolean default_value);
 
 gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
+void errorf(GtkWidget *parent, const char *fmt, ...);
+
+GtkWidget *button_new_with_label(char *label);
 
 #endif // MISC_H

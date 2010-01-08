@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Till Harbaum <till@harbaum.org>.
+ * Copyright (C) 2009 Till Harbaum <till@harbaum.org>.
  *
  * This file is part of Maep.
  *
@@ -26,6 +26,11 @@
 
 #include "config.h"
 #include "misc.h"
+
+#ifdef MAEMO5
+#include <hildon/hildon-button.h>
+#include <hildon/hildon-note.h>
+#endif
 
 #define GCONF_PATH         "/apps/" APP "/%s"
 
@@ -227,4 +232,46 @@ gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...) {
 
   g_free(buf);
   return yes;
+}
+
+static void vmessagef(GtkWidget *parent, int type, int buttons,
+                      char *title, const char *fmt, 
+                      va_list args) {
+
+  char *buf = g_strdup_vprintf(fmt, args);
+
+#ifndef MAEMO5
+  GtkWidget *dialog = gtk_message_dialog_new(
+                           GTK_WINDOW(parent),
+                           GTK_DIALOG_DESTROY_WITH_PARENT,
+                           type, buttons, buf);
+
+  gtk_window_set_title(GTK_WINDOW(dialog), title);
+#else
+  GtkWidget *dialog = 
+    hildon_note_new_information(GTK_WINDOW(parent), buf);
+#endif
+
+  gtk_dialog_run(GTK_DIALOG(dialog));
+  gtk_widget_destroy(dialog);
+
+  g_free(buf);
+}
+
+void errorf(GtkWidget *parent, const char *fmt, ...) {
+  va_list args;
+  va_start( args, fmt );
+
+  vmessagef(parent, GTK_MESSAGE_ERROR, 
+            GTK_BUTTONS_CLOSE, _("Error"), fmt, args);
+  va_end( args );
+}
+
+GtkWidget *button_new_with_label(char *label) {
+  GtkWidget *button = gtk_button_new_with_label(label);
+#ifdef MAEMO5
+  hildon_gtk_widget_set_theme_size(button, 
+           (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH));
+#endif  
+  return button;
 }

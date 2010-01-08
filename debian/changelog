@@ -7,6 +7,7 @@ maep (1.1) unstable; urgency=low
   * Added track import/export/capture
   * Enabled auto /opt-ification for binary/app icons/...
   * Disable screen saver over ~3kph
+  * Moved tile cache to /home/user/MyDocs/.maps on fremantle
 	
  -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
 
