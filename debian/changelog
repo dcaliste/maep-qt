@@ -1,3 +1,10 @@
+maep (1.1.1) unstable; urgency=low
+
+  * Fixed missing browser dependency
+  * manually optified executable
+
+ -- Till Harbaum <till@harbaum.org>  Sat, 09 Jan 2010 20:27:44 +0100
+
 maep (1.1) unstable; urgency=low
 
   * Added application menu

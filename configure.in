@@ -21,7 +21,7 @@
 # along with GPXView.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.61)
-AC_INIT([Maeo],[1.1],[till@harbaum.org])
+AC_INIT([Maeo],[1.1.1],[till@harbaum.org])
 AC_CONFIG_SRCDIR([src/main.c])
 
 PACKAGE="maep"
@@ -139,6 +139,7 @@ PKG_CHECK_EXISTS(maemo-version, [
     CFLAGS="$CFLAGS -DMAEMO_VERSION=\\\"$VERSION\\\""
     MAJOR=`echo $VERSION | cut -b1 -`
     CFLAGS="$CFLAGS -DMAEMO_VERSION_MAJOR=$MAJOR"
+    MAEMO_VERSION_MAJOR=$MAJOR
   ], [
     AC_MSG_ERROR([maemo-version not found])
   ])
@@ -181,8 +182,10 @@ XB-Maemo-Icon-26:
   INSTALL_PLATTFORM="install-debian"
 
   ICON=" No icon"
+  MAEMO_VERSION_MAJOR=""
 ])
 
+AC_SUBST(MAEMO_VERSION_MAJOR)
 AC_SUBST(EXTRA_OBJS)
 AC_SUBST(ICON)
 AC_SUBST(INSTALL_PLATTFORM)

@@ -23,6 +23,7 @@ datarootdir = @datarootdir@
 datadir = @datarootdir@
 EXTRA_OBJS = @EXTRA_OBJS@
 VERSION = $${VERSION_PREFIX}@PACKAGE_VERSION@$${VERSION_SUFFIX}
+MAEMO_VERSION_MAJOR = @MAEMO_VERSION_MAJOR@
 
 bindir = @bindir@
 
@@ -42,7 +43,15 @@ $(APP): $(OBJS)
 
 install:
 	install -d $(DESTDIR)$(prefix)$(bindir)
-	install $(APP) $(DESTDIR)$(prefix)$(bindir)
+	if [ "$(MAEMO_VERSION_MAJOR)" == "5" ]; then \
+		echo "Optifying binary"; \
+		install -d $(DESTDIR)$(datadir)/$(APP); \
+		install $(APP) $(DESTDIR)$(datadir)/$(APP).bin; \
+		ln -s $(DESTDIR)$(datadir)/$(APP)/$(APP).bin $(DESTDIR)$(prefix)$(bindir)/$(APP); \
+	else \
+		echo "Not Optifying binary"; \
+		install $(APP) $(DESTDIR)$(prefix)$(bindir); \
+	fi
 
 clean:
 	rm -f maep *.o *~ \#*\#
