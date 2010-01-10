@@ -46,8 +46,8 @@ install:
 	if [ "$(MAEMO_VERSION_MAJOR)" == "5" ]; then \
 		echo "Optifying binary"; \
 		install -d $(DESTDIR)$(datadir)/$(APP); \
-		install $(APP) $(DESTDIR)$(datadir)/$(APP).bin; \
-		ln -s $(DESTDIR)$(datadir)/$(APP)/$(APP).bin $(DESTDIR)$(prefix)$(bindir)/$(APP); \
+		install $(APP) $(DESTDIR)$(datadir)/$(APP)/$(APP).bin; \
+		ln -s $(datadir)/$(APP)/$(APP).bin $(DESTDIR)$(prefix)$(bindir)/$(APP); \
 	else \
 		echo "Not Optifying binary"; \
 		install $(APP) $(DESTDIR)$(prefix)$(bindir); \
