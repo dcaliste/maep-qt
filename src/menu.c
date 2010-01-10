@@ -26,6 +26,7 @@
 #include "config.h"
 #include "about.h"
 #include "track.h"
+#include "geonames.h"
 
 #include <string.h>
 
@@ -50,6 +51,12 @@ static void
 cb_menu_about(GtkWidget *item, gpointer data) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
   about_box(toplevel);
+}
+
+static void 
+cb_menu_search(GtkWidget *item, gpointer data) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
+  geonames_enable_search(toplevel);
 }
 
 static void 
@@ -93,6 +100,8 @@ static const menu_entry_t main_menu[] = {
   { MENU_ENTRY,       "About",  { .cb = cb_menu_about } },
   { MENU_SEPARATOR,   NULL,     { NULL } },
   { MENU_SUBMENU,     "Track",  { .submenu = track_menu } },
+  { MENU_SEPARATOR,   NULL,     { NULL } },
+  { MENU_ENTRY,       "Search", { .cb = cb_menu_search } },
 
   { MENU_END,         NULL,     { NULL } }
 };
@@ -275,22 +284,24 @@ void menu_build(GtkWidget *window, GtkWidget *map, GtkWidget *menu,
 #endif
 }
 
-GtkWidget *menu_create(GtkWidget *window, GtkWidget *map) {
+void menu_create(GtkWidget *vbox, GtkWidget *map) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(vbox));
+
 #ifdef MAEMO5
   HildonAppMenu *menu = HILDON_APP_MENU(hildon_app_menu_new());
-  menu_build(window, map, GTK_WIDGET(menu), main_menu, TRUE);
-  g_object_set_data(G_OBJECT(window), "menu", menu);
+  menu_build(toplevel, map, GTK_WIDGET(menu), main_menu, TRUE);
+  g_object_set_data(G_OBJECT(toplevel), "menu", menu);
   gtk_widget_show_all(GTK_WIDGET(menu));
-  hildon_window_set_app_menu(HILDON_WINDOW(window), menu);
-  return window;
+  hildon_window_set_app_menu(HILDON_WINDOW(toplevel), menu);
+  return;
 #else
   GtkWidget *menu = gtk_menu_new();
-  menu_build(window, map, menu, main_menu, TRUE);
-  g_object_set_data(G_OBJECT(window), "menu", menu);
+  menu_build(toplevel, map, menu, main_menu, TRUE);
+  g_object_set_data(G_OBJECT(toplevel), "menu", menu);
 
 #ifdef USE_MAEMO
-  hildon_window_set_menu(HILDON_WINDOW(window), GTK_MENU(menu));
-  return window;
+  hildon_window_set_menu(HILDON_WINDOW(toplevel), GTK_MENU(menu));
+  return;
 #else
   /* attach ordinary gtk menu */
   GtkWidget *menu_bar = gtk_menu_bar_new();
@@ -302,14 +313,9 @@ GtkWidget *menu_create(GtkWidget *window, GtkWidget *map) {
 
   gtk_widget_show(menu_bar);
 
-  GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
-  gtk_container_add(GTK_CONTAINER(window), vbox);
   gtk_box_pack_start(GTK_BOX(vbox), menu_bar, FALSE, FALSE, 0);
 
-  GtkWidget *bin = gtk_event_box_new();
-  gtk_box_pack_start_defaults(GTK_BOX(vbox), bin);
-
-  return bin;
+  return;
 #endif
 #endif 
 }

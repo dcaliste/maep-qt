@@ -267,6 +267,15 @@ void errorf(GtkWidget *parent, const char *fmt, ...) {
   va_end( args );
 }
 
+GtkWidget *button_new(void) {
+  GtkWidget *button = gtk_button_new();
+#ifdef MAEMO5
+  hildon_gtk_widget_set_theme_size(button, 
+           (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH));
+#endif  
+  return button;
+}
+
 GtkWidget *button_new_with_label(char *label) {
   GtkWidget *button = gtk_button_new_with_label(label);
 #ifdef MAEMO5

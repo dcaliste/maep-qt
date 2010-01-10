@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Till Harbaum <till@harbaum.org>.
+ * Copyright (C) 2009 Till Harbaum <till@harbaum.org>.
  *
  * This file is part of Maep.
  *
@@ -17,11 +17,9 @@
  * along with Maep.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NET_IO_H
-#define NET_IO_H
+#ifndef GEONAMES_H
+#define GEONAMES_H
 
-#include <gtk/gtk.h>
+void geonames_enable_search(GtkWidget *parent);
 
-gboolean net_io_download(GtkWidget *parent, char *url, char **mem);
-
-#endif // NET_IO_H
+#endif // GEONAMES_H
