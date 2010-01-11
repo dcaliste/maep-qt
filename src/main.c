@@ -254,17 +254,18 @@ static GtkWidget *map_new(void) {
   /* ~/.osm-gps-map on standard PC     (users home) */
   /* /home/user/MyDocs/.maps on Maemo5 (vfat on internal card) */
   /* /media/mmc2/osm-gps-map on Maemo4 (vfat on internal card) */
+  char *path, *fullpath;
+  const char *fname;
+
 #if !defined(USE_MAEMO)
   char *p = getenv("HOME");
   if(!p) p = "/tmp"; 
-  char *path = g_strdup_printf("%s/.osm-gps-map", p);
+  path = g_strdup_printf("%s/.osm-gps-map", p);
 #else
 #if MAEMO_VERSION_MAJOR == 5
   /* early maep releases used the ext3 for the tile cache */
 #define OLD_PATH "/home/user/.osm-gps-map"
 #define NEW_PATH "/home/user/MyDocs/.maps"
-  char *path = NULL;
-
   /* check if the old path exists, and is not a symlink, then use it */
   if( g_file_test(OLD_PATH, G_FILE_TEST_IS_DIR) &&
      !g_file_test(OLD_PATH, G_FILE_TEST_IS_SYMLINK))
@@ -272,17 +273,19 @@ static GtkWidget *map_new(void) {
   else
     path = g_strdup(NEW_PATH);
 #else
-  char *path = g_strdup("/media/mmc2/osm-gps-map");
+  path = g_strdup("/media/mmc2/osm-gps-map");
 #endif
 #endif
+  GConfClient *gconf_client = gconf_client_get_default();
+  gint source = gconf_get_int(gconf_client, GCONF_KEY_SOURCE, MAP_SOURCE);
 
-  printf("Storing tile cache at %s\n", path);
+  fname = osm_gps_map_source_get_friendly_name(source);
+  if (!fname) fname = "_unknown_";
+  fullpath = g_strdup_printf("%s%c%s", p, G_DIR_SEPARATOR, fname);
+
+  printf("Storing tile cache at %s\n", fullpath);
 
   const char *proxy = get_proxy_uri();
-
-  GConfClient *gconf_client = gconf_client_get_default();
-  gint source = gconf_get_int(gconf_client, 
-			      GCONF_KEY_SOURCE, MAP_SOURCE);
 
   /* get zoom, latitude and longitude from gconf if possible */
   gint zoom = gconf_get_int(gconf_client, GCONF_KEY_ZOOM, 3);
@@ -291,13 +294,16 @@ static GtkWidget *map_new(void) {
     
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
-         "tile-cache",               path,
+         "tile-cache",               fullpath,
 		 "auto-center",              FALSE,
 		 "record-trip-history",      FALSE, 
 		 "show-trip-history",        FALSE, 
 		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
          NULL);
+
+  g_free(path);
+  g_free(fullpath);
 
   OsmGpsMap *map = OSM_GPS_MAP(widget);
 
@@ -322,8 +328,6 @@ static GtkWidget *map_new(void) {
 #ifdef MAP_KEY_RIGHT
   osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_RIGHT, MAP_KEY_RIGHT);
 #endif
-
-  g_free(path);
 
   osm_gps_map_set_mapcenter(OSM_GPS_MAP(widget), lat, lon, zoom);
 
