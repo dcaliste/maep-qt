@@ -40,7 +40,6 @@
 #define N_(String) (String)
 
 /* map configuration: */
-#define USE_CAIRO
 #define ENABLE_OSD
 #undef OSD_BALLOON
 #define OSD_SCALE

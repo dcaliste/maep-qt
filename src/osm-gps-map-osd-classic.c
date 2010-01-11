@@ -27,10 +27,6 @@
 /* OSD_DIAMETER */
 /* OSD_X, OSD_Y */
 
-#ifndef USE_CAIRO
-#error "OSD control display lacks a non-cairo implementation!"
-#endif
-
 #include <cairo.h>
 
 #include "osm-gps-map.h"
