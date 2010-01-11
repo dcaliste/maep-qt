@@ -158,6 +158,7 @@ struct _OsmGpsMapPrivate
 
     guint is_disposed : 1;
     guint dragging : 1;
+    guint button_down : 1;
 };
 
 #define OSM_GPS_MAP_PRIVATE(o)  (OSM_GPS_MAP (o)->priv)
@@ -1873,6 +1874,7 @@ osm_gps_map_button_press (GtkWidget *widget, GdkEventButton *event)
     }
 #endif
 
+    priv->button_down = TRUE;
     priv->drag_counter = 0;
     priv->drag_start_mouse_x = (int) event->x;
     priv->drag_start_mouse_y = (int) event->y;
@@ -1886,6 +1888,9 @@ static gboolean
 osm_gps_map_button_release (GtkWidget *widget, GdkEventButton *event)
 {
     OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
+
+    if(!priv->button_down)
+        return FALSE;
 
     if (priv->dragging)
     {
@@ -1912,6 +1917,7 @@ osm_gps_map_button_release (GtkWidget *widget, GdkEventButton *event)
 #endif
 
     priv->drag_counter = -1;
+    priv->button_down = 0;
 
     return FALSE;
 }
@@ -1935,6 +1941,9 @@ osm_gps_map_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
     int x, y;
     GdkModifierType state;
     OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
+
+    if(!priv->button_down)
+        return FALSE;
 
     if (event->is_hint)
         gdk_window_get_pointer (event->window, &x, &y, &state);

@@ -17,12 +17,14 @@
  * along with Maep.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
 #include <glib/gstdio.h>
 #include <stdlib.h>
 
 #include <gconf/gconf.h>
 #include <gconf/gconf-client.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "config.h"
 #include "misc.h"
@@ -30,11 +32,12 @@
 #ifdef MAEMO5
 #include <hildon/hildon-button.h>
 #include <hildon/hildon-note.h>
+#include <hildon/hildon-entry.h>
 #endif
 
 #define GCONF_PATH         "/apps/" APP "/%s"
 
-void gconf_set_string(char *m_key, char *str) {
+void gconf_set_string(const char *m_key, const char *str) {
   GConfClient *client = gconf_client_get_default();
   char *key = g_strdup_printf(GCONF_PATH, m_key);
 
@@ -48,7 +51,7 @@ void gconf_set_string(char *m_key, char *str) {
   g_free(key);
 }
 
-char *gconf_get_string(char *m_key) {
+char *gconf_get_string(const char *m_key) {
   GConfClient *client = gconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
@@ -267,6 +270,31 @@ void errorf(GtkWidget *parent, const char *fmt, ...) {
   va_end( args );
 }
 
+/* Converts an integer value to its hex character*/
+static char to_hex(char code) {
+  static char hex[] = "0123456789abcdef";
+  return hex[code & 15];
+}
+
+/* Returns a url-encoded version of str */
+/* IMPORTANT: be sure to free() the returned string after use */
+char *url_encode(char *str) {
+  char *pstr = str, *buf = g_malloc(strlen(str) * 3 + 1), *pbuf = buf;
+  while (*pstr) {
+    if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || 
+	*pstr == '.' || *pstr == '~') 
+      *pbuf++ = *pstr;
+    else if (*pstr == ' ') 
+      *pbuf++ = '+';
+    else 
+      *pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), 
+	*pbuf++ = to_hex(*pstr & 15);
+    pstr++;
+  }
+  *pbuf = '\0';
+  return buf;
+}
+
 GtkWidget *button_new(void) {
   GtkWidget *button = gtk_button_new();
 #ifdef MAEMO5
@@ -283,4 +311,12 @@ GtkWidget *button_new_with_label(char *label) {
            (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH));
 #endif  
   return button;
+}
+
+GtkWidget *entry_new(void) {
+#ifndef MAEMO5
+  return gtk_entry_new();
+#else
+  return hildon_entry_new(HILDON_SIZE_AUTO);
+#endif
 }

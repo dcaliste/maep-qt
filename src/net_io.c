@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <gconf/gconf.h>
+#include <gconf/gconf-client.h>
+
 static struct http_message_s {
   int id;
   char *msg;
@@ -164,6 +167,8 @@ static size_t mem_write(void *ptr, size_t size, size_t nmemb,
 #define PROXY_KEY  "/system/http_proxy/"
 
 void net_io_set_proxy(CURL *curl) {
+
+#warning "http_proxy not evaluated yet!"
 #if 0
   /* get proxy settings */
   static char proxy_buffer[64] = "";
@@ -171,17 +176,14 @@ void net_io_set_proxy(CURL *curl) {
   /* use environment settings if preset (e.g. for scratchbox) */
   const char *proxy = g_getenv("http_proxy");
   if(proxy) return proxy;
+#endif
 
   GConfClient *gconf_client = gconf_client_get_default();
 
   /* ------------- get proxy settings -------------------- */
   if(gconf_client_get_bool(gconf_client, 
-			   PROXY_KEY "use_http_proxy", NULL)) {
+		   PROXY_KEY "use_http_proxy", NULL)) {
 
-    /* we can savely ignore things like "ignore_hosts" since we */
-    /* are pretty sure not inside the net of one of our map renderers */
-    /* (unless the user works at google :-) */
-      
     /* get basic settings */
     char *host = 
       gconf_client_get_string(gconf_client, PROXY_KEY "host", NULL);
@@ -189,38 +191,27 @@ void net_io_set_proxy(CURL *curl) {
       int port =
 	gconf_client_get_int(gconf_client, PROXY_KEY "port", NULL);
 
-      snprintf(proxy_buffer, sizeof(proxy_buffer),
-	       "http://%s:%u", host, port);
-
+      curl_easy_setopt(curl, CURLOPT_PROXY, host);
+      curl_easy_setopt(curl, CURLOPT_PROXYPORT, port);
       g_free(host);
-    }
-    return proxy_buffer;
-  }
 
-  return NULL;
-  
+      if(gconf_client_get_bool(gconf_client, 
+	       PROXY_KEY "use_authentication", NULL)) {
+    
+	char *user = gconf_client_get_string(gconf_client, 
+		     PROXY_KEY "authentication_user", NULL);
+	char *pass = gconf_client_get_string(gconf_client, 
+		     PROXY_KEY "authentication_password", NULL);
 
-  if(proxy) {
-    if(proxy->ignore_hosts) 
-      printf("WARNING: Pproxy \"ignore_hosts\" unsupported!\n");
+	char *cred = g_strdup_printf("%s:%s", user, pass);
+	curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
+	g_free(cred);
 
-    printf("net_io: using proxy %s:%d\n", proxy->host, proxy->port);
-
-    curl_easy_setopt(curl, CURLOPT_PROXY, proxy->host);
-    curl_easy_setopt(curl, CURLOPT_PROXYPORT, proxy->port);
-
-    if(proxy->use_authentication) {
-      printf("net_io:   use auth for user %s\n", proxy->authentication_user);
-      
-      char *cred = g_strdup_printf("%s:%s", 
-				   proxy->authentication_user,
-				   proxy->authentication_password);
-
-      curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
-      g_free(cred);
+	if(pass) g_free(pass);
+	if(user) g_free(user);
+      }
     }
   }
-#endif
 }
 
 static void *worker_thread(void *ptr) {

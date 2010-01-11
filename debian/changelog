@@ -1,12 +1,18 @@
+maep (1.2) unstable; urgency=low
+
+  * Places search
+
+ -- Till Harbaum <till@harbaum.org>  Mon, 11 Jan 2010 21:47:30 +0100
+
 maep (1.1.3) unstable; urgency=low
 
-  * Fixed again
+  * Fixed /opt symlink
 
  -- Till Harbaum <till@harbaum.org>  Sun, 10 Jan 2010 08:56:10 +0100
 
 maep (1.1.2) unstable; urgency=low
 
-  * Fixed opt symlink
+  * Fixed /opt binary location
 
  -- Till Harbaum <till@harbaum.org>  Sun, 10 Jan 2010 08:07:44 +0100
 

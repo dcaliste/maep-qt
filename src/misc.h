@@ -28,15 +28,18 @@ GtkWidget *notebook_new(void);
 void notebook_append_page(GtkWidget *notebook, GtkWidget *page, char *label);
 GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook);
 
-void gconf_set_string(char *key, char *str);
-char *gconf_get_string(char *key);
+void gconf_set_string(const char *key, const char *str);
+char *gconf_get_string(const char *key);
 void gconf_set_bool(char *key, gboolean value);
 gboolean gconf_get_bool(char *key, gboolean default_value);
 
 gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
 void errorf(GtkWidget *parent, const char *fmt, ...);
 
+char *url_encode(char *str);
+
 GtkWidget *button_new(void);
 GtkWidget *button_new_with_label(char *label);
+GtkWidget *entry_new(void);
 
 #endif // MISC_H

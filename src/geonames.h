@@ -20,6 +20,6 @@
 #ifndef GEONAMES_H
 #define GEONAMES_H
 
-void geonames_enable_search(GtkWidget *parent);
+void geonames_enable_search(GtkWidget *parent, GtkWidget *map);
 
 #endif // GEONAMES_H

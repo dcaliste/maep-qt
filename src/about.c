@@ -215,7 +215,7 @@ GtkWidget *copyright_page_new(GtkWidget *parent) {
   gtk_box_pack_start_defaults(GTK_BOX(ivbox), hbox);
 
   gtk_box_pack_start_defaults(GTK_BOX(ivbox), 
-		      label_big(_("A simple tile map")));
+	      label_big(_("A small and fast tile map")));
 
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
@@ -255,12 +255,23 @@ static void author_add(GtkWidget *box, char *str) {
   gtk_box_pack_start(GTK_BOX(box), left_label(str), FALSE, FALSE, 0);
 }
 
+static void link_add(GtkWidget *box, GtkWidget *parent, char *str) {
+  GtkWidget *link = link_new(parent, str);
+  if(GTK_IS_LABEL(link))
+    gtk_misc_set_alignment(GTK_MISC(link), 0.0f, 0.5f);
+  else
+    gtk_misc_set_alignment(GTK_MISC(gtk_bin_get_child(GTK_BIN(link))), 
+			   0.0f, 0.5f);
+
+  gtk_box_pack_start(GTK_BOX(box), link, FALSE, FALSE, 0);
+}
+
 GtkWidget *authors_page_new(GtkWidget *parent) {
   GtkWidget *ivbox, *vbox = gtk_vbox_new(FALSE, 16);
 
   /* -------------------------------------------- */
   ivbox = gtk_vbox_new(FALSE, 0);
-  author_add(ivbox, _("Main developers:"));
+  author_add(ivbox, _("Main developer:"));
   author_add(ivbox, "Till Harbaum <till@harbaum.org>");
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
@@ -269,6 +280,12 @@ GtkWidget *authors_page_new(GtkWidget *parent) {
   author_add(ivbox, _("Original map widget by:"));
   author_add(ivbox, "John Stowers <john.stowers@gmail.com>");
   author_add(ivbox, "Marcus Bauer <marcus.bauer@gmail.com>"),
+  gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
+
+  /* -------------------------------------------- */
+  ivbox = gtk_vbox_new(FALSE, 0);
+  author_add(ivbox, _("Search feature provided by:"));
+  link_add(ivbox, parent, _("http://geonames.org"));
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
 #ifndef MAEMO5

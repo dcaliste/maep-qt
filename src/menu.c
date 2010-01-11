@@ -56,7 +56,7 @@ cb_menu_about(GtkWidget *item, gpointer data) {
 static void 
 cb_menu_search(GtkWidget *item, gpointer data) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
-  geonames_enable_search(toplevel);
+  geonames_enable_search(toplevel, GTK_WIDGET(data));
 }
 
 static void 
