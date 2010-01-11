@@ -97,6 +97,10 @@ typedef enum {
 } OsmGpsMapKey_t;
 
 #define OSM_GPS_MAP_INVALID  (0.0/0.0)
+#define OSM_GPS_MAP_CACHE_DISABLED  "none://"
+#define OSM_GPS_MAP_CACHE_AUTO      "auto://"
+
+#define OSM_GPS_MAP_INVALID  (0.0/0.0)
 
 typedef struct {
     gint x, y, w, h;

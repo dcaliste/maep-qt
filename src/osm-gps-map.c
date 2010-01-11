@@ -106,12 +106,7 @@ struct _OsmGpsMapPrivate
 #ifdef OSD_DOUBLE_BUFFER
     GdkPixmap *dbuf_pixmap;
 #endif
-#endif
-
-#ifdef OSM_GPS_MAP_KEY_FULLSCREEN
-    gboolean fullscreen;
-#endif
-    
+#endif    
     //additional images or tracks added to the map
     GSList *tracks;
     GSList *images;
@@ -1344,11 +1339,6 @@ osm_gps_map_init (OsmGpsMap *object)
 #ifdef ENABLE_OSD
     priv->osd = NULL;
 #endif
-
-#ifdef OSM_GPS_MAP_BUTTON_FULLSCREEN
-    priv->fullscreen = FALSE;
-#endif
-
     priv->tracks = NULL;
     priv->images = NULL;
 
@@ -2811,7 +2801,7 @@ osm_gps_map_get_scale(OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv;
 
-    g_return_val_if_fail (OSM_IS_GPS_MAP (map), OSM_GPS_MAP_INVALID);
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
 
     return osm_gps_map_get_scale_at_point(priv->map_zoom, priv->center_rlat, priv->center_rlon);
