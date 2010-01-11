@@ -179,6 +179,7 @@ enum
     PROP_REPO_URI,
     PROP_PROXY_URI,
     PROP_TILE_CACHE_DIR,
+    PROP_TILE_CACHE_DIR_IS_FULL_PATH,
     PROP_ZOOM,
     PROP_MAX_ZOOM,
     PROP_MIN_ZOOM,
@@ -631,7 +632,7 @@ osm_gps_map_draw_gps_point (OsmGpsMap *map)
             cairo_arc (cr, x, y, r, 0, 2 * M_PI);
             cairo_stroke(cr);
         }
-            
+
         cairo_destroy(cr);
         gtk_widget_queue_draw_area (GTK_WIDGET(map),
                                     x-mr,
@@ -639,7 +640,7 @@ osm_gps_map_draw_gps_point (OsmGpsMap *map)
                                     mr*2,
                                     mr*2);
     }
-} 
+}
 
 static void
 osm_gps_map_blit_tile(OsmGpsMap *map, GdkPixbuf *pixbuf, int offset_x, int offset_y)
@@ -1248,8 +1249,10 @@ osm_gps_map_map_redraw_idle (OsmGpsMap *map)
 }
 
 static void
-center_coord_update(GtkWidget *widget) {
-    OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
+center_coord_update(OsmGpsMap *map) {
+
+    GtkWidget *widget = GTK_WIDGET(map);
+    OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(map);
 
     // pixel_x,y, offsets
     gint pixel_x = priv->map_x + widget->allocation.width/2;
@@ -1263,6 +1266,7 @@ center_coord_update(GtkWidget *widget) {
 static gboolean 
 on_window_key_press(GtkWidget *widget, 
 			 GdkEventKey *event, OsmGpsMapPrivate *priv) {
+  OsmGpsMap *map = OSM_GPS_MAP(widget);
   gboolean handled = FALSE;
   int step = GTK_WIDGET(widget)->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
 
@@ -1298,7 +1302,7 @@ on_window_key_press(GtkWidget *widget,
 #ifdef OSM_GPS_MAP_KEY_UP
   case OSM_GPS_MAP_KEY_UP:
       priv->map_y -= step;
-      center_coord_update(widget);
+      center_coord_update(map);
       osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
       handled = TRUE;
       break;
@@ -1307,7 +1311,7 @@ on_window_key_press(GtkWidget *widget,
 #ifdef OSM_GPS_MAP_KEY_DOWN
   case OSM_GPS_MAP_KEY_DOWN:
       priv->map_y += step;
-      center_coord_update(widget);
+      center_coord_update(map);
       osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
       handled = TRUE;
       break;
@@ -1316,7 +1320,7 @@ on_window_key_press(GtkWidget *widget,
 #ifdef OSM_GPS_MAP_KEY_LEFT
   case OSM_GPS_MAP_KEY_LEFT:
       priv->map_x -= step;
-      center_coord_update(widget);
+      center_coord_update(map);
       osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
       handled = TRUE;
       break;
@@ -1325,7 +1329,7 @@ on_window_key_press(GtkWidget *widget,
 #ifdef OSM_GPS_MAP_KEY_RIGHT
   case OSM_GPS_MAP_KEY_RIGHT:
       priv->map_x += step;
-      center_coord_update(widget);
+      center_coord_update(map);
       osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
       handled = TRUE;
       break;
@@ -1413,10 +1417,11 @@ osm_gps_map_init (OsmGpsMap *object)
 }
 
 static void
-osm_gps_map_setup(OsmGpsMapPrivate *priv) {
+osm_gps_map_setup(OsmGpsMapPrivate *priv)
+{
     const char *uri;
 
-    //user can specify a map source ID, or a repo URI as the map source
+   //user can specify a map source ID, or a repo URI as the map source
     uri = osm_gps_map_source_get_repo_uri(OSM_GPS_MAP_SOURCE_NULL);
     if ( (priv->map_source == 0) || (strcmp(priv->repo_uri, uri) == 0) ) {
         g_debug("Using null source");
@@ -1520,10 +1525,10 @@ osm_gps_map_finalize (GObject *object)
     OsmGpsMap *map = OSM_GPS_MAP(object);
     OsmGpsMapPrivate *priv = map->priv;
 
-    if(priv->tile_dir)
+    if (priv->tile_dir)
         g_free(priv->tile_dir);
 
-    if(priv->cache_dir)
+    if (priv->cache_dir)
         g_free(priv->cache_dir);
 
     g_free(priv->repo_uri);
@@ -1584,6 +1589,9 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             if ( g_value_get_string(value) )
                 priv->tile_dir = g_value_dup_string (value);
             break;
+        case PROP_TILE_CACHE_DIR_IS_FULL_PATH:
+             g_warning("GObject property tile-cache-is-full-path depreciated");
+             break;
         case PROP_ZOOM:
             priv->map_zoom = g_value_get_int (value);
             break;
@@ -1595,11 +1603,11 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             break;
         case PROP_MAP_X:
             priv->map_x = g_value_get_int (value);
-            center_coord_update(GTK_WIDGET(object));
+            center_coord_update(map);
             break;
         case PROP_MAP_Y:
             priv->map_y = g_value_get_int (value);
-            center_coord_update(GTK_WIDGET(object));
+            center_coord_update(map);
             break;
         case PROP_GPS_TRACK_WIDTH:
             priv->ui_gps_track_width = g_value_get_int (value);
@@ -1674,6 +1682,9 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
         case PROP_TILE_CACHE_DIR:
             g_value_set_string(value, priv->cache_dir);
             break;
+        case PROP_TILE_CACHE_DIR_IS_FULL_PATH:
+            g_value_set_boolean(value, FALSE);
+            break;
         case PROP_ZOOM:
             g_value_set_int(value, priv->map_zoom);
             break;
@@ -1740,6 +1751,7 @@ osm_gps_map_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
 static gboolean
 osm_gps_map_button_press (GtkWidget *widget, GdkEventButton *event)
 {
+    OsmGpsMap *map = OSM_GPS_MAP(widget);
     OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
 
 #ifdef ENABLE_OSD
@@ -1757,28 +1769,28 @@ osm_gps_map_button_press (GtkWidget *widget, GdkEventButton *event)
             switch(but) {
             case OSD_UP:
                 priv->map_y -= step;
-                center_coord_update(widget);
+                center_coord_update(map);
                 g_object_set(G_OBJECT(widget), "auto-center", FALSE, NULL);
                 osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
                 break;
 
             case OSD_DOWN:
                 priv->map_y += step;
-                center_coord_update(widget);
+                center_coord_update(map);
                 g_object_set(G_OBJECT(widget), "auto-center", FALSE, NULL);
                 osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
                 break;
 
             case OSD_LEFT:
                 priv->map_x -= step;
-                center_coord_update(widget);
+                center_coord_update(map);
                 g_object_set(G_OBJECT(widget), "auto-center", FALSE, NULL);
                 osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
                 break;
                 
             case OSD_RIGHT:
                 priv->map_x += step;
-                center_coord_update(widget);
+                center_coord_update(map);
                 g_object_set(G_OBJECT(widget), "auto-center", FALSE, NULL);
                 osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
                 break;
@@ -1816,6 +1828,7 @@ osm_gps_map_button_press (GtkWidget *widget, GdkEventButton *event)
 static gboolean
 osm_gps_map_button_release (GtkWidget *widget, GdkEventButton *event)
 {
+    OsmGpsMap *map = OSM_GPS_MAP(widget);
     OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
 
     if(!priv->button_down)
@@ -1831,9 +1844,9 @@ osm_gps_map_button_release (GtkWidget *widget, GdkEventButton *event)
         priv->map_x += (priv->drag_start_mouse_x - (int) event->x);
         priv->map_y += (priv->drag_start_mouse_y - (int) event->y);
 
-        center_coord_update(widget);
+        center_coord_update(map);
 
-        osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
+        osm_gps_map_map_redraw_idle(map);
     }
 #ifdef ENABLE_OSD
     /* pressed inside OSD control? */
@@ -2143,6 +2156,14 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           NULL,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+     g_object_class_install_property (object_class,
+                                      PROP_TILE_CACHE_DIR_IS_FULL_PATH,
+                                      g_param_spec_boolean ("tile-cache-is-full-path",
+                                                            "tile cache is full path",
+                                                            "DEPRECIATED",
+                                                            FALSE,
+                                                            G_PARAM_READABLE | G_PARAM_WRITABLE));
+
     g_object_class_install_property (object_class,
                                      PROP_ZOOM,
                                      g_param_spec_int ("zoom",
@@ -2240,7 +2261,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                        "radius of the gps point inner circle",
                                                        0,           /* minimum property value */
                                                        G_MAXINT,    /* maximum property value */
-                                                       10,
+                                                       5,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
 
     g_object_class_install_property (object_class,
@@ -2712,7 +2733,7 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
 
             priv->map_x = pixel_x - GTK_WIDGET(map)->allocation.width/2;
             priv->map_y = pixel_y - GTK_WIDGET(map)->allocation.height/2;
-            center_coord_update(GTK_WIDGET(map));
+            center_coord_update(map);
         }
     }
 
@@ -2788,7 +2809,7 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
 
     priv->map_x += dx;
     priv->map_y += dy;
-    center_coord_update(GTK_WIDGET(map));
+    center_coord_update(map);
 
 #ifdef ENABLE_OSD
     /* OSD may contain a coordinate, so we may have to re-render it */
