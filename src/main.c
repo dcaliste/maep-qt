@@ -30,6 +30,17 @@
 #include <X11/Xatom.h>
 #endif
 
+/* any defined key enables key support */
+#if (defined(MAP_KEY_FULLSCREEN) || \
+     defined(MAP_KEY_ZOOMIN) || \
+     defined(MAP_KEY_ZOOMOUT) || \
+     defined(MAP_KEY_UP) || \
+     defined(MAP_KEY_DOWN) || \
+     defined(MAP_KEY_LEFT) || \
+     defined(MAP_KEY_RIGHT))
+#include <gdk/gdkkeysyms.h>
+#endif
+
 #include <locale.h>
 #include <libintl.h>
 
@@ -280,12 +291,37 @@ static GtkWidget *map_new(void) {
     
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
-                 "tile-cache",               path,
+         "tile-cache",               path,
 		 "auto-center",              FALSE,
 		 "record-trip-history",      FALSE, 
 		 "show-trip-history",        FALSE, 
+		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
-                 NULL);
+         NULL);
+
+  OsmGpsMap *map = OSM_GPS_MAP(widget);
+
+#ifdef MAP_KEY_FULLSCREEN
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_FULLSCREEN, MAP_KEY_FULLSCREEN);
+#endif
+#ifdef MAP_KEY_ZOOMIN
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_ZOOMIN, MAP_KEY_ZOOMIN);
+#endif
+#ifdef MAP_KEY_ZOOMOUT
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_ZOOMOUT, MAP_KEY_ZOOMOUT);
+#endif
+#ifdef MAP_KEY_UP
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_UP, MAP_KEY_UP);
+#endif
+#ifdef MAP_KEY_DOWN
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_DOWN, MAP_KEY_DOWN);
+#endif
+#ifdef MAP_KEY_LEFT
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_LEFT, MAP_KEY_LEFT);
+#endif
+#ifdef MAP_KEY_RIGHT
+  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_RIGHT, MAP_KEY_RIGHT);
+#endif
 
   g_free(path);
 

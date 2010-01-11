@@ -56,22 +56,22 @@
 #include <hildon/hildon-defines.h>
 /* only maemo devices up to version 4 have a fullscreen button */
 #if (MAEMO_VERSION_MAJOR < 5)
-#define OSM_GPS_MAP_KEY_FULLSCREEN  HILDON_HARDKEY_FULLSCREEN
+#define MAP_KEY_FULLSCREEN  HILDON_HARDKEY_FULLSCREEN
 #else
-#define OSM_GPS_MAP_KEY_FULLSCREEN  'f'
+#define MAP_KEY_FULLSCREEN  'f'
 #endif
-#define OSM_GPS_MAP_KEY_ZOOMIN      HILDON_HARDKEY_INCREASE
-#define OSM_GPS_MAP_KEY_ZOOMOUT     HILDON_HARDKEY_DECREASE
+#define MAP_KEY_ZOOMIN      HILDON_HARDKEY_INCREASE
+#define MAP_KEY_ZOOMOUT     HILDON_HARDKEY_DECREASE
 #else
-#define OSM_GPS_MAP_KEY_FULLSCREEN  GDK_F11
-#define OSM_GPS_MAP_KEY_ZOOMIN      '+'
-#define OSM_GPS_MAP_KEY_ZOOMOUT     '-'
+#define MAP_KEY_FULLSCREEN  GDK_F11
+#define MAP_KEY_ZOOMIN      '+'
+#define MAP_KEY_ZOOMOUT     '-'
 #endif
 
-#define OSM_GPS_MAP_KEY_UP          GDK_Up
-#define OSM_GPS_MAP_KEY_DOWN        GDK_Down
-#define OSM_GPS_MAP_KEY_LEFT        GDK_Left
-#define OSM_GPS_MAP_KEY_RIGHT       GDK_Right
+#define MAP_KEY_UP          GDK_Up
+#define MAP_KEY_DOWN        GDK_Down
+#define MAP_KEY_LEFT        GDK_Left
+#define MAP_KEY_RIGHT       GDK_Right
 
 /* specify OSD colors explicitely. Otherwise gtk default */
 /* colors are used. fremantle always uses gtk defaults */

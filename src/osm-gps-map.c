@@ -48,21 +48,6 @@
 
 #define OSM_GPS_MAP_SCROLL_STEP 10
 
-/* any defined key enables key support */
-#if (defined(OSM_GPS_MAP_KEY_FULLSCREEN) || \
-     defined(OSM_GPS_MAP_KEY_ZOOMIN) || \
-     defined(OSM_GPS_MAP_KEY_ZOOMOUT) || \
-     defined(OSM_GPS_MAP_KEY_UP) || \
-     defined(OSM_GPS_MAP_KEY_DOWN) || \
-     defined(OSM_GPS_MAP_KEY_LEFT) || \
-     defined(OSM_GPS_MAP_KEY_RIGHT))
-#define OSM_GPS_MAP_KEYS
-#endif
-
-#ifdef OSM_GPS_MAP_KEYS
-#include <gdk/gdkkeysyms.h>
-#endif
-
 #define USER_AGENT "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11"
 
 struct _OsmGpsMapPrivate
@@ -153,6 +138,11 @@ struct _OsmGpsMapPrivate
     int ui_gps_point_inner_radius;
     int ui_gps_point_outer_radius;
 
+    //For storing keybindings
+    guint keybindings[OSM_GPS_MAP_KEY_MAX];
+
+    guint fullscreen : 1;
+    guint keybindings_enabled : 1;
     guint is_disposed : 1;
     guint dragging : 1;
     guint button_down : 1;
@@ -1262,90 +1252,83 @@ center_coord_update(OsmGpsMap *map) {
     priv->center_rlat = pixel2lat(priv->map_zoom, pixel_y);
 }
 
-#ifdef OSM_GPS_MAP_KEYS
 static gboolean 
-on_window_key_press(GtkWidget *widget, 
-			 GdkEventKey *event, OsmGpsMapPrivate *priv) {
-  OsmGpsMap *map = OSM_GPS_MAP(widget);
-  gboolean handled = FALSE;
-  int step = GTK_WIDGET(widget)->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
+on_window_key_press(GtkWidget *widget, GdkEventKey *event, OsmGpsMapPrivate *priv) 
+{
+    int i;
+    int step;
+    gboolean handled;
+    OsmGpsMap *map;
 
-  // the map handles some keys on its own ...
-  switch(event->keyval) {
-#ifdef OSM_GPS_MAP_KEY_FULLSCREEN
-  case OSM_GPS_MAP_KEY_FULLSCREEN: {
-      GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(widget));
-      if(!priv->fullscreen)
-          gtk_window_fullscreen(GTK_WINDOW(toplevel));
-      else
-          gtk_window_unfullscreen(GTK_WINDOW(toplevel));
+    //if no keybindings are set, let the app handle them...
+    if (!priv->keybindings_enabled)
+        return FALSE;
 
-      priv->fullscreen = !priv->fullscreen;
-      handled = TRUE;
-      } break;
-#endif
-  
-#ifdef OSM_GPS_MAP_KEY_ZOOMIN
-  case OSM_GPS_MAP_KEY_ZOOMIN:
-      osm_gps_map_set_zoom(OSM_GPS_MAP(widget), priv->map_zoom+1);
-      handled = TRUE;
-      break;
-#endif
+    handled = FALSE;
+    map = OSM_GPS_MAP(widget);
+    step = GTK_WIDGET(widget)->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
 
-#ifdef OSM_GPS_MAP_KEY_ZOOMOUT
-  case OSM_GPS_MAP_KEY_ZOOMOUT:
-      osm_gps_map_set_zoom(OSM_GPS_MAP(widget), priv->map_zoom-1);
-      handled = TRUE;
-      break;
-#endif
+    //the map handles some keys on its own
+    for (i = 0; i < OSM_GPS_MAP_KEY_MAX; i++) {
+        //not the key we have a binding for
+        if (map->priv->keybindings[i] != event->keyval)
+            continue;
 
-#ifdef OSM_GPS_MAP_KEY_UP
-  case OSM_GPS_MAP_KEY_UP:
-      priv->map_y -= step;
-      center_coord_update(map);
-      osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
-      handled = TRUE;
-      break;
-#endif
+        switch(i) {
+            case OSM_GPS_MAP_KEY_FULLSCREEN: {
+                GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(widget));
+                if(!priv->fullscreen)
+                    gtk_window_fullscreen(GTK_WINDOW(toplevel));
+                else
+                    gtk_window_unfullscreen(GTK_WINDOW(toplevel));
 
-#ifdef OSM_GPS_MAP_KEY_DOWN
-  case OSM_GPS_MAP_KEY_DOWN:
-      priv->map_y += step;
-      center_coord_update(map);
-      osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
-      handled = TRUE;
-      break;
-#endif
+                priv->fullscreen = !priv->fullscreen;
+                handled = TRUE;
+                } break;
+            case OSM_GPS_MAP_KEY_ZOOMIN:
+                osm_gps_map_set_zoom(map, priv->map_zoom+1);
+                handled = TRUE;
+                break;
+            case OSM_GPS_MAP_KEY_ZOOMOUT:
+                osm_gps_map_set_zoom(map, priv->map_zoom-1);
+                handled = TRUE;
+                break;
+            case OSM_GPS_MAP_KEY_UP:
+                priv->map_y -= step;
+                center_coord_update(map);
+                osm_gps_map_map_redraw_idle(map);
+                handled = TRUE;
+                break;
+            case OSM_GPS_MAP_KEY_DOWN:
+                priv->map_y += step;
+                center_coord_update(map);
+                osm_gps_map_map_redraw_idle(map);
+                handled = TRUE;
+                break;
+              case OSM_GPS_MAP_KEY_LEFT:
+                priv->map_x -= step;
+                center_coord_update(map);
+                osm_gps_map_map_redraw_idle(map);
+                handled = TRUE;
+                break;
+            case OSM_GPS_MAP_KEY_RIGHT:
+                priv->map_x += step;
+                center_coord_update(map);
+                osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
+                handled = TRUE;
+                break;
+            default:
+                break;
+        }
+    }
 
-#ifdef OSM_GPS_MAP_KEY_LEFT
-  case OSM_GPS_MAP_KEY_LEFT:
-      priv->map_x -= step;
-      center_coord_update(map);
-      osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
-      handled = TRUE;
-      break;
-#endif
-
-#ifdef OSM_GPS_MAP_KEY_RIGHT
-  case OSM_GPS_MAP_KEY_RIGHT:
-      priv->map_x += step;
-      center_coord_update(map);
-      osm_gps_map_map_redraw_idle(OSM_GPS_MAP(widget));
-      handled = TRUE;
-      break;
-#endif
-
-  default:
-      break;
-  }
-
-  return handled;
+    return handled;
 }
-#endif
 
 static void
 osm_gps_map_init (OsmGpsMap *object)
 {
+    int i;
     OsmGpsMapPrivate *priv;
 
     priv = G_TYPE_INSTANCE_GET_PRIVATE (object, OSM_TYPE_GPS_MAP, OsmGpsMapPrivate);
@@ -1380,6 +1363,10 @@ osm_gps_map_init (OsmGpsMap *object)
 
     priv->map_source = -1;
 
+    priv->keybindings_enabled = FALSE;
+    for (i = 0; i < OSM_GPS_MAP_KEY_MAX; i++)
+        priv->keybindings[i] = 0;
+
 #ifndef LIBSOUP22
     //Change naumber of concurrent connections option?
     priv->soup_session =
@@ -1410,10 +1397,9 @@ osm_gps_map_init (OsmGpsMap *object)
 
     g_log_set_handler (G_LOG_DOMAIN, G_LOG_LEVEL_MASK, my_log_handler, NULL);
 
-#ifdef OSM_GPS_MAP_KEYS
+    //Setup signal handlers
     g_signal_connect(G_OBJECT(object), "key_press_event",
-                     G_CALLBACK(on_window_key_press), priv);
-#endif
+                            G_CALLBACK(on_window_key_press), priv);
 }
 
 static void
@@ -2829,6 +2815,23 @@ osm_gps_map_get_scale(OsmGpsMap *map)
     priv = map->priv;
 
     return osm_gps_map_get_scale_at_point(priv->map_zoom, priv->center_rlat, priv->center_rlon);
+}
+
+char * osm_gps_map_get_default_cache_directory(void)
+{
+    return g_build_filename(
+                        g_get_user_cache_dir(),
+                        "osmgpsmap",
+                        NULL);
+}
+
+void osm_gps_map_set_keyboard_shortcut(OsmGpsMap *map, OsmGpsMapKey_t key, guint keyval)
+{
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+    g_return_if_fail(key < OSM_GPS_MAP_KEY_MAX);
+
+    map->priv->keybindings[key] = keyval;
+    map->priv->keybindings_enabled = TRUE;
 }
 
 #ifdef ENABLE_OSD

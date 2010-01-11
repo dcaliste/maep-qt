@@ -85,6 +85,17 @@ typedef enum {
 
 #define OSM_GPS_MAP_SOURCE_LAST  (OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID)
 
+typedef enum {
+    OSM_GPS_MAP_KEY_FULLSCREEN,
+    OSM_GPS_MAP_KEY_ZOOMIN,
+    OSM_GPS_MAP_KEY_ZOOMOUT,
+    OSM_GPS_MAP_KEY_UP,
+    OSM_GPS_MAP_KEY_DOWN,
+    OSM_GPS_MAP_KEY_LEFT,
+    OSM_GPS_MAP_KEY_RIGHT,
+    OSM_GPS_MAP_KEY_MAX
+} OsmGpsMapKey_t;
+
 #define OSM_GPS_MAP_INVALID  (0.0/0.0)
 
 typedef struct {
@@ -155,6 +166,8 @@ const char *osm_gps_map_source_get_image_format(OsmGpsMapSource_t source);
 int osm_gps_map_source_get_min_zoom(OsmGpsMapSource_t source);
 int osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source);
 
+char * osm_gps_map_get_default_cache_directory(void);
+
 void osm_gps_map_download_maps (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_start, int zoom_end);
 void osm_gps_map_get_bbox (OsmGpsMap *map, coord_t *pt1, coord_t *pt2);
 void osm_gps_map_set_mapcenter (OsmGpsMap *map, float latitude, float longitude, int zoom);
@@ -178,6 +191,7 @@ void osm_gps_map_geographic_to_screen (OsmGpsMap *map,
                                        gint *pixel_x, gint *pixel_y);
 void osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy);
 float osm_gps_map_get_scale(OsmGpsMap *map);
+void osm_gps_map_set_keyboard_shortcut(OsmGpsMap *map, OsmGpsMapKey_t key, guint keyval);
 #ifdef ENABLE_OSD
 void osm_gps_map_register_osd(OsmGpsMap *map, osm_gps_map_osd_t *osd);
 void osm_gps_map_redraw (OsmGpsMap *map);
