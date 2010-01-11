@@ -1421,14 +1421,27 @@ osm_gps_map_setup(OsmGpsMapPrivate *priv)
         }
     }
 
-    const char *fname = osm_gps_map_source_get_friendly_name(priv->map_source);
-    if(!fname) fname = "_unknown_";
+    if ((priv->tile_dir != NULL) && (g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_DISABLED) == 0)) {
+        priv->cache_dir == NULL;
+    } else if ((priv->tile_dir == NULL) || (g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_AUTO) == 0)) {
+        char *md5;
+        char *base;
+#if GLIB_CHECK_VERSION (2, 16, 0)
+        md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, priv->repo_uri, -1);
+#else
+        md5 = g_strdup(osm_gps_map_source_get_friendly_name(priv->map_source));
+#endif
+        base = osm_gps_map_get_default_cache_directory();
 
-    if (priv->tile_dir) {
-        //the new cachedir is the given cache dir + the friendly name of the repo_uri
-        priv->cache_dir = g_strdup_printf("%s%c%s", priv->tile_dir, G_DIR_SEPARATOR, fname);
-        g_debug("Adjusting cache dir %s -> %s", priv->tile_dir, priv->cache_dir);
+        //the cachedir is the base dir + the md5 of the repo_uri
+        priv->cache_dir = g_strdup_printf("%s%c%s", base, G_DIR_SEPARATOR, md5);
+
+        g_free(base);
+        g_free(md5);
+    } else {
+        priv->cache_dir = g_strdup(priv->tile_dir);
     }
+    g_debug("Cache dir: %s", priv->cache_dir);
 }
 
 static GObject *
@@ -2129,7 +2142,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                      g_param_spec_string ("tile-cache",
                                                           "tile cache",
                                                           "osm local tile cache dir",
-                                                          NULL,
+                                                          OSM_GPS_MAP_CACHE_AUTO,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
      g_object_class_install_property (object_class,
