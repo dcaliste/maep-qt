@@ -2814,7 +2814,7 @@ osm_gps_map_get_scale(OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv;
 
-    g_return_val_if_fail (OSM_IS_GPS_MAP (map), 0.0/0.0);  /* return NAN */
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), OSM_GPS_MAP_INVALID);
     priv = map->priv;
 
     return osm_gps_map_get_scale_at_point(priv->map_zoom, priv->center_rlat, priv->center_rlon);

@@ -60,6 +60,12 @@ cb_menu_search(GtkWidget *item, gpointer data) {
 }
 
 static void 
+cb_menu_wikipedia(GtkWidget *item, gpointer data) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
+  geonames_wikipedia(toplevel, GTK_WIDGET(data));
+}
+
+static void 
 cb_menu_track_import(GtkWidget *item, gpointer data) {
   track_import(GTK_WIDGET(data));
 }
@@ -88,22 +94,23 @@ cb_menu_track_export(GtkWidget *item, gpointer data) {
 }
 
 static const menu_entry_t track_menu[] = {
-  { MENU_CHECK_ENTRY, "Capture", { .cb = cb_menu_track_capture } },
-  { MENU_ENTRY,       "Clear",   { .cb = cb_menu_track_clear } } ,
-  { MENU_ENTRY,       "Import",  { .cb = cb_menu_track_import } },
-  { MENU_ENTRY,       "Export",  { .cb = cb_menu_track_export } },
+  { MENU_CHECK_ENTRY, "Capture",   { .cb = cb_menu_track_capture } },
+  { MENU_ENTRY,       "Clear",     { .cb = cb_menu_track_clear } } ,
+  { MENU_ENTRY,       "Import",    { .cb = cb_menu_track_import } },
+  { MENU_ENTRY,       "Export",    { .cb = cb_menu_track_export } },
 
-  { MENU_END,         NULL,      { NULL } }
+  { MENU_END,         NULL,        { NULL } }
 };
 
 static const menu_entry_t main_menu[] = {
-  { MENU_ENTRY,       "About",  { .cb = cb_menu_about } },
-  { MENU_SEPARATOR,   NULL,     { NULL } },
-  { MENU_SUBMENU,     "Track",  { .submenu = track_menu } },
-  { MENU_SEPARATOR,   NULL,     { NULL } },
-  { MENU_ENTRY,       "Search", { .cb = cb_menu_search } },
+  { MENU_ENTRY,       "About",     { .cb = cb_menu_about } },
+  { MENU_SEPARATOR,   NULL,        { NULL } },
+  { MENU_SUBMENU,     "Track",     { .submenu = track_menu } },
+  { MENU_SEPARATOR,   NULL,        { NULL } },
+  { MENU_ENTRY,       "Search",    { .cb = cb_menu_search } },
+  { MENU_ENTRY,       "Wikipedia", { .cb = cb_menu_wikipedia } },
 
-  { MENU_END,         NULL,     { NULL } }
+  { MENU_END,         NULL,        { NULL } }
 };
 
 #ifdef MAEMO5

@@ -43,6 +43,11 @@ typedef struct {
   coord_t pos;
 } geonames_code_t;
 
+typedef struct {
+  char *title;
+  coord_t pos;
+} geonames_entry_t;
+
 #define MAX_RESULT 50
 #define GEONAMES  "http://ws.geonames.org/"
 #define GEONAMES_SEARCH "geonames_search"
@@ -117,6 +122,31 @@ static geonames_code_t *geonames_parse_code(xmlDocPtr doc, xmlNode *a_node) {
   return code;
 }
 
+static geonames_entry_t *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
+  xmlNode *cur_node = NULL;
+  geonames_entry_t *entry = g_new0(geonames_entry_t, 1);
+
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+
+      string_get(cur_node, "title", &entry->title);
+
+      if(strcasecmp((char*)cur_node->name, "lat") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	entry->pos.rlat = deg2rad(g_ascii_strtod(str, NULL));
+	xmlFree(str);
+      } else if(strcasecmp((char*)cur_node->name, "lng") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	entry->pos.rlon = deg2rad(g_ascii_strtod(str, NULL));
+	xmlFree(str);
+      } else
+	printf("found unhandled geonames/code/%s\n", cur_node->name);      
+    }
+  }
+  
+  return entry;
+}
+
 static GSList *geonames_parse_geonames(xmlDocPtr doc, xmlNode *a_node) {
   GSList *list = NULL;
   xmlNode *cur_node = NULL;
@@ -125,6 +155,8 @@ static GSList *geonames_parse_geonames(xmlDocPtr doc, xmlNode *a_node) {
     if (cur_node->type == XML_ELEMENT_NODE) {
       if(strcasecmp((char*)cur_node->name, "code") == 0) {
 	list = g_slist_append(list, geonames_parse_code(doc, cur_node));
+      } else if(strcasecmp((char*)cur_node->name, "entry") == 0) {
+	list = g_slist_append(list, geonames_parse_entry(doc, cur_node));
       } else
 	printf("found unhandled geonames/%s\n", cur_node->name);      
     }
@@ -171,8 +203,18 @@ static void geonames_code_free(gpointer data, gpointer user_data) {
   if(code->admin) g_free(code->admin);
 }
 
-static void list_free(GSList *list) {
+static void geonames_code_list_free(GSList *list) {
   g_slist_foreach(list, geonames_code_free, NULL);
+  g_slist_free(list);
+}
+
+static void geonames_entry_free(gpointer data, gpointer user_data) {
+  geonames_entry_t *entry = (geonames_entry_t*)data;
+  if(entry->title) g_free(entry->title);
+}
+
+static void geonames_entry_list_free(GSList *list) {
+  g_slist_foreach(list, geonames_entry_free, NULL);
   g_slist_free(list);
 }
 
@@ -335,7 +377,7 @@ static void on_search_clicked(GtkButton *button, gpointer user) {
 	errorf(toplevel, _("No places matching the search term "
 			   "could be found."));
 
-      list_free(list);
+      geonames_code_list_free(list);
     }
   } else
     printf("download failed\n");
@@ -435,4 +477,52 @@ void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
   gtk_widget_grab_focus(entry);
   
   g_object_set_data(G_OBJECT(parent), GEONAMES_SEARCH, hbox);
+}
+
+/* request geotagged wikipedia entries for current map view */
+void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
+  /* request area from map */
+  coord_t pt1, pt2;
+  osm_gps_map_get_bbox (OSM_GPS_MAP(map), &pt1, &pt2);
+
+  /* create ascii (dot decimal point) strings */
+  char str[4][16];
+  g_ascii_formatd(str[0], sizeof(str[0]), "%.07f", rad2deg(pt1.rlat));
+  g_ascii_formatd(str[1], sizeof(str[1]), "%.07f", rad2deg(pt2.rlat));
+  g_ascii_formatd(str[2], sizeof(str[2]), "%.07f", rad2deg(pt1.rlon));
+  g_ascii_formatd(str[3], sizeof(str[3]), "%.07f", rad2deg(pt2.rlon));
+
+  /* build complete url for request */
+  char *url = g_strdup_printf(
+	      GEONAMES "wikipediaBoundingBox?"
+	      "north=%s&south=%s&west=%s&east=%s", 
+	      str[0], str[1], str[2], str[3]);
+
+  char *data = NULL;
+  if(net_io_download(parent, url, &data)) {
+    printf("ok: %s\n", data);
+
+    /* feed this into the xml parser */
+    xmlDoc *doc = NULL;
+
+    LIBXML_TEST_VERSION;
+  
+    /* parse the file and get the DOM */
+    if((doc = xmlReadMemory(data, strlen(data), NULL, NULL, 0)) == NULL) {
+      xmlErrorPtr errP = xmlGetLastError();
+      printf("While parsing:\n\n%s\n", errP->message);
+    } else {
+      GSList *list = geonames_parse_doc(doc); 
+      
+      printf("got %d results\n", g_slist_length(list));
+
+      if(g_slist_length(list))
+	;
+      
+      geonames_entry_list_free(list);
+    }
+  } else
+    printf("download failed\n");
+
+  g_free(url);
 }
