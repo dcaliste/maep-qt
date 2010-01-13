@@ -281,7 +281,7 @@ static GtkWidget *map_new(void) {
 
   fname = osm_gps_map_source_get_friendly_name(source);
   if (!fname) fname = "_unknown_";
-  fullpath = g_strdup_printf("%s%c%s", p, G_DIR_SEPARATOR, fname);
+  fullpath = g_strdup_printf("%s%c%s", path, G_DIR_SEPARATOR, fname);
 
   printf("Storing tile cache at %s\n", fullpath);
 

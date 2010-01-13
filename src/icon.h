@@ -20,6 +20,7 @@
 #ifndef ICON_H
 #define ICON_H
 
-GtkWidget *icon_get(GtkWidget *parent, const char *name);
+GtkWidget *icon_get_widget(GtkWidget *parent, const char *name);
+GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name);
 
 #endif // ICON_H

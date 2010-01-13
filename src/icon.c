@@ -73,7 +73,7 @@ static void on_parent_destroy(GtkWidget *widget, gpointer data) {
   g_slist_free(list);
 }
 
-GtkWidget *icon_get(GtkWidget *parent, const char *name) {
+GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
   GdkPixbuf *pix = icon_load(name);
   if(!pix) return NULL;
 
@@ -88,6 +88,11 @@ GtkWidget *icon_get(GtkWidget *parent, const char *name) {
   list = g_slist_append (list, pix);
   g_object_set_data(G_OBJECT(parent), "icons", list);
 
+  return pix;
+}
+
+GtkWidget *icon_get_widget(GtkWidget *parent, const char *name) {
+  GdkPixbuf *pix = icon_get_pixbuf(parent, name);
   return gtk_image_new_from_pixbuf(pix);
 }
 

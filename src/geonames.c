@@ -22,9 +22,12 @@
 #include "geonames.h"
 #include "misc.h"
 #include "menu.h"
+#include "icon.h"
 #include "osm-gps-map.h"
+#include "osm-gps-map-osd-classic.h"
 #include "converter.h"
 
+#include <math.h> // for isnan()
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -44,9 +47,15 @@ typedef struct {
 } geonames_code_t;
 
 typedef struct {
-  char *title;
+  char *title, *summary;
+  char *url, *thumbnail_url;
   coord_t pos;
 } geonames_entry_t;
+
+typedef struct {
+  GSList *list;
+  gulong handler_id, press_handler_id, release_handler_id;
+} geonames_wikipedia_context_t;
 
 #define MAX_RESULT 50
 #define GEONAMES  "http://ws.geonames.org/"
@@ -54,16 +63,18 @@ typedef struct {
 
 /* -------------- begin of xml parser ---------------- */
 
-static void string_get(xmlNode *node, char *name, char **dst) {
-  if(*dst) return;   /* don't overwrite anything */
+static gboolean string_get(xmlNode *node, char *name, char **dst) {
+  if(*dst) return FALSE;   /* don't overwrite anything */
 
   if(strcasecmp((char*)node->name, name) != 0) 
-    return;
+    return FALSE;
 
   char *str = (char*)xmlNodeGetContent(node);
 
   *dst = g_strdup(str);
   xmlFree(str);
+
+  return TRUE;
 }
 
 static char *code_append(char *src, char *append) {
@@ -82,6 +93,7 @@ static char *code_append(char *src, char *append) {
 static geonames_code_t *geonames_parse_code(xmlDocPtr doc, xmlNode *a_node) {
   xmlNode *cur_node = NULL;
   geonames_code_t *code = g_new0(geonames_code_t, 1);
+  code->pos.rlat = code->pos.rlon = OSM_GPS_MAP_INVALID;
 
   char *name = NULL, *country_code = NULL, *postal_code = NULL;
   char *admin_name1 = NULL, *admin_name2 = NULL, *admin_name3 = NULL;
@@ -105,8 +117,7 @@ static geonames_code_t *geonames_parse_code(xmlDocPtr doc, xmlNode *a_node) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
 	code->pos.rlon = deg2rad(g_ascii_strtod(str, NULL));
  	xmlFree(str);
-      } else
-	printf("found unhandled geonames/code/%s\n", cur_node->name);      
+      }
     }
   }
 
@@ -125,11 +136,15 @@ static geonames_code_t *geonames_parse_code(xmlDocPtr doc, xmlNode *a_node) {
 static geonames_entry_t *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
   xmlNode *cur_node = NULL;
   geonames_entry_t *entry = g_new0(geonames_entry_t, 1);
+  entry->pos.rlat = entry->pos.rlon = OSM_GPS_MAP_INVALID;
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
 
       string_get(cur_node, "title", &entry->title);
+      string_get(cur_node, "summary", &entry->summary);
+      string_get(cur_node, "thumbnailImg", &entry->thumbnail_url);
+      string_get(cur_node, "wikipediaUrl", &entry->url);
 
       if(strcasecmp((char*)cur_node->name, "lat") == 0) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
@@ -139,8 +154,7 @@ static geonames_entry_t *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
 	entry->pos.rlon = deg2rad(g_ascii_strtod(str, NULL));
 	xmlFree(str);
-      } else
-	printf("found unhandled geonames/code/%s\n", cur_node->name);      
+      }
     }
   }
   
@@ -211,6 +225,9 @@ static void geonames_code_list_free(GSList *list) {
 static void geonames_entry_free(gpointer data, gpointer user_data) {
   geonames_entry_t *entry = (geonames_entry_t*)data;
   if(entry->title) g_free(entry->title);
+  if(entry->summary) g_free(entry->summary);
+  if(entry->thumbnail_url) g_free(entry->thumbnail_url);
+  if(entry->url) g_free(entry->url);
 }
 
 static void geonames_entry_list_free(GSList *list) {
@@ -479,6 +496,78 @@ void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
   g_object_set_data(G_OBJECT(parent), GEONAMES_SEARCH, hbox);
 }
 
+static void geonames_wikipedia_context_free(GtkWidget *widget) {
+  geonames_wikipedia_context_t *context = 
+    (geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
+
+  g_assert(context);
+
+  /* if a list of entries is present, then remove it */
+  if(context->list) {
+    geonames_entry_list_free(context->list);
+    context->list = NULL;
+  }
+
+  /* also remove the destroy handler for the context */
+  if(context->handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->handler_id);
+    context->handler_id = 0;
+  }
+
+  /* and the button press handler */
+  if(context->press_handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->press_handler_id);
+    context->press_handler_id = 0;
+  }
+
+  /* and the button release handler */
+  if(context->release_handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->release_handler_id);
+    context->release_handler_id = 0;
+  }
+
+  /* finally free the context itself */
+  g_free(context);
+  g_object_set_data(G_OBJECT(widget), "wikipedia", NULL);
+}
+
+static void on_map_destroy (GtkWidget *widget, gpointer data) {
+  geonames_wikipedia_context_free(widget);
+}
+
+static void geonames_entry_render(gpointer data, gpointer user_data) {
+  geonames_entry_t *entry = (geonames_entry_t*)data;
+  GtkWidget *map = GTK_WIDGET(user_data);
+
+  GdkPixbuf *pix = icon_get_pixbuf(map, "wikipedia_w.32");
+
+  if(pix && !isnan(entry->pos.rlat) && !isnan(entry->pos.rlon)) 
+    osm_gps_map_add_image_with_alignment(OSM_GPS_MAP(map), 
+		 rad2deg(entry->pos.rlat), rad2deg(entry->pos.rlon), pix,
+		 0.5, 1.0);
+}
+
+static gboolean
+on_map_button_press_event(GtkWidget *widget, 
+			  GdkEventButton *event, gpointer user_data) {
+
+  /* check if we actually clicked parts of the OSD */
+  if(osm_gps_map_osd_check(OSM_GPS_MAP(widget), event->x, event->y) != OSD_NONE) 
+    return FALSE;
+
+  if(event->type == GDK_BUTTON_PRESS) {
+
+    coord_t coord = 
+      osm_gps_map_get_co_ordinates(OSM_GPS_MAP(widget), event->x, event->y);
+
+    printf("press at %f/%f\n", rad2deg(coord.rlat), rad2deg(coord.rlon));
+
+  } else if(event->type == GDK_BUTTON_RELEASE)
+    printf("release\n");
+
+  return FALSE;
+}
+
 /* request geotagged wikipedia entries for current map view */
 void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
   /* request area from map */
@@ -494,13 +583,12 @@ void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
 
   /* build complete url for request */
   char *url = g_strdup_printf(
-	      GEONAMES "wikipediaBoundingBox?"
-	      "north=%s&south=%s&west=%s&east=%s", 
+	      GEONAMES "wikipediaBoundingBox?north=%s&south=%s&west=%s&east=%s", 
 	      str[0], str[1], str[2], str[3]);
 
   char *data = NULL;
   if(net_io_download(parent, url, &data)) {
-    printf("ok: %s\n", data);
+    //    printf("ok: %s\n", data);
 
     /* feed this into the xml parser */
     xmlDoc *doc = NULL;
@@ -516,10 +604,35 @@ void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
       
       printf("got %d results\n", g_slist_length(list));
 
-      if(g_slist_length(list))
-	;
-      
-      geonames_entry_list_free(list);
+      geonames_wikipedia_context_t *context = 
+	(geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(map), "wikipedia");
+
+      if(!context) {
+	/* create and register a context */
+	context = g_new0(geonames_wikipedia_context_t, 1);
+	context->handler_id = g_signal_connect(G_OBJECT(map), "destroy", 
+					       G_CALLBACK(on_map_destroy), NULL);
+	g_object_set_data(G_OBJECT(map), "wikipedia", context);
+
+	context->press_handler_id = 
+	  g_signal_connect(G_OBJECT(map), "button-press-event",
+			   G_CALLBACK(on_map_button_press_event), NULL);
+
+	context->release_handler_id = 
+	  g_signal_connect(G_OBJECT(map), "button-release-event",
+			   G_CALLBACK(on_map_button_press_event), NULL);
+      }
+
+      /* remove any list that may already be preset */
+      if(context->list) {
+	geonames_entry_list_free(context->list);
+	context->list = NULL;
+	osm_gps_map_clear_images(OSM_GPS_MAP(map));
+      }
+
+      /* render all icons */
+      context->list = list;
+      g_slist_foreach(list, geonames_entry_render, map);
     }
   } else
     printf("download failed\n");
