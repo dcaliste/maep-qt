@@ -81,6 +81,7 @@ struct _OsmGpsMapPrivate
 
     //where downloaded tiles are cached
     char *tile_dir;
+    char *tile_base_dir;
     char *cache_dir;
 
     //contains flags indicating the various special characters
@@ -165,6 +166,7 @@ enum
     PROP_REPO_URI,
     PROP_PROXY_URI,
     PROP_TILE_CACHE_DIR,
+    PROP_TILE_CACHE_BASE_DIR,
     PROP_TILE_CACHE_DIR_IS_FULL_PATH,
     PROP_ZOOM,
     PROP_MAX_ZOOM,
@@ -1393,6 +1395,14 @@ osm_gps_map_init (OsmGpsMap *object)
                             G_CALLBACK(on_window_key_press), priv);
 }
 
+static char*
+osm_gps_map_get_cache_dir(OsmGpsMapPrivate *priv)
+{
+    if (priv->tile_base_dir)
+        return g_strdup(priv->tile_base_dir);
+    return osm_gps_map_get_default_cache_directory();
+}
+
 static void
 osm_gps_map_setup(OsmGpsMapPrivate *priv)
 {
@@ -1422,23 +1432,26 @@ osm_gps_map_setup(OsmGpsMapPrivate *priv)
         }
     }
 
-    if ((priv->tile_dir != NULL) && (g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_DISABLED) == 0)) {
+    if (priv->tile_dir == NULL)
+        priv->tile_dir = g_strdup(OSM_GPS_MAP_CACHE_DISABLED);
+
+    if ( g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_DISABLED) == 0 ) {
         priv->cache_dir = NULL;
-    } else if ((priv->tile_dir == NULL) || (g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_AUTO) == 0)) {
-        char *md5;
-        char *base;
+    } else if ( g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_AUTO) == 0 ) {
+        char *base = osm_gps_map_get_cache_dir(priv);
 #if GLIB_CHECK_VERSION (2, 16, 0)
-        md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, priv->repo_uri, -1);
+        char *md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, priv->repo_uri, -1);
 #else
-        md5 = g_strdup(osm_gps_map_source_get_friendly_name(priv->map_source));
+        char *md5 = g_strdup(osm_gps_map_source_get_friendly_name(priv->map_source));
 #endif
-        base = osm_gps_map_get_default_cache_directory();
-
-        //the cachedir is the base dir + the md5 of the repo_uri
         priv->cache_dir = g_strdup_printf("%s%c%s", base, G_DIR_SEPARATOR, md5);
-
         g_free(base);
         g_free(md5);
+    } else if ( g_strcmp0(priv->tile_dir, OSM_GPS_MAP_CACHE_FRIENDLY) == 0 ) {
+        char *base = osm_gps_map_get_cache_dir(priv);
+        const char *fname = osm_gps_map_source_get_friendly_name(priv->map_source);
+        priv->cache_dir = g_strdup_printf("%s%c%s", base, G_DIR_SEPARATOR, fname);
+        g_free(base);
     } else {
         priv->cache_dir = g_strdup(priv->tile_dir);
     }
@@ -1576,8 +1589,10 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
 
             break;
         case PROP_TILE_CACHE_DIR:
-            if ( g_value_get_string(value) )
-                priv->tile_dir = g_value_dup_string (value);
+            priv->tile_dir = g_value_dup_string (value);
+            break;
+        case PROP_TILE_CACHE_BASE_DIR:
+            priv->tile_base_dir = g_value_dup_string (value);
             break;
         case PROP_TILE_CACHE_DIR_IS_FULL_PATH:
              g_warning("GObject property tile-cache-is-full-path depreciated");
@@ -1671,6 +1686,9 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             break;
         case PROP_TILE_CACHE_DIR:
             g_value_set_string(value, priv->cache_dir);
+            break;
+        case PROP_TILE_CACHE_BASE_DIR:
+            g_value_set_string(value, priv->tile_base_dir);
             break;
         case PROP_TILE_CACHE_DIR_IS_FULL_PATH:
             g_value_set_boolean(value, FALSE);
@@ -2146,6 +2164,14 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           OSM_GPS_MAP_CACHE_AUTO,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+    g_object_class_install_property (object_class,
+                                     PROP_TILE_CACHE_BASE_DIR,
+                                     g_param_spec_string ("tile-cache-base",
+                                                          "tile cache-base",
+                                                          "base directory to which friendly and auto paths are appended",
+                                                          NULL,
+                                                          G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
      g_object_class_install_property (object_class,
                                       PROP_TILE_CACHE_DIR_IS_FULL_PATH,
                                       g_param_spec_boolean ("tile-cache-is-full-path",
@@ -2158,7 +2184,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                      PROP_ZOOM,
                                      g_param_spec_int ("zoom",
                                                        "zoom",
-                                                       "zoom level",
+                                                       "initial zoom level",
                                                        MIN_ZOOM, /* minimum property value */
                                                        MAX_ZOOM, /* maximum property value */
                                                        3,
@@ -2339,6 +2365,10 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "none://";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
             return OSM_REPO_URI;
+        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
+            /* OpenAerialMap is down, offline till furthur notice
+               http://openaerialmap.org/pipermail/talk_openaerialmap.org/2008-December/000055.html */
+			return NULL;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
@@ -2792,10 +2822,10 @@ osm_gps_map_geographic_to_screen (OsmGpsMap *map,
     priv = map->priv;
 
     if (pixel_x)
-        *pixel_x = lon2pixel(priv->map_zoom, deg2rad(longitude)) - 
+        *pixel_x = lon2pixel(priv->map_zoom, deg2rad(longitude)) -
             priv->map_x + priv->drag_mouse_dx;
     if (pixel_y)
-        *pixel_y = lat2pixel(priv->map_zoom, deg2rad(latitude)) - 
+        *pixel_y = lat2pixel(priv->map_zoom, deg2rad(latitude)) -
             priv->map_y + priv->drag_mouse_dy;
 }
 

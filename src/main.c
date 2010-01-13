@@ -255,7 +255,6 @@ static GtkWidget *map_new(void) {
   /* /home/user/MyDocs/.maps on Maemo5 (vfat on internal card) */
   /* /media/mmc2/osm-gps-map on Maemo4 (vfat on internal card) */
   char *path, *fullpath;
-  const char *fname;
 
 #if !defined(USE_MAEMO)
   char *p = getenv("HOME");
@@ -279,12 +278,6 @@ static GtkWidget *map_new(void) {
   GConfClient *gconf_client = gconf_client_get_default();
   gint source = gconf_get_int(gconf_client, GCONF_KEY_SOURCE, MAP_SOURCE);
 
-  fname = osm_gps_map_source_get_friendly_name(source);
-  if (!fname) fname = "_unknown_";
-  fullpath = g_strdup_printf("%s%c%s", path, G_DIR_SEPARATOR, fname);
-
-  printf("Storing tile cache at %s\n", fullpath);
-
   const char *proxy = get_proxy_uri();
 
   /* get zoom, latitude and longitude from gconf if possible */
@@ -294,13 +287,19 @@ static GtkWidget *map_new(void) {
     
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
-         "tile-cache",               fullpath,
+         "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
+         "tile-cache-base",          path,
 		 "auto-center",              FALSE,
 		 "record-trip-history",      FALSE, 
 		 "show-trip-history",        FALSE, 
 		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
          NULL);
+
+  g_object_get(G_OBJECT(widget),
+         "tile-cache", &fullpath,
+         NULL);
+  printf("Storing tile cache at %s\n", fullpath);
 
   g_free(path);
   g_free(fullpath);
