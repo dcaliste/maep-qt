@@ -42,4 +42,6 @@ GtkWidget *button_new(void);
 GtkWidget *button_new_with_label(char *label);
 GtkWidget *entry_new(void);
 
+void browser_url(GtkWidget *root, char *url);
+
 #endif // MISC_H

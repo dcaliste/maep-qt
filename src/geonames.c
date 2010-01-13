@@ -17,6 +17,11 @@
  * along with Maep.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * TODO:
+ * check google http://pagesperso-orange.fr/universimmedia/geo/loc.htm
+ */
+
 #include "config.h"
 #include "net_io.h"
 #include "geonames.h"
@@ -541,18 +546,33 @@ static void geonames_entry_render(gpointer data, gpointer user_data) {
 
   GdkPixbuf *pix = icon_get_pixbuf(map, "wikipedia_w.32");
 
-  if(pix && !isnan(entry->pos.rlat) && !isnan(entry->pos.rlon)) 
+  if(entry->url && pix && !isnan(entry->pos.rlat) && !isnan(entry->pos.rlon)) 
     osm_gps_map_add_image_with_alignment(OSM_GPS_MAP(map), 
 		 rad2deg(entry->pos.rlat), rad2deg(entry->pos.rlon), pix,
 		 0.5, 1.0);
 }
 
+/* return distance between both points */
+static float get_distance(coord_t *c0, coord_t *c1) {
+  float aob = acos(cos(c0->rlat) * cos(c1->rlat) * cos(c1->rlon - c0->rlon) +
+		   sin(c0->rlat) * sin(c1->rlat));
+
+  return(aob * 6371000.0);     /* great circle radius in meters */
+}
+
+static int dist2pixel(GtkWidget *map, float m) {
+  return m/osm_gps_map_get_scale(OSM_GPS_MAP(map));
+}
+
 static gboolean
 on_map_button_press_event(GtkWidget *widget, 
 			  GdkEventButton *event, gpointer user_data) {
+  geonames_wikipedia_context_t *context = 
+    (geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
 
   /* check if we actually clicked parts of the OSD */
-  if(osm_gps_map_osd_check(OSM_GPS_MAP(widget), event->x, event->y) != OSD_NONE) 
+  if(osm_gps_map_osd_check(OSM_GPS_MAP(widget), event->x, event->y) 
+     != OSD_NONE) 
     return FALSE;
 
   if(event->type == GDK_BUTTON_PRESS) {
@@ -561,6 +581,30 @@ on_map_button_press_event(GtkWidget *widget,
       osm_gps_map_get_co_ordinates(OSM_GPS_MAP(widget), event->x, event->y);
 
     printf("press at %f/%f\n", rad2deg(coord.rlat), rad2deg(coord.rlon));
+
+    /* find closest wikipoint */
+    GSList *list = context->list;
+    float nearest_distance = 1000000000.0; 
+    geonames_entry_t *nearest = NULL;
+    while(list) {
+      geonames_entry_t *entry = (geonames_entry_t*)list->data;
+
+      float dst = get_distance(&entry->pos, &coord);
+      if(dst < nearest_distance) {
+	nearest = entry;
+	nearest_distance = dst;
+      }
+
+      list = g_slist_next(list);
+    }
+
+    if(nearest) {
+      /* for now just open the browser */
+      printf("nearest = %s in %f meter\n", nearest->title, nearest_distance);
+      
+      if(dist2pixel(widget, nearest_distance) < 16) 
+	browser_url(gtk_widget_get_toplevel(widget), nearest->url);
+    }
 
   } else if(event->type == GDK_BUTTON_RELEASE)
     printf("release\n");
@@ -581,14 +625,17 @@ void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
   g_ascii_formatd(str[2], sizeof(str[2]), "%.07f", rad2deg(pt1.rlon));
   g_ascii_formatd(str[3], sizeof(str[3]), "%.07f", rad2deg(pt2.rlon));
 
+  gchar *locale, lang[2];
+  locale = setlocale (LC_MESSAGES, NULL);
+  g_utf8_strncpy (lang, locale, 2);
+
   /* build complete url for request */
   char *url = g_strdup_printf(
-	      GEONAMES "wikipediaBoundingBox?north=%s&south=%s&west=%s&east=%s", 
-	      str[0], str[1], str[2], str[3]);
+      GEONAMES "wikipediaBoundingBox?north=%s&south=%s&west=%s&east=%s&lang=%s", 
+      str[0], str[1], str[2], str[3], lang);
 
   char *data = NULL;
   if(net_io_download(parent, url, &data)) {
-    //    printf("ok: %s\n", data);
 
     /* feed this into the xml parser */
     xmlDoc *doc = NULL;

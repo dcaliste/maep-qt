@@ -35,6 +35,31 @@
 #include <hildon/hildon-entry.h>
 #endif
 
+#ifdef ENABLE_BROWSER_INTERFACE
+#include <strings.h>
+#ifndef USE_MAEMO
+#include <libgnome/gnome-url.h>
+#else
+#include <tablet-browser-interface.h>
+#endif
+
+void browser_url(GtkWidget *root, char *url) {
+#ifndef USE_MAEMO
+  /* taken from gnome-open, part of libgnome */
+  GError *err = NULL;
+  gnome_url_show(url, &err);
+#else
+  osso_context_t *osso_context = 
+    (osso_context_t*)g_object_get_data(G_OBJECT(root), "osso-context")
+
+  osso_rpc_run_with_defaults(osso_context, "osso_browser",
+			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,
+			     DBUS_TYPE_STRING, url,
+			     DBUS_TYPE_BOOLEAN, FALSE, DBUS_TYPE_INVALID);
+#endif
+}
+#endif
+
 #define GCONF_PATH         "/apps/" APP "/%s"
 
 void gconf_set_string(const char *m_key, const char *str) {
@@ -320,3 +345,4 @@ GtkWidget *entry_new(void) {
   return hildon_entry_new(HILDON_SIZE_AUTO);
 #endif
 }
+

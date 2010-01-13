@@ -1229,8 +1229,6 @@ static float get_distance(float lat1, float lon1, float lat2, float lon2) {
   float aob = acos(cos(lat1) * cos(lat2) * cos(lon2 - lon1) +
 		   sin(lat1) * sin(lat2));
 
-  //  return(aob * 3959.0);   /* great circle radius in miles */
-
   return(aob * 6371000.0);     /* great circle radius in meters */
 }
 

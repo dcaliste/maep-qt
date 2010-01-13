@@ -30,41 +30,13 @@
 #endif
 
 #ifdef ENABLE_BROWSER_INTERFACE
-#include <strings.h>
-#ifndef USE_MAEMO
-#include <libgnome/gnome-url.h>
-#else
-#include <tablet-browser-interface.h>
-#endif
-#endif
-
-#ifdef ENABLE_BROWSER_INTERFACE
-#ifndef USE_MAEMO
-static void browser_url(char *url) {
-  /* taken from gnome-open, part of libgnome */
-  GError *err = NULL;
-  gnome_url_show(url, &err);
-}
-#else
-static void browser_url(osso_context_t *osso_context, char *url) {
-  osso_rpc_run_with_defaults(osso_context, "osso_browser",
-			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,
-			     DBUS_TYPE_STRING, url,
-			     DBUS_TYPE_BOOLEAN, FALSE, DBUS_TYPE_INVALID);
-}
-#endif
-
 static gboolean on_link_clicked(GtkWidget *widget, GdkEventButton *event,
 				gpointer user_data) {
 
   const char *str = 
     gtk_label_get_text(GTK_LABEL(gtk_bin_get_child(GTK_BIN(widget))));
   
-  browser_url(
-#ifdef USE_MAEMO
-	      (osso_context_t *)user_data,
-#endif
-	      (char*)str);  
+  browser_url(GTK_WIDGET(user_data), (char*)str);  
 
   return TRUE;
 }
@@ -83,13 +55,7 @@ static GtkWidget *link_new(GtkWidget *parent, const char *url) {
     gtk_container_add(GTK_CONTAINER(eventbox), label);
     
     g_signal_connect(eventbox, "button-press-event", 
-		     G_CALLBACK(on_link_clicked), 
-#ifndef USE_MAEMO
-		     NULL
-#else
-		     g_object_get_data(G_OBJECT(parent), "osso-context")
-#endif
-		     );
+		     G_CALLBACK(on_link_clicked), parent);
 
     return eventbox;
   }
@@ -103,10 +69,7 @@ static GtkWidget *link_new(GtkWidget *parent, const char *url) {
 
 #ifdef ENABLE_BROWSER_INTERFACE
 void on_paypal_button_clicked(GtkButton *button, gpointer user_data) {
-  browser_url(
-#ifdef USE_MAEMO
-	      (osso_context_t *)user_data,
-#endif
+  browser_url(GTK_WIDGET(user_data),
 	      "https://www.paypal.com/cgi-bin/webscr?"
 	      "cmd=_s-xclick&hosted_button_id=7400558");
 }
@@ -332,13 +295,7 @@ GtkWidget *donate_page_new(GtkWidget *parent) {
 		       );
   gtk_button_set_relief(GTK_BUTTON(button), GTK_RELIEF_NONE);
   g_signal_connect(button, "clicked", 
-		   G_CALLBACK(on_paypal_button_clicked), 
-#ifndef USE_MAEMO
-		   NULL
-#else
-		   g_object_get_data(G_OBJECT(parent), "osso-context")
-#endif
-		   );
+		   G_CALLBACK(on_paypal_button_clicked), parent);
  
   gtk_box_pack_start(GTK_BOX(ihbox), button, TRUE, FALSE, 0);
   gtk_box_pack_start_defaults(GTK_BOX(vbox), ihbox);
