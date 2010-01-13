@@ -4,6 +4,7 @@
  * osm-gps-map.c
  * Copyright (C) Marcus Bauer 2008 <marcus.bauer@gmail.com>
  * Copyright (C) John Stowers 2009 <john.stowers@gmail.com>
+ * Copyright (C) Till Harbaum 2009 <till@harbaum.org>
  *
  * Contributions by
  * Everaldo Canuto 2009 <everaldo.canuto@gmail.com>
@@ -2623,11 +2624,11 @@ osm_gps_map_clear_tracks (OsmGpsMap *map)
     osm_gps_map_map_redraw_idle(map);
 }
 
-void 
+void
 osm_gps_map_add_image_with_alignment (OsmGpsMap *map, float latitude, float longitude, GdkPixbuf *image, float xalign, float yalign)
 {
     g_return_if_fail (OSM_IS_GPS_MAP (map));
-    
+
     if (image) {
         OsmGpsMapPrivate *priv = map->priv;
         image_t *im;
