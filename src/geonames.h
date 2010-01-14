@@ -21,6 +21,6 @@
 #define GEONAMES_H
 
 void geonames_enable_search(GtkWidget *parent, GtkWidget *map);
-void geonames_wikipedia(GtkWidget *parent, GtkWidget *map);
+void geonames_enable_wikipedia(GtkWidget *parent, GtkWidget *map, gboolean enable);
 
 #endif // GEONAMES_H

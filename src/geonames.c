@@ -59,8 +59,10 @@ typedef struct {
 
 typedef struct {
   GSList *list;
-  gulong handler_id, press_handler_id, release_handler_id;
-} geonames_wikipedia_context_t;
+  gulong destroy_handler_id, press_handler_id, release_handler_id;
+  gulong changed_handler_id, motion_handler_id;
+  gulong timer_id;
+} geonames_wiki_context_t;
 
 #define MAX_RESULT 50
 #define GEONAMES  "http://ws.geonames.org/"
@@ -501,9 +503,9 @@ void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
   g_object_set_data(G_OBJECT(parent), GEONAMES_SEARCH, hbox);
 }
 
-static void geonames_wikipedia_context_free(GtkWidget *widget) {
-  geonames_wikipedia_context_t *context = 
-    (geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
+static void geonames_wiki_context_free(GtkWidget *widget) {
+  geonames_wiki_context_t *context = 
+    (geonames_wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
 
   g_assert(context);
 
@@ -514,9 +516,9 @@ static void geonames_wikipedia_context_free(GtkWidget *widget) {
   }
 
   /* also remove the destroy handler for the context */
-  if(context->handler_id) {
-    g_signal_handler_disconnect(G_OBJECT(widget), context->handler_id);
-    context->handler_id = 0;
+  if(context->destroy_handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->destroy_handler_id);
+    context->destroy_handler_id = 0;
   }
 
   /* and the button press handler */
@@ -531,13 +533,28 @@ static void geonames_wikipedia_context_free(GtkWidget *widget) {
     context->release_handler_id = 0;
   }
 
+  if(context->changed_handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->changed_handler_id);
+    context->changed_handler_id = 0;
+  }
+
+  if(context->motion_handler_id) {
+    g_signal_handler_disconnect(G_OBJECT(widget), context->motion_handler_id);
+    context->motion_handler_id = 0;
+  }
+
+  if(context->timer_id) {
+    gtk_timeout_remove(context->timer_id);
+    context->timer_id = 0;
+  }
+
   /* finally free the context itself */
   g_free(context);
   g_object_set_data(G_OBJECT(widget), "wikipedia", NULL);
 }
 
 static void on_map_destroy (GtkWidget *widget, gpointer data) {
-  geonames_wikipedia_context_free(widget);
+  geonames_wiki_context_free(widget);
 }
 
 static void geonames_entry_render(gpointer data, gpointer user_data) {
@@ -567,8 +584,8 @@ static int dist2pixel(GtkWidget *map, float m) {
 static gboolean
 on_map_button_press_event(GtkWidget *widget, 
 			  GdkEventButton *event, gpointer user_data) {
-  geonames_wikipedia_context_t *context = 
-    (geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
+  geonames_wiki_context_t *context = 
+    (geonames_wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
 
   /* check if we actually clicked parts of the OSD */
   if(osm_gps_map_osd_check(OSM_GPS_MAP(widget), event->x, event->y) 
@@ -613,7 +630,9 @@ on_map_button_press_event(GtkWidget *widget,
 }
 
 /* request geotagged wikipedia entries for current map view */
-void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
+void geonames_wiki_request(GtkWidget *map) {
+  GtkWidget *parent = gtk_widget_get_toplevel(map);
+
   /* request area from map */
   coord_t pt1, pt2;
   osm_gps_map_get_bbox (OSM_GPS_MAP(map), &pt1, &pt2);
@@ -651,24 +670,10 @@ void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
       
       printf("got %d results\n", g_slist_length(list));
 
-      geonames_wikipedia_context_t *context = 
-	(geonames_wikipedia_context_t *)g_object_get_data(G_OBJECT(map), "wikipedia");
+      geonames_wiki_context_t *context = 
+	(geonames_wiki_context_t *)g_object_get_data(G_OBJECT(map), "wikipedia");
 
-      if(!context) {
-	/* create and register a context */
-	context = g_new0(geonames_wikipedia_context_t, 1);
-	context->handler_id = g_signal_connect(G_OBJECT(map), "destroy", 
-					       G_CALLBACK(on_map_destroy), NULL);
-	g_object_set_data(G_OBJECT(map), "wikipedia", context);
-
-	context->press_handler_id = 
-	  g_signal_connect(G_OBJECT(map), "button-press-event",
-			   G_CALLBACK(on_map_button_press_event), NULL);
-
-	context->release_handler_id = 
-	  g_signal_connect(G_OBJECT(map), "button-release-event",
-			   G_CALLBACK(on_map_button_press_event), NULL);
-      }
+      g_assert(context);
 
       /* remove any list that may already be preset */
       if(context->list) {
@@ -685,4 +690,99 @@ void geonames_wikipedia(GtkWidget *parent, GtkWidget *map) {
     printf("download failed\n");
 
   g_free(url);
+}
+
+// redo wiki entries after this time (ms) of map being idle
+#define WIKI_UPDATE_TIMEOUT (2000)
+
+static gboolean wiki_update(gpointer data) {
+  printf("wiki update fired\n");
+
+  geonames_wiki_request(GTK_WIDGET(data));
+
+  return FALSE;
+}
+
+/* the map has changed, the wiki timer needs to be reset to update the */
+/* wiki data after 2 seconds of idle time. */
+static void 
+wiki_timer_trigger(GtkWidget *widget) {
+  geonames_wiki_context_t *context = 
+    (geonames_wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
+
+  g_assert(context);
+
+  /* if the timer is already running, then reset it, otherwise */
+  /* install a new one*/
+  if(context->timer_id) {
+    gtk_timeout_remove(context->timer_id);
+    context->timer_id = 0;
+  }
+  
+  context->timer_id =
+    gtk_timeout_add(WIKI_UPDATE_TIMEOUT, wiki_update, widget);  
+}
+
+static void on_map_changed(GtkWidget *widget, gpointer data ) {
+  wiki_timer_trigger(widget);
+}
+
+static gboolean
+on_map_motion(GtkWidget *widget, GdkEventMotion  *event, gpointer data)
+{
+  if(event->state & GDK_BUTTON1_MASK)
+    wiki_timer_trigger(widget);
+
+  return FALSE;  /* allow further processing */
+}
+
+/* the wikimedia icons are automagically updated after one second */
+/* of idle time */
+void geonames_enable_wikipedia(GtkWidget *parent, GtkWidget *map,
+			       gboolean enable) {
+  geonames_wiki_context_t *context = NULL;
+  printf("%sabling wikipedia listing\n", enable?"en":"dis");
+
+  if(enable) {
+    context = (geonames_wiki_context_t *)
+      g_object_get_data(G_OBJECT(map), "wikipedia");
+    
+    /* there must be no context yet */
+    g_assert(!context);
+    
+    /* create and register a context */
+    context = g_new0(geonames_wiki_context_t, 1);
+    g_object_set_data(G_OBJECT(map), "wikipedia", context);
+    
+
+    /* attach to maps changed event, so we can update the wiki */
+    /* entries whenever the map changes */
+
+    /* trigger wiki data update either by "changed" events ... */
+    context->changed_handler_id =
+      g_signal_connect(G_OBJECT(map), "changed",
+		       G_CALLBACK(on_map_changed), context);
+
+    /* ... or by the user dragging the map */
+    context->motion_handler_id =
+      g_signal_connect(G_OBJECT(map), "motion-notify-event",
+		       G_CALLBACK(on_map_motion), context);
+
+    /* clean up when map is destroyed */
+    context->destroy_handler_id = 
+      g_signal_connect(G_OBJECT(map), "destroy", 
+		       G_CALLBACK(on_map_destroy), NULL);
+
+    /* finally install handlers to handle clicks onto the wiki labels */
+    context->press_handler_id =
+      g_signal_connect(G_OBJECT(map), "button-press-event",
+		       G_CALLBACK(on_map_button_press_event), NULL);
+
+    context->release_handler_id =
+      g_signal_connect(G_OBJECT(map), "button-release-event",
+		       G_CALLBACK(on_map_button_press_event), NULL);
+
+    wiki_update(map);
+  } else
+    geonames_wiki_context_free(map);
 }

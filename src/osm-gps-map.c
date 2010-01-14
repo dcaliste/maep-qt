@@ -1248,6 +1248,8 @@ center_coord_update(OsmGpsMap *map) {
 
     priv->center_rlon = pixel2lon(priv->map_zoom, pixel_x);
     priv->center_rlat = pixel2lat(priv->map_zoom, pixel_y);
+
+    g_signal_emit_by_name(widget, "changed");
 }
 
 static gboolean 
@@ -1752,7 +1754,6 @@ osm_gps_map_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
     {
         osm_gps_map_set_zoom(map, priv->map_zoom-1);
     }
-
     return FALSE;
 }
 
@@ -2307,6 +2308,10 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           "map source tile repository image format (jpg, png)",
                                                           OSM_IMAGE_FORMAT,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+    g_signal_new ("changed", OSM_TYPE_GPS_MAP,
+                  G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
+                  g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
 }
 
 const char* 
@@ -2365,10 +2370,10 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "none://";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
             return OSM_REPO_URI;
-        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
+            //        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
             /* OpenAerialMap is down, offline till furthur notice
                http://openaerialmap.org/pipermail/talk_openaerialmap.org/2008-December/000055.html */
-			return NULL;
+            //			return NULL;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
@@ -2565,6 +2570,8 @@ osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
     priv->map_y = pixel_y - GTK_WIDGET(map)->allocation.height/2;
 
     osm_gps_map_map_redraw_idle(map);
+
+    g_signal_emit_by_name(map, "changed");
 }
 
 int 
@@ -2604,6 +2611,8 @@ osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
 #endif
 
         osm_gps_map_map_redraw_idle(map);
+
+        g_signal_emit_by_name(map, "changed");
     }
     return priv->map_zoom;
 }

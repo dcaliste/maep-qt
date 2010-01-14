@@ -47,6 +47,14 @@ typedef struct menu_entry_s {
   };
 } menu_entry_t;
 
+static gboolean menu_get_active(GtkWidget *item) {
+#ifdef MAEMO5
+  return hildon_check_button_get_active(HILDON_CHECK_BUTTON(item));
+#else
+  return gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(item));
+#endif
+}
+
 static void 
 cb_menu_about(GtkWidget *item, gpointer data) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
@@ -62,7 +70,8 @@ cb_menu_search(GtkWidget *item, gpointer data) {
 static void 
 cb_menu_wikipedia(GtkWidget *item, gpointer data) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
-  geonames_wikipedia(toplevel, GTK_WIDGET(data));
+  geonames_enable_wikipedia(toplevel, GTK_WIDGET(data),
+			    menu_get_active(item)); 
 }
 
 static void 
@@ -73,14 +82,6 @@ cb_menu_track_import(GtkWidget *item, gpointer data) {
 static void 
 cb_menu_track_clear(GtkWidget *item, gpointer data) {
   track_clear(GTK_WIDGET(data));
-}
-
-static gboolean menu_get_active(GtkWidget *item) {
-#ifdef MAEMO5
-  return hildon_check_button_get_active(HILDON_CHECK_BUTTON(item));
-#else
-  return gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(item));
-#endif
 }
 
 static void 
@@ -108,7 +109,7 @@ static const menu_entry_t main_menu[] = {
   { MENU_SUBMENU,     "Track",     { .submenu = track_menu } },
   { MENU_SEPARATOR,   NULL,        { NULL } },
   { MENU_ENTRY,       "Search",    { .cb = cb_menu_search } },
-  { MENU_ENTRY,       "Wikipedia", { .cb = cb_menu_wikipedia } },
+  { MENU_CHECK_ENTRY, "Wikipedia", { .cb = cb_menu_wikipedia } },
 
   { MENU_END,         NULL,        { NULL } }
 };
