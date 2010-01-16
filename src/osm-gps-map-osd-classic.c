@@ -33,6 +33,19 @@
 #include "converter.h"
 #include "osm-gps-map-osd-classic.h"
 
+static OsmGpsMapSource_t map_sources[] = {
+    OSM_GPS_MAP_SOURCE_NULL,
+    OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
+    OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER,
+    OSM_GPS_MAP_SOURCE_OPENCYCLEMAP,
+    OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT,
+    OSM_GPS_MAP_SOURCE_GOOGLE_STREET,
+    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET,
+    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
+    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID
+};
+static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]) - 1;
+
 //the osd controls
 typedef struct {
     /* the offscreen representation of the OSD */
@@ -686,19 +699,19 @@ osd_source_content(osm_gps_map_osd_t *osd, cairo_t *cr, gint offset) {
                                     CAIRO_FONT_SLANT_NORMAL,
                                     CAIRO_FONT_WEIGHT_BOLD);
             cairo_set_font_size (cr, OSD_FONT_SIZE);
-            
+
             int i, step = (priv->source_sel.height - 2*OSD_TEXT_BORDER) / 
-                OSM_GPS_MAP_SOURCE_LAST;
-            for(i=OSM_GPS_MAP_SOURCE_NULL+1;i<=OSM_GPS_MAP_SOURCE_LAST;i++) {
+                num_map_sources;
+            for(i=1;i<=num_map_sources;i++) {
                 cairo_text_extents_t extents;
-                const char *src = osm_gps_map_source_get_friendly_name(i);
+                const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
                 cairo_text_extents (cr, src, &extents);
                 
                 int x = offset + OSD_S_PW + OSD_TEXT_BORDER;
                 int y = offset + step * (i-1) + OSD_TEXT_BORDER;
 
                 /* draw filled rectangle if selected */
-                if(source == i) {
+                if(source == map_sources[i]) {
                     cairo_rectangle(cr, x - OSD_TEXT_BORDER/2, 
                                     y - OSD_TEXT_SKIP, 
                                     priv->source_sel.width - OSD_TEXT_BORDER, 
@@ -718,7 +731,7 @@ osd_source_content(osm_gps_map_osd_t *osd, cairo_t *cr, gint offset) {
                 cairo_show_text (cr, src);
 
                 /* restore color */
-                if(source == i) {
+                if(source == map_sources[i]) {
 #ifndef OSD_COLOR
                     GdkColor fg = osd->widget->style->fg[GTK_STATE_NORMAL];
                     gdk_cairo_set_source_color(cr, &fg);
@@ -806,8 +819,8 @@ osd_source_reallocate(osm_gps_map_osd_t *osd) {
 
         /* calculate menu size */
         int i, max_h = 0, max_w = 0;
-        for(i=OSM_GPS_MAP_SOURCE_NULL+1;i<=OSM_GPS_MAP_SOURCE_LAST;i++) {
-            const char *src = osm_gps_map_source_get_friendly_name(i);
+        for(i=1;i<=num_map_sources;i++) {
+            const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
             cairo_text_extents (cr, src, &extents);
 
             if(extents.width > max_w) max_w = extents.width;
@@ -816,7 +829,7 @@ osd_source_reallocate(osm_gps_map_osd_t *osd) {
         cairo_destroy(cr);
        
         priv->source_sel.width  = max_w + 2*OSD_TEXT_BORDER;
-        priv->source_sel.height = OSM_GPS_MAP_SOURCE_LAST * 
+        priv->source_sel.height = num_map_sources * 
             (max_h + 2*OSD_TEXT_SKIP) + 2*OSD_TEXT_BORDER;
 
         w = OSD_S_EXP_W;
@@ -947,7 +960,7 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
            y < OSD_S_EXP_H) {
             
             int step = (priv->source_sel.height - 2*OSD_TEXT_BORDER) 
-                / OSM_GPS_MAP_SOURCE_LAST;
+                / num_map_sources;
 
             y -= OSD_TEXT_BORDER - OSD_TEXT_SKIP;
             y /= step;
@@ -957,10 +970,10 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
                 gint old = 0;
                 g_object_get(osd->widget, "map-source", &old, NULL);
 
-                if(y > OSM_GPS_MAP_SOURCE_NULL &&
-                   y <= OSM_GPS_MAP_SOURCE_LAST &&
-                   old != y) {
-                    g_object_set(osd->widget, "map-source", y, NULL);
+                if(y > 0 &&
+                   y <= num_map_sources &&
+                   old != map_sources[y]) {
+                    g_object_set(osd->widget, "map-source", map_sources[y], NULL);
                     
                     osd_render_source_sel(osd, TRUE);
                     osm_gps_map_repaint(OSM_GPS_MAP(osd->widget));
