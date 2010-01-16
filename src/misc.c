@@ -50,7 +50,7 @@ void browser_url(GtkWidget *root, char *url) {
   gnome_url_show(url, &err);
 #else
   osso_context_t *osso_context = 
-    (osso_context_t*)g_object_get_data(G_OBJECT(root), "osso-context")
+    (osso_context_t*)g_object_get_data(G_OBJECT(root), "osso-context");
 
   osso_rpc_run_with_defaults(osso_context, "osso_browser",
 			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,

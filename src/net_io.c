@@ -54,11 +54,6 @@ static struct http_message_s {
   { 0,   NULL }
 };
 
-typedef struct {
-  char *ptr;
-  int len;
-} curl_mem_t;
-
 /* structure shared between worker and master thread */
 typedef struct {
   gint refcount;       /* reference counter for master and worker thread */ 
@@ -72,7 +67,10 @@ typedef struct {
   long response;
   char buffer[CURL_ERROR_SIZE];
 
-  curl_mem_t mem;
+  net_io_cb cb;
+  gpointer data;
+
+  net_result_t result;
 
 } net_io_request_t;
 
@@ -133,11 +131,11 @@ static void request_free(net_io_request_t *request) {
   /* decrease refcount and only free structure if no references are left */
   request->refcount--;
   if(request->refcount) {
-    printf("still %d references, keeping request\n", request->refcount);
+    //    printf("still %d references, keeping request\n", request->refcount);
     return;
   }
 
-  printf("no references left, freeing request\n");
+  //  printf("no references left, freeing request\n");
   if(request->url)  g_free(request->url);
   if(request->user) g_free(request->user);
 
@@ -153,7 +151,7 @@ static int curl_progress_func(net_io_request_t *request,
 
 static size_t mem_write(void *ptr, size_t size, size_t nmemb, 
 			void *stream) {
-  curl_mem_t *p = (curl_mem_t*)stream;
+  net_mem_t *p = (net_mem_t*)stream;
   
   p->ptr = g_realloc(p->ptr, p->len + size*nmemb + 1);
   if(p->ptr) {
@@ -168,8 +166,9 @@ static size_t mem_write(void *ptr, size_t size, size_t nmemb,
 
 void net_io_set_proxy(CURL *curl) {
 
+#if 1
 #warning "http_proxy not evaluated yet!"
-#if 0
+#else
   /* get proxy settings */
   static char proxy_buffer[64] = "";
   
@@ -214,20 +213,44 @@ void net_io_set_proxy(CURL *curl) {
   }
 }
 
+static gboolean net_io_idle_cb(gpointer data) {
+  net_io_request_t *request = (net_io_request_t *)data;
+
+  /* the http connection itself may have failed */
+  if(request->res != 0) {
+    request->result.code = 2;
+    printf("Download failed with message: %s", request->buffer);
+  } else  if(request->response != 200) {
+    /* a valid http connection may have returned an error */
+    request->result.code = 3;
+    printf("Download failed with code %ld: %s\n", 
+	   request->response, http_message(request->response));
+  }
+
+  /* call application callback */
+  request->cb(&request->result, request->data);
+
+  request_free(request);
+
+  return FALSE;
+}
+
 static void *worker_thread(void *ptr) {
   net_io_request_t *request = (net_io_request_t*)ptr;
   
   printf("thread: running\n");
 
+  //  sleep(2);  // useful for debugging
+
   CURL *curl = curl_easy_init();
   if(curl) {
     /* prepare target memory */
-    request->mem.ptr = NULL;
-    request->mem.len = 0;
+    request->result.data.ptr = NULL;
+    request->result.data.len = 0;
 
     curl_easy_setopt(curl, CURLOPT_URL, request->url);
       
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &request->mem);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &request->result.data);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mem_write);
 
     net_io_set_proxy(curl);
@@ -259,6 +282,10 @@ static void *worker_thread(void *ptr) {
     printf("thread: unable to init curl\n");
   
   printf("thread: io done\n");
+
+  if(request->cb)
+    g_idle_add(net_io_idle_cb, request);
+
   request_free(request);
   
   printf("thread: terminating\n");
@@ -334,15 +361,47 @@ static gboolean net_io_do(GtkWidget *parent, net_io_request_t *request) {
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem) {
   net_io_request_t *request = g_new0(net_io_request_t, 1);
 
-  printf("net_io: download %s to memory\n", url);
   request->url = g_strdup(url);
 
   gboolean result = net_io_do(parent, request);
-  if(result) {
-    printf("ptr = %p, len = %d\n", request->mem.ptr, request->mem.len);
-    *mem = request->mem.ptr;
-  }
+  if(result) 
+    *mem = request->result.data.ptr;
   
   request_free(request);
   return result;
+}
+
+/* --------- start of async io ------------ */
+
+static gboolean net_io_do_async(net_io_request_t *request) {
+  /* the request structure is shared between master and worker thread. */
+  /* typically the master thread will do some waiting until the worker */
+  /* thread returns. But the master may very well stop waiting since e.g. */
+  /* the user activated some cancel button. The client will learn this */
+  /* from the fact that it's holding the only reference to the request */
+
+  /* create worker thread */
+  request->refcount = 2;   // master and worker hold a reference
+  if(!g_thread_create(&worker_thread, request, FALSE, NULL) != 0) {
+    g_warning("failed to create the worker thread");
+
+    /* free request and return error */
+    request->refcount--;    /* decrease by one for dead worker thread */
+    return FALSE;
+  }
+  
+  return TRUE;
+}
+
+void net_io_download_async(char *url, net_io_cb cb, gpointer data) {
+  net_io_request_t *request = g_new0(net_io_request_t, 1);
+
+  request->url = g_strdup(url);
+  request->cb = cb;
+  request->data = data;
+
+  if(!net_io_do_async(request)) {
+    request->result.code = 1;  // failure
+    cb(&request->result, data); 
+  }
 }

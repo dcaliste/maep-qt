@@ -22,6 +22,20 @@
 
 #include <gtk/gtk.h>
 
+typedef struct {
+  char *ptr;
+  int len;
+} net_mem_t;
+
+typedef struct {
+  int code;          /* 0 == success */
+  net_mem_t data;
+} net_result_t;
+
+typedef void (*net_io_cb)(net_result_t *result, gpointer data);
+#define	NET_IO_CB(f) ((net_io_cb) (f))
+
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem);
+void net_io_download_async(char *url, net_io_cb, gpointer data);
 
 #endif // NET_IO_H
