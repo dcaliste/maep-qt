@@ -52,9 +52,9 @@
 #include <string.h>
 
 typedef struct {
-  char *name, *admin;
+  char *name, *country;
   coord_t pos;
-} geonames_code_t;
+} geonames_geoname_t;
 
 typedef struct {
   char *title, *summary;
@@ -70,7 +70,7 @@ typedef struct {
   gboolean downloading;
 } wiki_context_t;
 
-#define MAX_RESULT 50
+#define MAX_RESULT 25
 #define GEONAMES  "http://ws.geonames.org/"
 #define GEONAMES_SEARCH "geonames_search"
 
@@ -90,60 +90,30 @@ static gboolean string_get(xmlNode *node, char *name, char **dst) {
   return TRUE;
 }
 
-static char *code_append(char *src, char *append) {
-  if(!append) return src;  /* nothing to append */
-
-  if(src) {
-    char *new_str = g_strdup_printf("%s, %s", src, append);
-    g_free(append);
-    g_free(src);
-    return new_str;
-  }
-
-  return append;
-}
-
-static geonames_code_t *geonames_parse_code(xmlDocPtr doc, xmlNode *a_node) {
+static geonames_geoname_t *geonames_parse_geoname(xmlDocPtr doc, xmlNode *a_node) {
   xmlNode *cur_node = NULL;
-  geonames_code_t *code = g_new0(geonames_code_t, 1);
-  code->pos.rlat = code->pos.rlon = OSM_GPS_MAP_INVALID;
-
-  char *name = NULL, *country_code = NULL, *postal_code = NULL;
-  char *admin_name1 = NULL, *admin_name2 = NULL, *admin_name3 = NULL;
+  geonames_geoname_t *geoname = g_new0(geonames_geoname_t, 1);
+  geoname->pos.rlat = geoname->pos.rlon = OSM_GPS_MAP_INVALID;
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
 
-      string_get(cur_node, "name", &name);
-      string_get(cur_node, "postalcode", &postal_code);
-      string_get(cur_node, "countryCode", &country_code);
-
-      string_get(cur_node, "adminName1", &admin_name1);
-      string_get(cur_node, "adminName2", &admin_name2);
-      string_get(cur_node, "adminName3", &admin_name3);
+      string_get(cur_node, "name", &geoname->name);
+      string_get(cur_node, "countryName", &geoname->country);
 
       if(strcasecmp((char*)cur_node->name, "lat") == 0) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
-	code->pos.rlat = deg2rad(g_ascii_strtod(str, NULL));
+	geoname->pos.rlat = deg2rad(g_ascii_strtod(str, NULL));
  	xmlFree(str);
       } else if(strcasecmp((char*)cur_node->name, "lng") == 0) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
-	code->pos.rlon = deg2rad(g_ascii_strtod(str, NULL));
+	geoname->pos.rlon = deg2rad(g_ascii_strtod(str, NULL));
  	xmlFree(str);
       }
     }
   }
 
-  /* build name and admin strings */
-  code->name = code_append(code->name, name);
-  code->name = code_append(code->name, postal_code);
-  code->name = code_append(code->name, country_code);
-
-  code->admin = code_append(code->admin, admin_name1);
-  code->admin = code_append(code->admin, admin_name2);
-  code->admin = code_append(code->admin, admin_name3);
-
-  return code;
+  return geoname;
 }
 
 static geonames_entry_t *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
@@ -180,8 +150,8 @@ static GSList *geonames_parse_geonames(xmlDocPtr doc, xmlNode *a_node) {
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
-      if(strcasecmp((char*)cur_node->name, "code") == 0) {
-	list = g_slist_append(list, geonames_parse_code(doc, cur_node));
+      if(strcasecmp((char*)cur_node->name, "geoname") == 0) {
+	list = g_slist_append(list, geonames_parse_geoname(doc, cur_node));
       } else if(strcasecmp((char*)cur_node->name, "entry") == 0) {
 	list = g_slist_append(list, geonames_parse_entry(doc, cur_node));
       }
@@ -221,14 +191,14 @@ static GSList *geonames_parse_doc(xmlDocPtr doc) {
 
 /* ------------- begin of freeing ------------------ */
 
-static void geonames_code_free(gpointer data, gpointer user_data) {
-  geonames_code_t *code = (geonames_code_t*)data;
-  if(code->name) g_free(code->name);
-  if(code->admin) g_free(code->admin);
+static void geonames_geoname_free(gpointer data, gpointer user_data) {
+  geonames_geoname_t *geoname = (geonames_geoname_t*)data;
+  if(geoname->name) g_free(geoname->name);
+  if(geoname->country) g_free(geoname->country);
 }
 
-static void geonames_code_list_free(GSList *list) {
-  g_slist_foreach(list, geonames_code_free, NULL);
+static void geonames_geoname_list_free(GSList *list) {
+  g_slist_foreach(list, geonames_geoname_free, NULL);
   g_slist_free(list);
 }
 
@@ -249,7 +219,7 @@ static void geonames_entry_list_free(GSList *list) {
 
 enum {
   GEONAMES_PICKER_COL_NAME = 0,
-  GEONAMES_PICKER_COL_ADMIN,
+  GEONAMES_PICKER_COL_COUNTRY,
   GEONAMES_PICKER_COL_DATA,
   GEONAMES_PICKER_NUM_COLS
 };
@@ -269,13 +239,13 @@ static void on_geonames_picker_row_tapped(GtkTreeView *treeview,
   GtkTreeModel *model = gtk_tree_view_get_model(treeview);
 
   if(gtk_tree_model_get_iter(model, &iter, path)) {
-    geonames_code_t *code = NULL;
+    geonames_geoname_t *geoname = NULL;
     gtk_tree_model_get(model, &iter, 
-		       GEONAMES_PICKER_COL_DATA, &code, 
+		       GEONAMES_PICKER_COL_DATA, &geoname, 
 		       -1);
 
     osm_gps_map_set_center(OSM_GPS_MAP(userdata), 
-	   rad2deg(code->pos.rlat), rad2deg(code->pos.rlon));
+	   rad2deg(geoname->pos.rlat), rad2deg(geoname->pos.rlon));
 
 
     gtk_dialog_response(GTK_DIALOG(gtk_widget_get_toplevel(
@@ -298,21 +268,29 @@ static GtkWidget *geonames_picker_create(GSList *list, gpointer user_data) {
   gtk_tree_view_column_set_expand(column, TRUE);
   gtk_tree_view_insert_column(GTK_TREE_VIEW(view), column, -1);
 
+  /* --- "Country" column --- */
+  renderer = gtk_cell_renderer_text_new();
+  g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL );
+  column = gtk_tree_view_column_new_with_attributes(
+	       "Country", renderer, "text", GEONAMES_PICKER_COL_COUNTRY, NULL);
+  gtk_tree_view_column_set_expand(column, TRUE);
+  gtk_tree_view_insert_column(GTK_TREE_VIEW(view), column, -1);
+
   store = gtk_list_store_new(GEONAMES_PICKER_NUM_COLS, 
 			     G_TYPE_STRING,
 			     G_TYPE_STRING,
 			     G_TYPE_POINTER);
   
   while(list) {
-    geonames_code_t *code = (geonames_code_t*)list->data;
+    geonames_geoname_t *geoname = (geonames_geoname_t*)list->data;
 
     /* Append a row and fill in some data */
     gtk_list_store_append (store, &iter);
   
     gtk_list_store_set(store, &iter,
-		       GEONAMES_PICKER_COL_NAME, code->name,
-		       GEONAMES_PICKER_COL_ADMIN, code->admin,
-		       GEONAMES_PICKER_COL_DATA, code,
+		       GEONAMES_PICKER_COL_NAME, geoname->name,
+		       GEONAMES_PICKER_COL_COUNTRY, geoname->country,
+		       GEONAMES_PICKER_COL_DATA, geoname,
 		       -1);
     
     list = g_slist_next(list);
@@ -397,7 +375,7 @@ geonames_cb(net_result_t *result, gpointer data) {
 	errorf(toplevel, _("No places matching the search term "
 			   "could be found."));
 
-      geonames_code_list_free(list);
+      geonames_geoname_list_free(list);
     }
   }
 
@@ -428,11 +406,17 @@ static void on_search_clicked(GtkButton *button, gpointer user) {
 
   g_object_set_data(G_OBJECT(button), "handler_id", (gpointer)handler_id);
 
+  gchar *locale, lang[3] = { 0,0,0 };
+  locale = setlocale (LC_MESSAGES, NULL);
+  g_utf8_strncpy (lang, locale, 2);
+
   /* build search request */
   char *encoded_phrase = url_encode(phrase);
   char *url = g_strdup_printf(
-	      GEONAMES "postalCodeSearch?placename=%s&maxRows=%u", 
-	      encoded_phrase, MAX_RESULT);
+	      GEONAMES "search?q=%s&maxRows=%u&lang=%s"
+	      "&isNameRequired=1&featureClass=P",
+
+	      encoded_phrase, MAX_RESULT, lang);
   g_free(encoded_phrase);
 
   /* request search results asynchronously */
@@ -730,7 +714,7 @@ void geonames_wiki_request(GtkWidget *map) {
   g_ascii_formatd(str[2], sizeof(str[2]), "%.07f", rad2deg(pt1.rlon));
   g_ascii_formatd(str[3], sizeof(str[3]), "%.07f", rad2deg(pt2.rlon));
 
-  gchar *locale, lang[2];
+  gchar *locale, lang[3] = { 0,0,0 };
   locale = setlocale (LC_MESSAGES, NULL);
   g_utf8_strncpy (lang, locale, 2);
 
