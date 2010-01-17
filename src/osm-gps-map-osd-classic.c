@@ -34,7 +34,6 @@
 #include "osm-gps-map-osd-classic.h"
 
 static OsmGpsMapSource_t map_sources[] = {
-    OSM_GPS_MAP_SOURCE_NULL,
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER,
     OSM_GPS_MAP_SOURCE_OPENCYCLEMAP,
@@ -44,7 +43,7 @@ static OsmGpsMapSource_t map_sources[] = {
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID
 };
-static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]) - 1;
+static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]);
 
 //the osd controls
 typedef struct {
@@ -702,13 +701,13 @@ osd_source_content(osm_gps_map_osd_t *osd, cairo_t *cr, gint offset) {
 
             int i, step = (priv->source_sel.height - 2*OSD_TEXT_BORDER) / 
                 num_map_sources;
-            for(i=1;i<=num_map_sources;i++) {
+            for(i=0;i<num_map_sources;i++) {
                 cairo_text_extents_t extents;
                 const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
                 cairo_text_extents (cr, src, &extents);
                 
                 int x = offset + OSD_S_PW + OSD_TEXT_BORDER;
-                int y = offset + step * (i-1) + OSD_TEXT_BORDER;
+                int y = offset + step * i + OSD_TEXT_BORDER;
 
                 /* draw filled rectangle if selected */
                 if(source == map_sources[i]) {
@@ -819,7 +818,7 @@ osd_source_reallocate(osm_gps_map_osd_t *osd) {
 
         /* calculate menu size */
         int i, max_h = 0, max_w = 0;
-        for(i=1;i<=num_map_sources;i++) {
+        for(i=0;i<num_map_sources;i++) {
             const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
             cairo_text_extents (cr, src, &extents);
 
@@ -964,14 +963,13 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
 
             y -= OSD_TEXT_BORDER - OSD_TEXT_SKIP;
             y /= step;
-            y += 1;
 
             if(down) {
                 gint old = 0;
                 g_object_get(osd->widget, "map-source", &old, NULL);
 
-                if(y > 0 &&
-                   y <= num_map_sources &&
+                if(y >= 0 &&
+                   y < num_map_sources &&
                    old != map_sources[y]) {
                     g_object_set(osd->widget, "map-source", map_sources[y], NULL);
                     
