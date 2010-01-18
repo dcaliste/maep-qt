@@ -75,12 +75,13 @@
 
 /* specify OSD colors explicitely. Otherwise gtk default */
 /* colors are used. fremantle always uses gtk defaults */
-#if !defined(USE_MAEMO) || (MAEMO_VERSION_MAJOR < 5)
+#ifndef MAEMO5
 #define OSD_COLOR_BG         1, 1, 1         // white background
 #define OSD_COLOR            0.5, 0.5, 1     // light blue border and controls
 #define OSD_COLOR_DISABLED   0.8, 0.8, 0.8   // light grey disabled controls
 #define OSD_SHADOW_ENABLE
 #else
+/* fremantle has controls at botton (for fringer friendlyness) */
 #define OSD_Y  -10
 #endif
 
@@ -88,5 +89,6 @@
 #define OSD_GPS_BUTTON       // display a GPS button
 #define OSD_NO_DPAD          // no direction arrows (map is panned)
 #define OSD_SOURCE_SEL       // display source selection tab
+#define OSD_BALLOON
 
 #endif // CONFIG_H

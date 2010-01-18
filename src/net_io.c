@@ -219,7 +219,7 @@ static gboolean net_io_idle_cb(gpointer data) {
   /* the http connection itself may have failed */
   if(request->res != 0) {
     request->result.code = 2;
-    printf("Download failed with message: %s", request->buffer);
+    printf("Download failed with message: %s\n", request->buffer);
   } else  if(request->response != 200) {
     /* a valid http connection may have returned an error */
     request->result.code = 3;

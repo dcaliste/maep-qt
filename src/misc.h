@@ -41,6 +41,10 @@ char *url_encode(char *str);
 GtkWidget *button_new(void);
 GtkWidget *button_new_with_label(char *label);
 GtkWidget *entry_new(void);
+GtkWidget *label_big_new(char *str);
+GtkWidget *label_wrap_new(char *str);
+GtkWidget *scrolled_window_new(void);
+void scrolled_window_add_with_viewport(GtkWidget *win, GtkWidget *child);
 
 void browser_url(GtkWidget *root, char *url);
 

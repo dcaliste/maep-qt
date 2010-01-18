@@ -1512,8 +1512,10 @@ osm_gps_map_dispose (GObject *object)
     g_free(priv->gps);
 
 #ifdef ENABLE_OSD
-    if(priv->osd)
+    if(priv->osd) {
         priv->osd->free(priv->osd);
+        priv->osd = NULL;
+    }
 
 #ifdef OSD_DOUBLE_BUFFER
     if(priv->dbuf_pixmap)
@@ -1985,6 +1987,8 @@ osm_gps_map_configure (GtkWidget *widget, GdkEventConfigure *event)
     priv->gc_map = gdk_gc_new(priv->pixmap);
 
     osm_gps_map_map_redraw(OSM_GPS_MAP(widget));
+
+    g_signal_emit_by_name(widget, "changed");
 
     return FALSE;
 }

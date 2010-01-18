@@ -24,11 +24,14 @@
 #include "config.h"
 #include "menu.h"
 #include "track.h"
+#include "geonames.h"
 
 #ifdef MAEMO5
 #include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 #endif
+
+#include <locale.h>
 
 /* any defined key enables key support */
 #if (defined(MAP_KEY_FULLSCREEN) || \
@@ -254,7 +257,7 @@ static GtkWidget *map_new(void) {
   /* ~/.osm-gps-map on standard PC     (users home) */
   /* /home/user/MyDocs/.maps on Maemo5 (vfat on internal card) */
   /* /media/mmc2/osm-gps-map on Maemo4 (vfat on internal card) */
-  char *path, *fullpath;
+  char *path;
 
 #if !defined(USE_MAEMO)
   char *p = getenv("HOME");
@@ -287,22 +290,16 @@ static GtkWidget *map_new(void) {
     
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
-         "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
-         "tile-cache-base",          path,
+		 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
+                 "tile-cache-base",          path,
 		 "auto-center",              FALSE,
 		 "record-trip-history",      FALSE, 
 		 "show-trip-history",        FALSE, 
 		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
-         NULL);
-
-  g_object_get(G_OBJECT(widget),
-         "tile-cache", &fullpath,
-         NULL);
-  printf("Storing tile cache at %s\n", fullpath);
+                 NULL);
 
   g_free(path);
-  g_free(fullpath);
 
   OsmGpsMap *map = OSM_GPS_MAP(widget);
 
@@ -387,10 +384,12 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
 
 int main(int argc, char *argv[]) {
 
+#if 0
   setlocale(LC_ALL, "");
   bindtextdomain(PACKAGE, LOCALEDIR);
   bind_textdomain_codeset(PACKAGE, "UTF-8");
   textdomain(PACKAGE);
+#endif
 
   /* prepare thread system. the map uses soup which in turn seems */
   /* to need this */
@@ -404,7 +403,12 @@ int main(int argc, char *argv[]) {
   g_set_application_name("Mæp");
   
   /* Create HildonWindow and set it to HildonProgram */
+#ifdef MAEMO5
+  GtkWidget *window = hildon_stackable_window_new();
+#else
   GtkWidget *window = hildon_window_new();
+#endif
+
   hildon_program_add_window(program, HILDON_WINDOW(window));
 
   g_object_set_data(G_OBJECT(window), "osso-context",
@@ -445,7 +449,9 @@ int main(int argc, char *argv[]) {
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), map);
 
+  
   track_restore(map);
+  geonames_wikipedia_restore(map);
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();

@@ -63,15 +63,12 @@ cb_menu_about(GtkWidget *item, gpointer data) {
 
 static void 
 cb_menu_search(GtkWidget *item, gpointer data) {
-  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
-  geonames_enable_search(toplevel, GTK_WIDGET(data));
+  geonames_enable_search(GTK_WIDGET(data));
 }
 
 static void 
 cb_menu_wikipedia(GtkWidget *item, gpointer data) {
-  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
-  geonames_enable_wikipedia(toplevel, GTK_WIDGET(data),
-			    menu_get_active(item)); 
+  geonames_enable_wikipedia(GTK_WIDGET(data), menu_get_active(item)); 
 }
 
 static void 

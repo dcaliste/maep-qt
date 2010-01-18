@@ -20,7 +20,8 @@
 #ifndef GEONAMES_H
 #define GEONAMES_H
 
-void geonames_enable_search(GtkWidget *parent, GtkWidget *map);
-void geonames_enable_wikipedia(GtkWidget *parent, GtkWidget *map, gboolean enable);
+void geonames_enable_search(GtkWidget *map);
+void geonames_enable_wikipedia(GtkWidget *map, gboolean enable);
+void geonames_wikipedia_restore(GtkWidget *map);
 
 #endif // GEONAMES_H

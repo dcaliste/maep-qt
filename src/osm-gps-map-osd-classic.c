@@ -131,8 +131,8 @@ typedef struct {
 #endif
 
 #define BALLOON_BORDER               (BALLOON_CORNER_RADIUS/2)
-#define BALLOON_WIDTH                (BALLOON_AREA_WIDTH + 2 * BALLOON_BORDER)
-#define BALLOON_HEIGHT               (BALLOON_AREA_HEIGHT + 2 * BALLOON_BORDER)
+#define BALLOON_WIDTH                (priv->balloon.rect.w + 2 * BALLOON_BORDER)
+#define BALLOON_HEIGHT               (priv->balloon.rect.h + 2 * BALLOON_BORDER)
 #define BALLOON_TRANSPARENCY         0.8
 #define POINTER_HEIGHT                20
 #define POINTER_FOOT_WIDTH            20
@@ -142,8 +142,6 @@ typedef struct {
 
 #define BALLOON_W  (BALLOON_WIDTH + BALLOON_SHADOW)
 #define BALLOON_H  (BALLOON_HEIGHT + POINTER_HEIGHT + BALLOON_SHADOW)
-
-#define CLOSE_BUTTON_RADIUS   (BALLOON_CORNER_RADIUS)
 
 /* draw the bubble shape. this is used twice, once for the shape and once */
 /* for the shadow */
@@ -187,7 +185,6 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
 
     if(!priv->balloon.surface)
         return;
-
     /* get zoom */
     gint zoom;
     g_object_get(OSM_GPS_MAP(osd->widget), "zoom", &zoom, NULL);
@@ -240,13 +237,12 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
     priv->balloon.orientation = orientation;
 
     /* calculate bottom/right of box */
-    int x1 = x0 + BALLOON_WIDTH, y1 = y0 + BALLOON_HEIGHT;
+    int x1 = x0 + priv->balloon.rect.w + 2*BALLOON_BORDER;
+    int y1 = y0 + priv->balloon.rect.h + 2*BALLOON_BORDER;
 
     /* save balloon screen coordinates for later use */
     priv->balloon.rect.x = x0 + BALLOON_BORDER;
     priv->balloon.rect.y = y0 + BALLOON_BORDER;
-    priv->balloon.rect.w = x1 - x0 - 2*BALLOON_BORDER;
-    priv->balloon.rect.h = y1 - y0 - 2*BALLOON_BORDER;
 
     g_assert(priv->balloon.surface);
     cairo_t *cr = cairo_create(priv->balloon.surface);
@@ -387,18 +383,40 @@ osm_gps_map_osd_draw_balloon (OsmGpsMap *map, float latitude, float longitude,
 
     osm_gps_map_osd_clear_balloon (map);
 
-    /* allocate balloon surface */
-    priv->balloon.surface = 
-        cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
-                                   BALLOON_W+2, BALLOON_H+2);
-
     priv->balloon.lat = latitude;
     priv->balloon.lon = longitude;
     priv->balloon.cb = cb;
     priv->balloon.data = data;
     priv->balloon.just_created = TRUE;
-
     priv->balloon.orientation = -1;
+    priv->balloon.rect.w = 0;
+    priv->balloon.rect.h = 0;
+
+    /* set default size and call app callback */
+    if(!priv->balloon.rect.w || !priv->balloon.rect.h) {
+        osm_gps_map_balloon_event_t event;
+        
+        priv->balloon.rect.w = BALLOON_AREA_WIDTH;
+        priv->balloon.rect.h = BALLOON_AREA_HEIGHT;
+
+        /* create some temporary surface, so the callback can */
+        /* e.g. determine text extents etc */
+        cairo_surface_t *surface = 
+            cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
+
+        event.type = OSM_GPS_MAP_BALLOON_EVENT_TYPE_SIZE_REQUEST;
+        event.data.draw.rect = &priv->balloon.rect;
+        event.data.draw.cr = cairo_create(surface);
+        priv->balloon.cb(&event, priv->balloon.data);
+
+        cairo_destroy(event.data.draw.cr);
+        cairo_surface_destroy(surface);
+    }
+
+    /* allocate balloon surface */
+    priv->balloon.surface = 
+        cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
+                                   BALLOON_W+2, BALLOON_H+2);
 
     osd_render_balloon(osd);
 
@@ -2035,11 +2053,12 @@ osd_free(osm_gps_map_osd_t *osd)
 #endif
 
 #ifdef OSD_BALLOON
-    if (priv->balloon.surface)
+    if (priv->balloon.surface) 
          cairo_surface_destroy(priv->balloon.surface);
 #endif
 
     g_free(priv);
+    osd->priv = NULL;
 }
 
 static gboolean

@@ -75,7 +75,7 @@ void on_paypal_button_clicked(GtkButton *button, gpointer user_data) {
 }
 #endif
 
-GtkWidget *label_big(char *str) {
+static GtkWidget *label_big(char *str) {
   GtkWidget *label = gtk_label_new("");
   char *markup = 
     g_markup_printf_escaped("<span size='x-large'>%s</span>", str);
@@ -84,7 +84,7 @@ GtkWidget *label_big(char *str) {
   return label;
 }
 
-GtkWidget *label_xbig(char *str) {
+static GtkWidget *label_xbig(char *str) {
   GtkWidget *label = gtk_label_new("");
   char *markup = 
     g_markup_printf_escaped("<span size='xx-large'>%s</span>", str);
@@ -99,7 +99,7 @@ on_label_realize(GtkWidget *widget, gpointer user_data)  {
   gtk_widget_set_size_request(widget, widget->parent->allocation.width, -1);
 }
 
-GtkWidget *label_wrap(char *str) {
+static GtkWidget *label_wrap(char *str) {
   GtkWidget *label = gtk_label_new(str);
 
   gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
@@ -240,14 +240,14 @@ GtkWidget *authors_page_new(GtkWidget *parent) {
 
   /* -------------------------------------------- */
   ivbox = gtk_vbox_new(FALSE, 0);
-  author_add(ivbox, _("Original map widget by:"));
+  author_add(ivbox, _("Original osm-gps-map widget by:"));
   author_add(ivbox, "John Stowers <john.stowers@gmail.com>");
   author_add(ivbox, "Marcus Bauer <marcus.bauer@gmail.com>"),
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
   /* -------------------------------------------- */
   ivbox = gtk_vbox_new(FALSE, 0);
-  author_add(ivbox, _("Search feature provided by:"));
+  author_add(ivbox, _("Search and wikipedia feature provided by:"));
   link_add(ivbox, parent, _("http://geonames.org"));
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 

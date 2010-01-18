@@ -73,10 +73,7 @@ static void on_parent_destroy(GtkWidget *widget, gpointer data) {
   g_slist_free(list);
 }
 
-GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
-  GdkPixbuf *pix = icon_load(name);
-  if(!pix) return NULL;
-
+void icon_register_pixbuf(GtkWidget *parent, GdkPixbuf *pix) {
   /* append to list of associated icons for the parent widget */
   /* if no such list exists also create a destroy handler so */
   /* the icons can be freed on destruction of the parent */
@@ -87,7 +84,13 @@ GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
 
   list = g_slist_append (list, pix);
   g_object_set_data(G_OBJECT(parent), "icons", list);
+}
 
+GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
+  GdkPixbuf *pix = icon_load(name);
+  if(!pix) return NULL;
+
+  icon_register_pixbuf(parent, pix);
   return pix;
 }
 

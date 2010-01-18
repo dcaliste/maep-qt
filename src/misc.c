@@ -33,6 +33,7 @@
 #include <hildon/hildon-button.h>
 #include <hildon/hildon-note.h>
 #include <hildon/hildon-entry.h>
+#include <hildon/hildon-pannable-area.h>
 #endif
 
 #ifdef ENABLE_BROWSER_INTERFACE
@@ -343,6 +344,57 @@ GtkWidget *entry_new(void) {
   return gtk_entry_new();
 #else
   return hildon_entry_new(HILDON_SIZE_AUTO);
+#endif
+}
+
+GtkWidget *label_big_new(char *str) {
+  GtkWidget *label = gtk_label_new("");
+  char *markup = 
+    g_markup_printf_escaped("<span size='x-large'>%s</span>", str);
+  gtk_label_set_markup(GTK_LABEL(label), markup);
+  g_free(markup);
+  return label;
+}
+
+static void  
+on_label_realize(GtkWidget *widget, gpointer user_data)  {
+  /* get parent size (which is a container) */
+  gtk_widget_set_size_request(widget, widget->parent->allocation.width, -1);
+}
+
+GtkWidget *label_wrap_new(char *str) {
+  GtkWidget *label = gtk_label_new(str);
+
+  gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
+  gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+
+  g_signal_connect(G_OBJECT(label), "realize",
+		   G_CALLBACK(on_label_realize), NULL);
+
+  return label;
+}
+
+/* create a pannable area */
+GtkWidget *scrolled_window_new(void) {
+#ifdef MAEMO5
+  return hildon_pannable_area_new();
+#else
+  GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
+  				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled_window), 
+				      GTK_SHADOW_NONE);
+  return scrolled_window;
+#endif
+}
+
+void scrolled_window_add_with_viewport(GtkWidget *win, GtkWidget *child) {
+#ifdef MAEMO5
+  hildon_pannable_area_add_with_viewport(HILDON_PANNABLE_AREA(win), child);
+#else
+  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(win), child);
+  GtkWidget *viewport = gtk_bin_get_child(GTK_BIN(win));
+  gtk_viewport_set_shadow_type(GTK_VIEWPORT(viewport), GTK_SHADOW_NONE);
 #endif
 }
 

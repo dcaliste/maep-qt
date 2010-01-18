@@ -2,6 +2,5 @@ Things to be implemented/fixed next:
 
 - track merge
 - check liblocation coordinate change (save energy)
-- Nicer/async integration of search
-- Wikipedia handling fully async in background
-- Application configurable image alignment in osm-gps-map
+- prevent multiple instances of same icon
+- investigate http://pagesperso-orange.fr/universimmedia/geo/loc.htm

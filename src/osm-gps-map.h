@@ -140,6 +140,7 @@ typedef enum {
     OSM_GPS_MAP_BALLOON_EVENT_TYPE_DRAW,
     OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK,
     OSM_GPS_MAP_BALLOON_EVENT_TYPE_REMOVED,
+    OSM_GPS_MAP_BALLOON_EVENT_TYPE_SIZE_REQUEST,
 } osm_gps_map_balloon_event_type_t;
 
 typedef struct {

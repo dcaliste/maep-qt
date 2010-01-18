@@ -19,7 +19,6 @@
 
 /*
  * TODO:
- * check google http://pagesperso-orange.fr/universimmedia/geo/loc.htm
  */
 
 #include "config.h"
@@ -38,11 +37,16 @@
 
 #ifdef MAEMO5
 #include <hildon/hildon-pannable-area.h>
-#define ICON_SIZE_STR "64"
-#define ICON_SIZE      64
+#define ICON_SIZE_STR "48"
+#define ICON_SIZE      48
 #else
+#ifdef USE_MAEMO
 #define ICON_SIZE_STR "32"
 #define ICON_SIZE      32
+#else
+#define ICON_SIZE_STR "24"
+#define ICON_SIZE      24
+#endif
 #endif
 
 #ifndef LIBXML_TREE_ENABLED
@@ -83,7 +87,6 @@ static gboolean string_get(xmlNode *node, char *name, char **dst) {
     return FALSE;
 
   char *str = (char*)xmlNodeGetContent(node);
-
   *dst = g_strdup(str);
   xmlFree(str);
 
@@ -140,7 +143,12 @@ static geonames_entry_t *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
       }
     }
   }
-  
+
+  if(entry->thumbnail_url && strlen(entry->thumbnail_url) == 0) {
+    g_free(entry->thumbnail_url);
+    entry->thumbnail_url = NULL;
+  }
+
   return entry;
 }
 
@@ -288,9 +296,9 @@ static GtkWidget *geonames_picker_create(GSList *list, gpointer user_data) {
     gtk_list_store_append (store, &iter);
   
     gtk_list_store_set(store, &iter,
-		       GEONAMES_PICKER_COL_NAME, geoname->name,
+		       GEONAMES_PICKER_COL_NAME,    geoname->name,
 		       GEONAMES_PICKER_COL_COUNTRY, geoname->country,
-		       GEONAMES_PICKER_COL_DATA, geoname,
+		       GEONAMES_PICKER_COL_DATA,    geoname,
 		       -1);
     
     list = g_slist_next(list);
@@ -384,8 +392,8 @@ geonames_cb(net_result_t *result, gpointer data) {
   gtk_widget_set_sensitive(hbox, TRUE);
 }
 
+/* this can be used for some animation during search */
 static gboolean search_busy(gpointer data) {
-  printf("."); fflush(stdout);
   return TRUE;
 }
 
@@ -461,11 +469,12 @@ static void on_entry_activate(GtkWidget *widget, gpointer data) {
     on_search_clicked(GTK_BUTTON(button), data);
 }
 
-void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
-  GtkWidget *hbox = g_object_get_data(G_OBJECT(parent), GEONAMES_SEARCH);
+void geonames_enable_search(GtkWidget *map) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  GtkWidget *hbox = g_object_get_data(G_OBJECT(toplevel), GEONAMES_SEARCH);
   g_assert(!hbox);
 
-  menu_enable(parent, "Search", FALSE); 
+  menu_enable(toplevel, "Search", FALSE); 
 
   /* no widget present -> build and install one */
   hbox = gtk_hbox_new(FALSE, 0);
@@ -501,7 +510,7 @@ void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
   gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
   
   /* the parent is a container with a vbox being its child */
-  GList *children = gtk_container_get_children(GTK_CONTAINER(parent));
+  GList *children = gtk_container_get_children(GTK_CONTAINER(toplevel));
   g_assert(g_list_length(children) == 1);
   
   gtk_widget_show_all(hbox);
@@ -514,7 +523,7 @@ void geonames_enable_search(GtkWidget *parent, GtkWidget *map) {
   /* give entry keyboard focus */
   gtk_widget_grab_focus(entry);
   
-  g_object_set_data(G_OBJECT(parent), GEONAMES_SEARCH, hbox);
+  g_object_set_data(G_OBJECT(toplevel), GEONAMES_SEARCH, hbox);
 }
 
 static void wiki_context_free(GtkWidget *widget) {
@@ -527,6 +536,8 @@ static void wiki_context_free(GtkWidget *widget) {
 
   /* if a list of entries is present, then remove it */
   if(context->list) {
+    g_object_set_data(G_OBJECT(widget), "balloon", NULL);
+    g_object_set_data(G_OBJECT(widget), "nearest", NULL);
     geonames_entry_list_free(context->list);
     context->list = NULL;
   }
@@ -582,7 +593,7 @@ static void geonames_entry_render(gpointer data, gpointer user_data) {
   if(entry->url && pix && !isnan(entry->pos.rlat) && !isnan(entry->pos.rlon)) 
     osm_gps_map_add_image_with_alignment(OSM_GPS_MAP(map), 
 		 rad2deg(entry->pos.rlat), rad2deg(entry->pos.rlon), pix,
-		 0.5, 1.0);
+		 0.5, 0.5);
 }
 
 /* return distance between both points */
@@ -597,9 +608,182 @@ static int dist2pixel(GtkWidget *map, float m) {
   return m/osm_gps_map_get_scale(OSM_GPS_MAP(map));
 }
 
+void on_title_clicked(GtkButton *button, gpointer user_data) {
+  GtkWidget *parent = gtk_widget_get_toplevel(GTK_WIDGET(button));
+#ifdef MAEMO5
+  GtkWidget *root = g_object_get_data(G_OBJECT(parent), "root");
+#else
+  GtkWidget *root = 
+    GTK_WIDGET(gtk_window_get_transient_for(GTK_WINDOW(parent)));
+#endif
+  browser_url(root, user_data);
+}
+
+void thumbnail_cb(net_result_t *result, gpointer data) {
+  if(!result->code) {
+    GtkWidget *eventbox = GTK_WIDGET(data);
+
+    GdkPixbufLoader *loader;
+    if(!(loader = gdk_pixbuf_loader_new())) {
+      g_warning("Error: Unable to create loader");
+      return;
+    }
+
+    if (!gdk_pixbuf_loader_write(loader, (guchar*)result->data.ptr, 
+				 result->data.len, NULL)) {
+      g_warning("Error: Decoding of icon failed");
+      g_object_unref(loader);
+      return;
+    }
+    
+    gdk_pixbuf_loader_close(loader, NULL);
+    
+    GdkPixbuf *pixbuf = gdk_pixbuf_loader_get_pixbuf(loader);
+    
+    /* give up loader but keep the pixbuf */
+    g_object_ref(pixbuf);
+    g_object_unref(loader);
+
+    /* make sure pixbif gets freed if box is destroyed */
+    icon_register_pixbuf(eventbox, pixbuf);
+
+    GtkWidget *icon = gtk_bin_get_child(GTK_BIN(eventbox));
+    gtk_widget_destroy(icon);
+
+    /* make widget from pixbuf */
+    icon = gtk_image_new_from_pixbuf(pixbuf);
+    gtk_container_add(GTK_CONTAINER(eventbox), icon);
+    gtk_widget_show_all(icon);
+  }
+}
+
+/* dialog/window to display wiki entry details */
+static void wikipedia_details(GtkWidget *map, geonames_entry_t *entry) {
+  GtkWidget *parent = gtk_widget_get_toplevel(map);
+  GtkWidget *vbox = gtk_vbox_new(FALSE, 10);
+
+#ifdef MAEMO5
+  GtkWidget *window = hildon_stackable_window_new();
+  g_object_set_data(G_OBJECT(window), "root", parent);
+#else
+  GtkWidget *dialog = 
+    gtk_dialog_new_with_buttons(_("Wikipedia"),
+		GTK_WINDOW(parent), GTK_DIALOG_MODAL,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, 
+		NULL);
+
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 400);
+#endif
+
+  /* */
+  gtk_box_pack_start(GTK_BOX(vbox), label_big_new(entry->title), 
+		     FALSE, FALSE, 0);
+
+  if(entry->url) {
+    GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
+    GtkWidget *button = button_new_with_label(_("Open in browser"));
+    g_signal_connect(button, "clicked", 
+	     G_CALLBACK(on_title_clicked), entry->url);
+
+    gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  }
+
+  if(entry->thumbnail_url) {
+    GtkWidget *eventbox = gtk_event_box_new();
+    GtkWidget *icon = icon_get_widget(eventbox, "wikipedia.64");
+
+    /* start download of real icon */
+    net_io_download_async(entry->thumbnail_url, thumbnail_cb, eventbox);
+
+    gtk_container_add(GTK_CONTAINER(eventbox), icon);
+    gtk_box_pack_start(GTK_BOX(vbox), eventbox, FALSE, FALSE, 0);
+  }
+
+  if(entry->summary) {
+    GtkWidget *label = label_wrap_new(entry->summary);
+
+    /* scrolling text window */
+    /* put this inside a scrolled view */
+    GtkWidget *scrolled_window = scrolled_window_new();
+    scrolled_window_add_with_viewport(scrolled_window, label);
+    gtk_box_pack_start_defaults(GTK_BOX(vbox), scrolled_window);
+  }
+
+#ifdef MAEMO5
+  gtk_container_add(GTK_CONTAINER(window), vbox);
+  gtk_widget_show_all(window);
+#else
+  gtk_box_pack_start_defaults(GTK_BOX(GTK_DIALOG(dialog)->vbox), vbox);
+  gtk_widget_show_all(dialog);
+  gtk_dialog_run(GTK_DIALOG(dialog));
+  gtk_widget_destroy(dialog);
+#endif
+}
+
+#ifndef USE_MAEMO
+#define BALLOON_FONT 12.0
+#else
+#ifndef MAEMO5
+#define BALLOON_FONT 20.0
+#else
+#define BALLOON_FONT 32.0
+#endif
+#endif
+
+#define BORDER (BALLOON_FONT/4)
+
+static void balloon_cb(osm_gps_map_balloon_event_t *event, gpointer data) {
+  GtkWidget *map = GTK_WIDGET(data);
+  geonames_entry_t *entry = 
+    g_object_get_data(G_OBJECT(map), "balloon");
+
+  if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_SIZE_REQUEST) {
+    cairo_text_extents_t extents;
+
+    /* we need to figure out the extents in order to determine */
+    /* the surface size this in turn requires a valid surface ... */
+    cairo_select_font_face (event->data.draw.cr, "Sans",
+			    CAIRO_FONT_SLANT_NORMAL,
+			    CAIRO_FONT_WEIGHT_BOLD);
+      
+    cairo_set_font_size (event->data.draw.cr, BALLOON_FONT);
+    cairo_text_extents (event->data.draw.cr, entry->title, &extents);
+
+    event->data.draw.rect->w = extents.width + 2*BORDER;
+    event->data.draw.rect->h = extents.height + 2*BORDER;
+
+  } else if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_DRAW) {
+    //    printf("render balloon %p (%p)\n", entry, data);
+
+    cairo_text_extents_t extents;
+
+    cairo_select_font_face (event->data.draw.cr, "Sans",
+			    CAIRO_FONT_SLANT_NORMAL,
+			    CAIRO_FONT_WEIGHT_BOLD);
+      
+    cairo_set_font_size (event->data.draw.cr, BALLOON_FONT);
+    cairo_text_extents (event->data.draw.cr, entry->title, &extents);
+
+    cairo_move_to (event->data.draw.cr, 
+		   event->data.draw.rect->x + BORDER - extents.x_bearing, 
+		   event->data.draw.rect->y + BORDER - extents.y_bearing);
+
+    cairo_set_source_rgb (event->data.draw.cr, 0, 0, 0);
+    cairo_show_text (event->data.draw.cr, entry->title);
+    cairo_stroke (event->data.draw.cr);
+  } else if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK) {
+    g_object_set_data(G_OBJECT(map), "balloon", NULL);
+    osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(map));
+    wikipedia_details(map, entry);
+  }
+}
+
 static gboolean
 on_map_button_press_event(GtkWidget *widget, 
 			  GdkEventButton *event, gpointer user_data) {
+  static geonames_entry_t *nearest = NULL;
+  
   wiki_context_t *context = 
     (wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
 
@@ -614,15 +798,12 @@ on_map_button_press_event(GtkWidget *widget,
     /* is ICON_SIZE/2+ICON_SIZE/4 (+4 because of the pin at the icon bottom) */
     /* above the actual object position. */
     coord_t coord = 
-      osm_gps_map_get_co_ordinates(OSM_GPS_MAP(widget), 
-		   event->x, event->y + (ICON_SIZE/2)+(ICON_SIZE/4));
-
-    printf("press at %f/%f\n", rad2deg(coord.rlat), rad2deg(coord.rlon));
+      osm_gps_map_get_co_ordinates(OSM_GPS_MAP(widget), event->x, event->y);
 
     /* find closest wikipoint */
     GSList *list = context->list;
     float nearest_distance = 1000000000.0; 
-    geonames_entry_t *nearest = NULL;
+    nearest = NULL;
     while(list) {
       geonames_entry_t *entry = (geonames_entry_t*)list->data;
 
@@ -635,16 +816,21 @@ on_map_button_press_event(GtkWidget *widget,
       list = g_slist_next(list);
     }
 
-    if(nearest) {
-      /* for now just open the browser */
-      printf("nearest = %s in %f meter\n", nearest->title, nearest_distance);
-      
-      if(dist2pixel(widget, nearest_distance) < 16) 
-	browser_url(gtk_widget_get_toplevel(widget), nearest->url);
-    }
+    /* check if click was close enough */
+    if(nearest && dist2pixel(widget, nearest_distance) >= ICON_SIZE/2)
+      nearest = NULL;
+    
+    g_object_set_data(G_OBJECT(widget), "nearest", nearest);
 
   } else if(event->type == GDK_BUTTON_RELEASE) {
-
+    /* a "nearest" is still valid from the click */
+    nearest = g_object_get_data(G_OBJECT(widget), "nearest");
+    if(nearest) {
+      g_object_set_data(G_OBJECT(widget), "balloon", nearest);
+      osm_gps_map_osd_draw_balloon (OSM_GPS_MAP(widget), 
+		    rad2deg(nearest->pos.rlat), rad2deg(nearest->pos.rlon),
+		    balloon_cb, widget);
+    }
   }
 
   return FALSE;
@@ -678,6 +864,10 @@ void geonames_wiki_cb(net_result_t *result, gpointer data) {
 
       /* remove any list that may already be preset */
       if(context->list) {
+	osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(map));
+	g_object_set_data(G_OBJECT(map), "balloon", NULL);
+	g_object_set_data(G_OBJECT(map), "nearest", NULL);
+
 	geonames_entry_list_free(context->list);
 	context->list = NULL;
 	osm_gps_map_clear_images(OSM_GPS_MAP(map));
@@ -739,9 +929,12 @@ void geonames_wiki_request(GtkWidget *map) {
 #define WIKI_UPDATE_TIMEOUT (1000)
 
 static gboolean wiki_update(gpointer data) {
+  wiki_context_t *context = 
+    (wiki_context_t *)g_object_get_data(G_OBJECT(data), "wikipedia");
 
   geonames_wiki_request(GTK_WIDGET(data));
 
+    context->timer_id = 0;
   return FALSE;
 }
 
@@ -772,7 +965,13 @@ static void on_map_changed(GtkWidget *widget, gpointer data ) {
 static gboolean
 on_map_motion(GtkWidget *widget, GdkEventMotion  *event, gpointer data)
 {
-  if(event->state & GDK_BUTTON1_MASK)
+  wiki_context_t *context = 
+    (wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
+
+  g_assert(context);
+
+  /* motion only delays an existing trigger, but doesn't trigger itself */
+  if(context->timer_id && (event->state & GDK_BUTTON1_MASK)) 
     wiki_timer_trigger(widget);
 
   return FALSE;  /* allow further processing */
@@ -780,8 +979,7 @@ on_map_motion(GtkWidget *widget, GdkEventMotion  *event, gpointer data)
 
 /* the wikimedia icons are automagically updated after one second */
 /* of idle time */
-void geonames_enable_wikipedia(GtkWidget *parent, GtkWidget *map,
-			       gboolean enable) {
+void geonames_enable_wikipedia(GtkWidget *map, gboolean enable) {
   wiki_context_t *context = NULL;
 
   if(enable) {
@@ -823,7 +1021,20 @@ void geonames_enable_wikipedia(GtkWidget *parent, GtkWidget *map,
       g_signal_connect(G_OBJECT(map), "button-release-event",
 		       G_CALLBACK(on_map_button_press_event), NULL);
 
-    wiki_update(map);
+    /* only do request if map has a reasonable size. otherwise map may */
+    /* still be in setup phase */
+    if(map->allocation.width > 1 && map->allocation.height > 1)
+      wiki_update(map);
+
   } else
     wiki_context_free(map);
+
+  gconf_set_bool("wikipedia", enable);
+}
+
+void geonames_wikipedia_restore(GtkWidget *map) {
+  if(gconf_get_bool("wikipedia", FALSE)) {
+    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+    menu_check_set_active(toplevel, "Wikipedia", TRUE);
+  }
 }
