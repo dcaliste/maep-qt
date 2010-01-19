@@ -47,7 +47,7 @@
 #define GTK_FM_OK  GTK_RESPONSE_ACCEPT
 #endif
 
-#ifdef MAEMO5
+#ifdef USE_MAEMO
 #include <hildon/hildon-file-chooser-dialog.h>
 #endif
 
