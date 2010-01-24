@@ -15,6 +15,4 @@ Description: Simple tile map
  and to become a universal map widget for the Maemo5 platform.
 XSBC-Bugtracker: https://garage.maemo.org/tracker/?group_id=1150
 XB-Maemo-Display-Name: Maep
-# Maemo icon maep.48.png
-XB-Maemo-Icon-26:
-
+# No icon

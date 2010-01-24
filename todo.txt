@@ -4,3 +4,4 @@ Things to be implemented/fixed next:
 - check liblocation coordinate change (save energy)
 - prevent multiple instances of same icon
 - investigate http://pagesperso-orange.fr/universimmedia/geo/loc.htm
+- make gps.c cope with altitude (for tracking) and sats (for gpxview)

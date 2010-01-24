@@ -44,6 +44,7 @@ struct gps_fix_t {
 #define MODE_3D  	3	/* good for altitude/climb too */
   double latitude;	/* Latitude in degrees (valid if mode >= 2) */
   double longitude;	/* Longitude in degrees (valid if mode >= 2) */
+  double altitude;      /* Altitude in meters (valid if mode >= 3) */
   double eph;  	        /* Horizontal position uncertainty, meters */
   double track;	        /* Course made good (relative to true north) */
 };
@@ -51,6 +52,7 @@ struct gps_fix_t {
 typedef unsigned int gps_mask_t;
 
 #define LATLON_SET	0x00000008u
+#define ALTITUDE_SET	0x00000010u
 #define TRACK_SET	0x00000040u
 #define STATUS_SET	0x00000100u
 #define MODE_SET	0x00000200u

@@ -1,3 +1,9 @@
+maep (1.3.1) unstable; urgency=low
+
+  * Inclusion of altitude from GPS into track
+
+ -- Till Harbaum <till@harbaum.org>  Sun, 24 Jan 2010 20:47:58 +0100
+
 maep (1.3) unstable; urgency=low
 
   * Display wikipedia links

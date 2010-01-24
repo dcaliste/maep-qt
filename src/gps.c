@@ -122,57 +122,32 @@ static void gps_unpack(char *buf, struct gps_data_t *gpsdata) {
 	else *tp = '\0';
 	
 	switch (*sp) {
-	  /* A - altitude isn't supported by maep */
-	  /* B - baudrate isn't supported by maep */
-	  /* C - cycle isn't supported by maep */
-	  /* D - utc time isn't supported by maep */
-	case 'E':
-	  gpsdata->fix.eph = NAN;
-	  /* epe should always be present if eph or epv is */
-	  if (sp[2] != '?') {
-	    char epe[20], eph[20], epv[20];
-	    (void)sscanf(sp, "E=%s %s %s", epe, eph, epv);
-#define DEFAULT(val) (val[0] == '?') ? NAN : g_ascii_strtod(val, NULL)
-	    gpsdata->fix.eph = DEFAULT(eph);
-#undef DEFAULT
-	  }
-	  break;
-	  /* F - device name isn't supported by maep */
-	  /* I - gps id isn't supported by maep */
-	  /* K - known devices list isn't supported by maep */
-	case 'M':
-	  if (sp[2] == '?') {
-	    gpsdata->fix.mode = MODE_NOT_SEEN;
-	  } else {
-	    gpsdata->fix.mode = atoi(sp+2);
-	    gpsdata->set |= MODE_SET;
-	  }
-	  break;
-	  /* N - driver mode reporting isn't supported by maep */
 	case 'O':
 	  if (sp[2] == '?') {
 	    gpsdata->set = MODE_SET | STATUS_SET; 
 	    gpsdata->status = STATUS_NO_FIX;
 	    gpsdata->fix.latitude = NAN;
 	    gpsdata->fix.longitude = NAN;
+	    gpsdata->fix.altitude = NAN;
 	    gpsdata->fix.track = NAN;
 	    gpsdata->fix.eph = NAN;
 	  } else {
 	    struct gps_fix_t nf;
 	    char tag[MAXTAGLEN+1], alt[20];
-	    char eph[20], epv[20], track[20],speed[20], climb[20];
-	    char epd[20], eps[20], epc[20], mode[2];
-	    char timestr[20], ept[20], lat[20], lon[20];
+	    char eph[20], track[20],speed[20];
+	    char mode[2], lat[20], lon[20];
 	    int st = sscanf(sp+2, 
-			    "%8s %19s %19s %19s %19s %19s %19s %19s "
-			    "%19s %19s %19s %19s %19s %19s %1s",
-			    tag, timestr, ept, lat, lon,
-			    alt, eph, epv, track, speed, climb,
-			    epd, eps, epc, mode);
+			    "%8s %*s %*s %19s %19s "
+			    "%19s %19s %*s %19s %19s %*s "
+			    "%*s %*s %*s %1s",
+			    tag, lat, lon,
+			    alt, eph, track, speed,
+			    mode);
 	    if (st >= 14) {
 #define DEFAULT(val) (val[0] == '?') ? NAN : g_ascii_strtod(val, NULL)
 	      nf.latitude = DEFAULT(lat);
 	      nf.longitude = DEFAULT(lon);
+	      nf.altitude = DEFAULT(alt);
 	      nf.eph = DEFAULT(eph);
 	      nf.track = DEFAULT(track);
 #undef DEFAULT
@@ -180,51 +155,23 @@ static void gps_unpack(char *buf, struct gps_data_t *gpsdata) {
 		nf.mode = (mode[0] == '?') ? MODE_NOT_SEEN : atoi(mode);
 	      else
 		nf.mode = (alt[0] == '?') ? MODE_2D : MODE_3D;
+
 	      if (isnan(nf.eph)==0)
 		gpsdata->set |= HERR_SET;
+
 	      if (isnan(nf.track)==0)
 		gpsdata->set |= TRACK_SET;
+
 	      gpsdata->fix = nf;
 	      gpsdata->set |= LATLON_SET|MODE_SET;
 	      gpsdata->status = STATUS_FIX;
 	      gpsdata->set |= STATUS_SET;
+
+	      if(alt[0] != '?')
+		gpsdata->set |= ALTITUDE_SET;
 	    }
 	  }
 	  break;
-	case 'P':
-	  if (sp[2] == '?') {
-	    gpsdata->fix.latitude = NAN;
-	    gpsdata->fix.longitude = NAN;
-	  } else {
-	    char lat[20], lon[20];
-	    (void)sscanf(sp, "P=%19s %19s", lat, lon);
-	    gpsdata->fix.latitude = g_ascii_strtod(lat, NULL);
-	    gpsdata->fix.longitude = g_ascii_strtod(lon, NULL);
-	    gpsdata->set |= LATLON_SET;
-	  }
-	  break;
-	  /* Q - satellite info isn't supported by maep */
-	case 'S':
-	  if (sp[2] == '?') {
-	    gpsdata->status = -1;
-	  } else {
-	    gpsdata->status = atoi(sp+2);
-	    gpsdata->set |= STATUS_SET;
-	  }
-	  break;
-	case 'T':
-	  if (sp[2] == '?') {
-	    gpsdata->fix.track = NAN;
-	  } else {
-	    (void)sscanf(sp, "T=%lf", &gpsdata->fix.track);
-	    gpsdata->set |= TRACK_SET;
-	  }
-	  break;
-	  /* U - climb isn't supported by maep */
-	  /* V - velocity isn't supported by maep */
-	  /* X - online status isn't supported by maep */
-	  /* Y - sat info isn't supported by maep */
-	  /* Z and $ - profiling isn't supported by maep */
 	}
       }
     }
@@ -413,6 +360,11 @@ location_changed(LocationGPSDevice *device, gps_state_t *gps_state) {
     gps_state->fix.longitude = device->fix->longitude;
     gps_state->fix.eph = device->fix->eph/100.0;  // we want eph in meters
   }
+
+  if(device->fix->fields & LOCATION_GPS_DEVICE_ALTITUDE_SET)
+    gps_state->fix.altitude = device->fix->altitude;
+  else
+    gps_state->fix.altitude = NAN;
 
   if(gps_state->fields & LOCATION_GPS_DEVICE_TRACK_SET)
     gps_state->fix.track = device->fix->track;

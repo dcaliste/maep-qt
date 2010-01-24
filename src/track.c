@@ -453,7 +453,7 @@ static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
     if(!last) last = g_new0(track_point_t, 1);
     
     /* save current position for later use */
-    last->altitude = NAN;
+    last->altitude = fix->altitude;
     last->time = time(NULL);
     last->coord.rlat = deg2rad(fix->latitude);
     last->coord.rlon = deg2rad(fix->longitude);
@@ -471,7 +471,7 @@ static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
   /* save gps position in track */
   if(status) {
     track_point_t *point = g_new0(track_point_t, 1);
-    point->altitude = NAN;
+    point->altitude = fix->altitude;
     point->time = time(NULL);
     point->coord.rlat = deg2rad(fix->latitude);
     point->coord.rlon = deg2rad(fix->longitude);
