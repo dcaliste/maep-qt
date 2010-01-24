@@ -3464,7 +3464,7 @@ else
 $as_echo "yes" >&6; }
 
     EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
-    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DLIBSOUP22"
+    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DUSE_LIBSOUP22=1"
     LIBS="$LIBS $libsoup22_LIBS"
 
 fi
@@ -3550,7 +3550,7 @@ else
 $as_echo "yes" >&6; }
 
     EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
-    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DLIBSOUP22"
+    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DUSE_LIBSOUP22=1"
     LIBS="$LIBS $libsoup22_LIBS"
 
 fi

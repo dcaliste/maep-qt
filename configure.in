@@ -78,7 +78,7 @@ PKG_CHECK_MODULES([libsoup24], [libsoup-2.4], [
 ], [
   PKG_CHECK_MODULES([libsoup22], [libsoup-2.2], [
     EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
-    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DLIBSOUP22"
+    CFLAGS="$CFLAGS $libsoup22_CFLAGS -DUSE_LIBSOUP22=1"
     LIBS="$LIBS $libsoup22_LIBS"
   ], [
     AC_MSG_ERROR([ERROR: libsoup-2.4/2.2 missing])
