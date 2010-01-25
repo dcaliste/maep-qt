@@ -35,7 +35,11 @@ typedef struct {
 typedef void (*net_io_cb)(net_result_t *result, gpointer data);
 #define	NET_IO_CB(f) ((net_io_cb) (f))
 
+typedef void* net_io_t;
+
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem);
-void net_io_download_async(char *url, net_io_cb, gpointer data);
+net_io_t net_io_download_async(char *url, net_io_cb, gpointer data);
+void net_io_cancel_async(net_io_t io);
+
 
 #endif // NET_IO_H

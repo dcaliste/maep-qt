@@ -355,11 +355,15 @@ geonames_cb(net_result_t *result, gpointer data) {
   GtkWidget *button = GTK_WIDGET(data);
   GtkWidget *toplevel = gtk_widget_get_toplevel(button);
 
+  net_io_t io = g_object_get_data(G_OBJECT(button), "search_io");
+
+  /* if io is gone, then the search has been cancelled */
+  if(!io) return;
+
   /* stop animation */
   gulong handler_id = 
     (gulong)g_object_get_data(G_OBJECT(button), "handler_id");
 
-  g_assert(handler_id);
   gtk_timeout_remove(handler_id);
 
   if(!result->code) {
@@ -388,8 +392,11 @@ geonames_cb(net_result_t *result, gpointer data) {
   }
 
   /* re-enable ui */
-  GtkWidget *hbox = g_object_get_data(G_OBJECT(button), "search_widget");
-  gtk_widget_set_sensitive(hbox, TRUE);
+  gtk_widget_set_sensitive(button, TRUE);
+  GtkWidget *entry = g_object_get_data(G_OBJECT(button), "search_entry");
+  gtk_widget_set_sensitive(entry, TRUE);
+
+  g_object_set_data(G_OBJECT(button), "search_io", NULL);
 }
 
 /* this can be used for some animation during search */
@@ -399,14 +406,14 @@ static gboolean search_busy(gpointer data) {
 
 static void on_search_clicked(GtkButton *button, gpointer user) {
   GtkWidget *entry = g_object_get_data(G_OBJECT(button), "search_entry");
-  GtkWidget *hbox = g_object_get_data(G_OBJECT(button), "search_widget");
   g_assert(entry);
 
   char *phrase = (char*)gtk_entry_get_text(GTK_ENTRY(entry));
   gconf_set_string("search_text", phrase);
 
   /* disable ui while search is running */
-  gtk_widget_set_sensitive(hbox, FALSE);
+  gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+  gtk_widget_set_sensitive(entry, FALSE);
 
   /* start animation */
   gulong handler_id = 
@@ -428,24 +435,50 @@ static void on_search_clicked(GtkButton *button, gpointer user) {
   g_free(encoded_phrase);
 
   /* request search results asynchronously */
-  net_io_download_async(url, geonames_cb, button);
-
+  net_io_t io = net_io_download_async(url, geonames_cb, button);
   g_free(url);
+
+  g_object_set_data(G_OBJECT(button), "search_io", io);
 }
 
-static void on_search_close_clicked(GtkButton *button, gpointer user) {
+/* this cancels a search in progress and removes the box otherwise */
+static void on_search_close_clicked(GtkButton *close_but, gpointer user) {
   GtkWidget *map = GTK_WIDGET(user);
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
 
   GtkWidget *hbox = g_object_get_data(G_OBJECT(toplevel), GEONAMES_SEARCH);
   g_assert(hbox);
+  GtkWidget *button = g_object_get_data(G_OBJECT(close_but), "search_button");
+  g_assert(button);
 
-  menu_enable(toplevel, "Search", TRUE); 
-  g_object_set_data(G_OBJECT(toplevel), GEONAMES_SEARCH, NULL);
-  gtk_widget_destroy(hbox);
+  /* cancel search basically means to ignore the result */
+  net_io_t io = g_object_get_data(G_OBJECT(button), "search_io");
 
-  /* give entry keyboard focus back to map */
-  gtk_widget_grab_focus(map);
+  /* if search button is disabled, then the search is running */
+  if(io) {
+    net_io_cancel_async(io);
+    g_object_set_data(G_OBJECT(button), "search_io", NULL);
+
+    /* stop animation */
+    gulong handler_id = 
+      (gulong)g_object_get_data(G_OBJECT(button), "handler_id");
+    
+    g_assert(handler_id);
+    gtk_timeout_remove(handler_id);
+    
+    /* re-enable ui */
+    gtk_widget_set_sensitive(button, TRUE);
+    GtkWidget *entry = g_object_get_data(G_OBJECT(button), "search_entry");
+    gtk_widget_set_sensitive(entry, TRUE);
+
+  } else {
+    menu_enable(toplevel, "Search", TRUE); 
+    g_object_set_data(G_OBJECT(toplevel), GEONAMES_SEARCH, NULL);
+    gtk_widget_destroy(hbox);
+    
+    /* give entry keyboard focus back to map */
+    gtk_widget_grab_focus(map);
+  }
 }
 
 /* enable "search" button once the user has entered something */
@@ -497,17 +530,17 @@ void geonames_enable_search(GtkWidget *map) {
   /* make button and entry know each other */
   g_object_set_data(G_OBJECT(entry), "search_button", button);
   g_object_set_data(G_OBJECT(button), "search_entry", entry);
-  g_object_set_data(G_OBJECT(button), "search_widget", hbox);
   g_object_set_data(G_OBJECT(button), "map", map);
   
   /* create close button */
-  button = button_new();
-  g_signal_connect_after(button, "clicked", 
+  GtkWidget *close_but = button_new();
+  g_object_set_data(G_OBJECT(close_but), "search_button", button);
+  g_signal_connect_after(close_but, "clicked", 
 			 G_CALLBACK(on_search_close_clicked), map);
   GtkWidget *image = 
     gtk_image_new_from_stock(GTK_STOCK_CLOSE, GTK_ICON_SIZE_BUTTON);
-  gtk_button_set_image(GTK_BUTTON(button), image);
-  gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
+  gtk_button_set_image(GTK_BUTTON(close_but), image);
+  gtk_box_pack_start(GTK_BOX(hbox), close_but, FALSE, FALSE, 0);
   
   /* the parent is a container with a vbox being its child */
   GList *children = gtk_container_get_children(GTK_CONTAINER(toplevel));
@@ -645,7 +678,7 @@ void thumbnail_cb(net_result_t *result, gpointer data) {
     g_object_unref(loader);
 
     /* make sure pixbif gets freed if box is destroyed */
-    icon_register_pixbuf(eventbox, pixbuf);
+    icon_register_pixbuf(eventbox, NULL, pixbuf);
 
     GtkWidget *icon = gtk_bin_get_child(GTK_BIN(eventbox));
     gtk_widget_destroy(icon);
@@ -754,8 +787,6 @@ static void balloon_cb(osm_gps_map_balloon_event_t *event, gpointer data) {
     event->data.draw.rect->h = extents.height + 2*BORDER;
 
   } else if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_DRAW) {
-    //    printf("render balloon %p (%p)\n", entry, data);
-
     cairo_text_extents_t extents;
 
     cairo_select_font_face (event->data.draw.cr, "Sans",
@@ -774,8 +805,8 @@ static void balloon_cb(osm_gps_map_balloon_event_t *event, gpointer data) {
     cairo_stroke (event->data.draw.cr);
   } else if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK) {
     g_object_set_data(G_OBJECT(map), "balloon", NULL);
-    osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(map));
     wikipedia_details(map, entry);
+    osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(map));
   }
 }
 
@@ -841,6 +872,10 @@ void geonames_wiki_cb(net_result_t *result, gpointer data) {
   wiki_context_t *context = 
     (wiki_context_t *)g_object_get_data(G_OBJECT(map), "wikipedia");
 
+  /* context may be gone by now as the user may have disabled */
+  /* the wiki service in the meantime */
+  if(!context) return;
+
   if(!result->code) {
     /* feed this into the xml parser */
     xmlDoc *doc = NULL;
@@ -857,22 +892,17 @@ void geonames_wiki_cb(net_result_t *result, gpointer data) {
       
       printf("got %d results\n", g_slist_length(list));
 
-      wiki_context_t *context = 
-	(wiki_context_t *)g_object_get_data(G_OBJECT(map), "wikipedia");
-
-      g_assert(context);
-
       /* remove any list that may already be preset */
       if(context->list) {
 	osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(map));
 	g_object_set_data(G_OBJECT(map), "balloon", NULL);
 	g_object_set_data(G_OBJECT(map), "nearest", NULL);
-
+	
 	geonames_entry_list_free(context->list);
 	context->list = NULL;
 	osm_gps_map_clear_images(OSM_GPS_MAP(map));
       }
-
+      
       /* render all icons */
       context->list = list;
       g_slist_foreach(list, geonames_entry_render, map);

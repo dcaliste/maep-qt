@@ -22,6 +22,7 @@
 
 GtkWidget *icon_get_widget(GtkWidget *parent, const char *name);
 GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name);
-void icon_register_pixbuf(GtkWidget *parent, GdkPixbuf *pix);
+void icon_register_pixbuf(GtkWidget *parent, const char *name, GdkPixbuf *pix);
+GdkPixbuf *icon_register_check(GtkWidget *parent, const char *name);
 
 #endif // ICON_H

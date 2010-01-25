@@ -228,7 +228,8 @@ static gboolean net_io_idle_cb(gpointer data) {
   }
 
   /* call application callback */
-  request->cb(&request->result, request->data);
+  if(request->cb)
+    request->cb(&request->result, request->data);
 
   request_free(request);
 
@@ -393,7 +394,7 @@ static gboolean net_io_do_async(net_io_request_t *request) {
   return TRUE;
 }
 
-void net_io_download_async(char *url, net_io_cb cb, gpointer data) {
+net_io_t net_io_download_async(char *url, net_io_cb cb, gpointer data) {
   net_io_request_t *request = g_new0(net_io_request_t, 1);
 
   request->url = g_strdup(url);
@@ -403,5 +404,15 @@ void net_io_download_async(char *url, net_io_cb cb, gpointer data) {
   if(!net_io_do_async(request)) {
     request->result.code = 1;  // failure
     cb(&request->result, data); 
+    return NULL;
   }
+
+  return (net_io_t)request;
+}
+
+void net_io_cancel_async(net_io_t io) {
+  net_io_request_t *request = (net_io_request_t*)io;
+  g_assert(request);
+
+  request->cb = NULL;   // just cancelling the callback is sufficient
 }

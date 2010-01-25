@@ -19,6 +19,7 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "icon.h"
 #include "misc.h"
@@ -61,8 +62,17 @@ GdkPixbuf *icon_load(const char *name) {
   return NULL;
 }
 
+typedef struct {
+  GdkPixbuf *pix;
+  char *name;
+} icon_reg_t;
+
 static void icon_free(gpointer data, gpointer user_data) {
-  gdk_pixbuf_unref(GDK_PIXBUF(data));
+  icon_reg_t *icon_reg = (icon_reg_t*)data;
+
+  gdk_pixbuf_unref(icon_reg->pix);
+  if(icon_reg->name) g_free(icon_reg->name);
+  g_free(icon_reg);
 }
 
 static void on_parent_destroy(GtkWidget *widget, gpointer data) {
@@ -73,7 +83,11 @@ static void on_parent_destroy(GtkWidget *widget, gpointer data) {
   g_slist_free(list);
 }
 
-void icon_register_pixbuf(GtkWidget *parent, GdkPixbuf *pix) {
+void icon_register_pixbuf(GtkWidget *parent, const char *name, GdkPixbuf *pix) {
+  icon_reg_t *icon_reg = g_new0(icon_reg_t, 1);
+  icon_reg->pix = pix;
+  if(name) icon_reg->name = g_strdup(name);
+
   /* append to list of associated icons for the parent widget */
   /* if no such list exists also create a destroy handler so */
   /* the icons can be freed on destruction of the parent */
@@ -82,15 +96,43 @@ void icon_register_pixbuf(GtkWidget *parent, GdkPixbuf *pix) {
     g_signal_connect(G_OBJECT(parent), "destroy", 
 		     G_CALLBACK(on_parent_destroy), NULL);
 
-  list = g_slist_append (list, pix);
+  list = g_slist_append (list, icon_reg);
   g_object_set_data(G_OBJECT(parent), "icons", list);
 }
 
-GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
-  GdkPixbuf *pix = icon_load(name);
-  if(!pix) return NULL;
+static gint icon_compare(gconstpointer a, gconstpointer b) {
+  const icon_reg_t *icon_reg = (icon_reg_t*)a;
+  const char *name = (const char*)b;
 
-  icon_register_pixbuf(parent, pix);
+  if(!icon_reg->name) return -1;
+
+  return strcmp(icon_reg->name, name);
+}
+
+/* check if an icon of that name has already been registered and use */
+/* that if present */
+GdkPixbuf *icon_register_check(GtkWidget *parent, const char *name) {
+  GSList *list = g_object_get_data(G_OBJECT(parent), "icons");
+  if(!list) return NULL;
+
+  list = g_slist_find_custom(list, name, icon_compare);
+  if(!list) return NULL;
+
+  return ((icon_reg_t*)list->data)->pix;
+}
+
+GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name) {
+  /* check if we already have loaded this icon */
+  GdkPixbuf *pix = icon_register_check(parent, name);
+
+  /* if not: load it */
+  if(!pix) {
+    pix = icon_load(name);
+    if(!pix) return NULL;
+
+    icon_register_pixbuf(parent, name, pix);
+  }
+
   return pix;
 }
 
