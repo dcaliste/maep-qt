@@ -442,13 +442,13 @@ void track_clear(GtkWidget *map) {
 
 /* this callback is called from the gps layer as long as */
 /* captureing is enabled */
-static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
+static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
 
   track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
 
   /* save point as we may need it later to (re-)enable caturing */
-  if(status) {
+  if(set & LATLON_SET) {
     /* create storage if not present yet */
     if(!last) last = g_new0(track_point_t, 1);
     
@@ -469,7 +469,7 @@ static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
      return;
 
   /* save gps position in track */
-  if(status) {
+  if(set & LATLON_SET) {
     track_point_t *point = g_new0(track_point_t, 1);
     point->altitude = fix->altitude;
     point->time = time(NULL);
@@ -664,7 +664,9 @@ void track_restore(GtkWidget *map) {
 
   /* install callback for capturing */
   gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
-  gps_register_callback(gps_state, gps_callback, map);
+  /* request all GPS information required for track capturing */
+  gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
+			gps_callback, map);
 }
 
 void track_save(GtkWidget *map) {

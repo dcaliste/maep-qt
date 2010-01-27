@@ -1,3 +1,12 @@
+maep (1.3.2) unstable; urgency=low
+
+  * Fixed crash when wikipedia was disabled while balloon was visible
+  * Fixed bug tracker link
+  * Screensaver disabled only when map has focus
+  * GPS framework simplified and reduced power consumption
+
+ -- Till Harbaum <till@harbaum.org>  Wed, 27 Jan 2010 09:09:13 +0100
+
 maep (1.3.1) unstable; urgency=low
 
   * Inclusion of altitude from GPS into track

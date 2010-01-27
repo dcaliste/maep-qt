@@ -566,6 +566,7 @@ static void wiki_context_free(GtkWidget *widget) {
   g_assert(context);
 
   osm_gps_map_clear_images(OSM_GPS_MAP(widget));
+  osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(widget));
 
   /* if a list of entries is present, then remove it */
   if(context->list) {

@@ -34,46 +34,28 @@
 #endif /* !NAN */
 
 #define MAXTAGLEN    8       /* maximum length of sentence tag name */
-#define MPS_TO_KNOTS 1.9438445       /* Meters per second to knots */
 
 struct gps_fix_t {
-  int    mode;	/* Mode of fix */
-#define MODE_NOT_SEEN	0	/* mode update not seen yet */
-#define MODE_NO_FIX	1	/* none */
-#define MODE_2D  	2	/* good for latitude/longitude */
-#define MODE_3D  	3	/* good for altitude/climb too */
-  double latitude;	/* Latitude in degrees (valid if mode >= 2) */
-  double longitude;	/* Longitude in degrees (valid if mode >= 2) */
-  double altitude;      /* Altitude in meters (valid if mode >= 3) */
+  double latitude;	/* Latitude in degrees */
+  double longitude;	/* Longitude in degrees */
+  double altitude;      /* Altitude in meters */
   double eph;  	        /* Horizontal position uncertainty, meters */
   double track;	        /* Course made good (relative to true north) */
 };
 
 typedef unsigned int gps_mask_t;
 
-#define LATLON_SET	0x00000008u
-#define ALTITUDE_SET	0x00000010u
-#define TRACK_SET	0x00000040u
-#define STATUS_SET	0x00000100u
-#define MODE_SET	0x00000200u
-#define HERR_SET	0x00008000u
+#define LATLON_SET	 (1<<0)
+#define ALTITUDE_SET	 (1<<1)
+#define TRACK_SET	 (1<<2)
+#define HERR_SET	 (1<<3)
 
-#define STATUS_NO_FIX	0	/* no */
-#define STATUS_FIX	1	/* yes, without DGPS */
-#define STATUS_DGPS_FIX	2	/* yes, with DGPS */
+#define LATLON_CHANGED   (LATLON_SET   << 8)
+#define ALTITUDE_CHANGED (ALTITUDE_SET << 8)
+#define TRACK_CHANGED    (TRACK_SET    << 8)
+#define HERR_CHANGED     (HERR_SET     << 8)
 
-struct gps_data_t {
-  struct {
-   struct gps_fix_t	fix;		/* accumulated PVT data */
-    int    status;		/* Do we have a fix? */
-  } last_reported;
-
-  gps_mask_t set;	/* has field been set since this was last cleared? */
-  struct gps_fix_t	fix;		/* accumulated PVT data */
-  
-  /* GPS status -- always valid */
-  int    status;		/* Do we have a fix? */
-};
+#define CHANGED_MASK 0xff00
 
 #ifdef USE_MAEMO
 #ifdef ENABLE_GPSBT
@@ -83,10 +65,11 @@ struct gps_data_t {
 #include <errno.h>
 #endif
 
-typedef void (*gps_cb)(int status, struct gps_fix_t *fix, void *data);
+typedef void (*gps_cb)(gps_mask_t set, struct gps_fix_t *fix, void *data);
 #define GPS_CB(f) ((gps_cb)(f))
 
 typedef struct {
+  gps_mask_t mask;
   gps_cb cb;
   void *data;
 } gps_callback_t;
@@ -107,22 +90,27 @@ typedef struct gps_state {
   GnomeVFSInetConnection *iconn;
   GnomeVFSSocket *socket;
 
-  struct gps_data_t gpsdata;
 #else
   LocationGPSDevice *device;
   LocationGPSDControl *control;
   guint idd_changed;
-  int fields;
-
-  struct gps_fix_t	fix;   
 #endif
+
+  struct {
+    struct gps_fix_t fix;
+    gps_mask_t set;
+  } last;
+
+  struct gps_fix_t fix;   
+  gps_mask_t set;
 
   GSList *callbacks;
 
 } gps_state_t;
 
 gps_state_t *gps_init(void);
-void gps_register_callback(gps_state_t *gps_state, gps_cb cb, void *data);
+void gps_register_callback(gps_state_t *gps_state, int mask, 
+			   gps_cb cb, void *data);
 void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb);
 void gps_release(gps_state_t *gps_state);
 

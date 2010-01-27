@@ -174,30 +174,30 @@ static float get_distance(coord_t *p1, coord_t *p2) {
 }
 #endif
 
-static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
+static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
 #ifdef USE_MAEMO
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
 #endif
 
-  int gps_status = 
-    (int)g_object_get_data(G_OBJECT(map), "gps_status"); 
+  gps_mask_t gps_set = 
+    (gps_mask_t)g_object_get_data(G_OBJECT(map), "gps_set"); 
 
   /* ... and enable "goto" button if it's valid */
-  if(status != gps_status) {
+  if((set & LATLON_SET) != (gps_set & LATLON_SET)) {
     osm_gps_map_osd_enable_gps(map,  
-	       OSM_GPS_MAP_OSD_CALLBACK(status?cb_map_gps:NULL), map);
+       OSM_GPS_MAP_OSD_CALLBACK((set&LATLON_SET)?cb_map_gps:NULL), map);
 
-    g_object_set_data(G_OBJECT(map), "gps_status", (gpointer)status); 
+    g_object_set_data(G_OBJECT(map), "gps_set", (gpointer)set); 
   }
 
-  if(status) {
+  if(set & LATLON_SET) {
     /* save fix in case the user later wants to enable gps */
     g_object_set_data(G_OBJECT(map), "gps_fix", fix); 
 
     int radius = 0;
     /* get error */
-    if(!isnan(fix->eph)) 
+    if(!(set & HERR_SET)) 
       radius = dist2pixel(map, fix->eph/1000);
 
     g_object_set(map, "gps-track-highlight-radius", radius, NULL);
@@ -209,42 +209,47 @@ static void gps_callback(int status, struct gps_fix_t *fix, void *data) {
   }
 
 #ifdef USE_MAEMO
-  if(status && toplevel) {
-    /* check gps position every 10 seconds and trigger */
-    /* screen saver if useful */
-    time_t last = (time_t)g_object_get_data(G_OBJECT(map), "gps_timer"); 
-    time_t now = time(NULL);
-    if(now-last > 10) {
-      /* get last saved position */
-      coord_t *last_pos = g_object_get_data(G_OBJECT(map), "gps_pos"); 
-      coord_t cur = { .rlat = deg2rad(fix->latitude),
-		      .rlon = deg2rad(fix->longitude) };
+  if((set & LATLON_SET) && toplevel) {
 
-      if(last_pos) {
-	/* consider everything under 3 kph (~2 mph) to be static and */
-	/* disable (trigger) screensaver only above this. 3kph = ~8m/10sec */
+    /* check if toplevel has focus */
+    if(GTK_WIDGET_HAS_FOCUS(toplevel)) {
 
-	/* compare with reported position */
-	if(get_distance(last_pos, &cur) > 8) {
-	  printf("trigger screen saver after %d ...\n", (int)(now-last));
-
-	  osso_context_t *osso_context =  
-	    g_object_get_data(G_OBJECT(toplevel), "osso-context");
-	  g_assert(osso_context);
-
-	  osso_display_blanking_pause(osso_context);
-
+      /* check gps position every 10 seconds and trigger */
+      /* screen saver if useful */
+      time_t last = (time_t)g_object_get_data(G_OBJECT(map), "gps_timer"); 
+      time_t now = time(NULL);
+      if(now-last > 10) {
+	/* get last saved position */
+	coord_t *last_pos = g_object_get_data(G_OBJECT(map), "gps_pos"); 
+	coord_t cur = { .rlat = deg2rad(fix->latitude),
+			.rlon = deg2rad(fix->longitude) };
+	
+	if(last_pos) {
+	  /* consider everything under 3 kph (~2 mph) to be static and */
+	  /* disable (trigger) screensaver only above this. 3kph = ~8m/10sec */
+	  
+	  /* compare with reported position */
+	  if(get_distance(last_pos, &cur) > 8) {
+	    printf("trigger screen saver after %d ...\n", (int)(now-last));
+	    
+	    osso_context_t *osso_context =  
+	      g_object_get_data(G_OBJECT(toplevel), "osso-context");
+	    g_assert(osso_context);
+	    
+	    osso_display_blanking_pause(osso_context);
+	    
+	  } else
+	    printf("too slow, no trigger\n");
 	} else
-	  printf("too slow, no trigger\n");
-      } else
-	last_pos = g_new0(coord_t, 1);
-      
-      /* make current position the old one */
-      last_pos->rlat = cur.rlat;
-      last_pos->rlon = cur.rlon;
-      
-      g_object_set_data(G_OBJECT(map), "gps_timer", (gpointer)now); 
-      g_object_set_data(G_OBJECT(map), "gps_pos", last_pos); 
+	  last_pos = g_new0(coord_t, 1);
+	
+	/* make current position the old one */
+	last_pos->rlat = cur.rlat;
+	last_pos->rlon = cur.rlon;
+	
+	g_object_set_data(G_OBJECT(map), "gps_timer", (gpointer)now); 
+	g_object_set_data(G_OBJECT(map), "gps_pos", last_pos); 
+      }
     }
   }
 #endif
@@ -331,7 +336,10 @@ static GtkWidget *map_new(void) {
 
   /* connect to GPS */
   gps_state_t *gps = gps_init();
-  gps_register_callback(gps, gps_callback, widget);
+
+  /* request all GPS information required for map display */
+  gps_register_callback(gps, LATLON_CHANGED | TRACK_CHANGED | HERR_CHANGED, 
+			gps_callback, widget);
 
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
 

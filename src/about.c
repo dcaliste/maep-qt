@@ -313,7 +313,7 @@ GtkWidget *bugs_page_new(GtkWidget *parent) {
 		   "the following link:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      link_new(parent, "http://garage.maemo.org/tracker/?group_id=1150"));
+      link_new(parent, "http://garage.maemo.org/tracker/?group_id=1155"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       label_wrap(_("You might also be interested in joining the mailing lists "
