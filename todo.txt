@@ -1,6 +1,5 @@
 Things to be implemented/fixed next:
 
 - track merge
-- check liblocation coordinate change (save energy)
 - investigate http://pagesperso-orange.fr/universimmedia/geo/loc.htm
 - make gps.c cope with sats (for gpxview)

@@ -51,6 +51,15 @@
 
 #define USER_AGENT "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11"
 
+
+/* the drag limit is the number of pixels the user has to move the pointer */
+/* in order to start dragging. Every movement below this threshold is */
+/* considered to be "accidential" and does not cause any dragging. This */
+/* is especially important on (finger controlled) touchscreens */
+#ifndef OSM_GPS_MAP_DRAG_LIMIT
+#define OSM_GPS_MAP_DRAG_LIMIT  10
+#endif
+
 struct _OsmGpsMapPrivate
 {
     GHashTable *tile_queue;
@@ -1930,7 +1939,7 @@ osm_gps_map_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
     if(!priv->drag_counter &&
        ( (x - priv->drag_start_mouse_x) * (x - priv->drag_start_mouse_x) + 
          (y - priv->drag_start_mouse_y) * (y - priv->drag_start_mouse_y) <
-         10*10))
+         OSM_GPS_MAP_DRAG_LIMIT * OSM_GPS_MAP_DRAG_LIMIT))
         return FALSE;
 
     priv->drag_counter++;

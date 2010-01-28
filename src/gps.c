@@ -114,11 +114,8 @@ static void gps_cb_func(gpointer data, gpointer user_data) {
       ((gps_state->set & ALTITUDE_SET) && altitude_differs(&gps_state->last.fix, &gps_state->fix))))
     gps_state->set |= ALTITUDE_CHANGED;
 
-  if(gps_state->set & CHANGED_MASK) {
-    printf("reporting set %d to client %p\n", gps_state->set, callback);
-  
+  if(gps_state->set & CHANGED_MASK)
     callback->cb(gps_state->set, &gps_state->fix, callback->data);
-  }
 }
 
 #ifndef ENABLE_LIBLOCATION

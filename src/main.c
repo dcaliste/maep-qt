@@ -195,10 +195,8 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
     /* save fix in case the user later wants to enable gps */
     g_object_set_data(G_OBJECT(map), "gps_fix", fix); 
 
-    int radius = 0;
     /* get error */
-    if(!(set & HERR_SET)) 
-      radius = dist2pixel(map, fix->eph/1000);
+    int radius = (set & HERR_SET)?dist2pixel(map, fix->eph/1000):0;
 
     g_object_set(map, "gps-track-highlight-radius", radius, NULL);
     osm_gps_map_draw_gps(map, fix->latitude, fix->longitude, fix->track);

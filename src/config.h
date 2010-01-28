@@ -48,6 +48,8 @@
 #undef OSD_NAV
 
 #ifdef USE_MAEMO
+#define OSM_GPS_MAP_DRAG_LIMIT    (32)
+
 #define OSD_FONT_SIZE             (28.0)
 #define OSD_DIAMETER              (60)
 #define OSD_SCALE_FONT_SIZE       (20.0)
