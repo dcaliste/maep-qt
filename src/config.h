@@ -48,7 +48,7 @@
 #undef OSD_NAV
 
 #ifdef USE_MAEMO
-#define OSM_GPS_MAP_DRAG_LIMIT    (32)
+#define MAP_DRAG_LIMIT            (32)
 
 #define OSD_FONT_SIZE             (28.0)
 #define OSD_DIAMETER              (60)
@@ -65,6 +65,7 @@
 #define MAP_KEY_ZOOMIN      HILDON_HARDKEY_INCREASE
 #define MAP_KEY_ZOOMOUT     HILDON_HARDKEY_DECREASE
 #else
+#define MAP_DRAG_LIMIT      (10)
 #define MAP_KEY_FULLSCREEN  GDK_F11
 #define MAP_KEY_ZOOMIN      '+'
 #define MAP_KEY_ZOOMOUT     '-'

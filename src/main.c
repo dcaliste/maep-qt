@@ -294,13 +294,14 @@ static GtkWidget *map_new(void) {
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
 		 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
-                 "tile-cache-base",          path,
+		 "tile-cache-base",          path,
 		 "auto-center",              FALSE,
 		 "record-trip-history",      FALSE, 
 		 "show-trip-history",        FALSE, 
 		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
-                 NULL);
+		 "drag-limit",               MAP_DRAG_LIMIT,
+		 NULL);
 
   g_free(path);
 

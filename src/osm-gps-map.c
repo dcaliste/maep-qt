@@ -50,15 +50,6 @@
 
 #define USER_AGENT "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11"
 
-
-/* the drag limit is the number of pixels the user has to move the pointer */
-/* in order to start dragging. Every movement below this threshold is */
-/* considered to be "accidential" and does not cause any dragging. This */
-/* is especially important on (finger controlled) touchscreens */
-#ifndef OSM_GPS_MAP_DRAG_LIMIT
-#define OSM_GPS_MAP_DRAG_LIMIT  10
-#endif
-
 struct _OsmGpsMapPrivate
 {
     GHashTable *tile_queue;
@@ -136,6 +127,7 @@ struct _OsmGpsMapPrivate
     int drag_start_mouse_y;
     int drag_start_map_x;
     int drag_start_map_y;
+    int drag_limit;
     guint drag_expose;
 
     //for customizing the redering of the gps track
@@ -188,7 +180,8 @@ enum
     PROP_GPS_POINT_R1,
     PROP_GPS_POINT_R2,
     PROP_MAP_SOURCE,
-    PROP_IMAGE_FORMAT
+    PROP_IMAGE_FORMAT,
+    PROP_DRAG_LIMIT,
 };
 
 G_DEFINE_TYPE (OsmGpsMap, osm_gps_map, GTK_TYPE_DRAWING_AREA);
@@ -1676,6 +1669,9 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
         case PROP_IMAGE_FORMAT:
             priv->image_format = g_value_dup_string (value);
             break;
+        case PROP_DRAG_LIMIT:
+            priv->drag_limit = g_value_get_int (value);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
             break;
@@ -1756,6 +1752,9 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             break;
         case PROP_IMAGE_FORMAT:
             g_value_set_string(value, priv->image_format);
+            break;
+        case PROP_DRAG_LIMIT:
+            g_value_set_int(value, priv->drag_limit);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1935,7 +1934,7 @@ osm_gps_map_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
     if(!priv->drag_counter &&
        ( (x - priv->drag_start_mouse_x) * (x - priv->drag_start_mouse_x) + 
          (y - priv->drag_start_mouse_y) * (y - priv->drag_start_mouse_y) <
-         OSM_GPS_MAP_DRAG_LIMIT * OSM_GPS_MAP_DRAG_LIMIT))
+         priv->drag_limit*priv->drag_limit))
         return FALSE;
 
     priv->drag_counter++;
@@ -2318,7 +2317,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                      g_param_spec_int ("map-source",
                                                        "map source",
                                                        "map source ID",
-                                                       -1,           /* minimum property value */
+                                                       -1,          /* minimum property value */
                                                        G_MAXINT,    /* maximum property value */
                                                        -1,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
@@ -2330,6 +2329,16 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           "map source tile repository image format (jpg, png)",
                                                           OSM_IMAGE_FORMAT,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+    g_object_class_install_property (object_class,
+                                     PROP_DRAG_LIMIT,
+                                     g_param_spec_int ("drag-limit",
+                                                       "drag limit",
+                                                       "the number of pixels the user has to move the pointer in order to start dragging",
+                                                       0,           /* minimum property value */
+                                                       G_MAXINT,    /* maximum property value */
+                                                       10,
+                                                       G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
     g_signal_new ("changed", OSM_TYPE_GPS_MAP,
                   G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
