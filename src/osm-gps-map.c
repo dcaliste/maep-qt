@@ -10,17 +10,16 @@
  * Everaldo Canuto 2009 <everaldo.canuto@gmail.com>
  *
  * osm-gps-map.c is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2.
  *
- * osm-gps-map.c is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -1295,11 +1294,11 @@ on_window_key_press(GtkWidget *widget, GdkEventKey *event, OsmGpsMapPrivate *pri
                 handled = TRUE;
                 } break;
             case OSM_GPS_MAP_KEY_ZOOMIN:
-                osm_gps_map_set_zoom(map, priv->map_zoom+1);
+                osm_gps_map_zoom_in(map);
                 handled = TRUE;
                 break;
             case OSM_GPS_MAP_KEY_ZOOMOUT:
-                osm_gps_map_set_zoom(map, priv->map_zoom-1);
+                osm_gps_map_zoom_out(map);
                 handled = TRUE;
                 break;
             case OSM_GPS_MAP_KEY_UP:
@@ -1514,6 +1513,7 @@ osm_gps_map_dispose (GObject *object)
     g_hash_table_destroy(priv->missing_tiles);
     g_hash_table_destroy(priv->tile_cache);
 
+    /* images and layers contain GObjects which need unreffing, so free here */
     osm_gps_map_free_images(map);
 
     if(priv->pixmap)
@@ -1563,6 +1563,7 @@ osm_gps_map_finalize (GObject *object)
     g_free(priv->repo_uri);
     g_free(priv->image_format);
 
+    /* trip and tracks contain simple non GObject types, so free them here */
     osm_gps_map_free_trip(map);
     osm_gps_map_free_tracks(map);
 
@@ -1766,16 +1767,11 @@ static gboolean
 osm_gps_map_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
 {
     OsmGpsMap *map = OSM_GPS_MAP(widget);
-    OsmGpsMapPrivate *priv = map->priv;
 
     if (event->direction == GDK_SCROLL_UP)
-    {
-        osm_gps_map_set_zoom(map, priv->map_zoom+1);
-    }
-    else
-    {
-        osm_gps_map_set_zoom(map, priv->map_zoom-1);
-    }
+        osm_gps_map_zoom_in(map);
+    else if (event->direction == GDK_SCROLL_DOWN)
+        osm_gps_map_zoom_out(map);
 
     return FALSE;
 }
@@ -1784,7 +1780,7 @@ static gboolean
 osm_gps_map_button_press (GtkWidget *widget, GdkEventButton *event)
 {
     OsmGpsMap *map = OSM_GPS_MAP(widget);
-    OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
+    OsmGpsMapPrivate *priv = map->priv;
 
 #ifdef ENABLE_OSD
     /* pressed inside OSD control? */
@@ -2016,9 +2012,10 @@ osm_gps_map_configure (GtkWidget *widget, GdkEventConfigure *event)
 static gboolean
 osm_gps_map_expose (GtkWidget *widget, GdkEventExpose  *event)
 {
-    OsmGpsMapPrivate *priv = OSM_GPS_MAP_PRIVATE(widget);
+    OsmGpsMap *map = OSM_GPS_MAP(widget);
+    OsmGpsMapPrivate *priv = map->priv;
 
-#if defined(ENABLE_OSD) && defined(OSD_DOUBLE_BUFFER)
+#ifdef OSD_DOUBLE_BUFFER
     GdkDrawable *drawable = priv->dbuf_pixmap;
 #else
     GdkDrawable *drawable = widget->window;
@@ -2658,6 +2655,20 @@ osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
         g_signal_emit_by_name(map, "changed");
     }
     return priv->map_zoom;
+}
+
+int
+osm_gps_map_zoom_in (OsmGpsMap *map)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), 0);
+    return osm_gps_map_set_zoom(map, map->priv->map_zoom+1);
+}
+
+int
+osm_gps_map_zoom_out (OsmGpsMap *map)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), 0);
+    return osm_gps_map_set_zoom(map, map->priv->map_zoom-1);
 }
 
 void
