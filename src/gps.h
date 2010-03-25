@@ -33,7 +33,14 @@
 #define NAN (0.0/0.0)
 #endif /* !NAN */
 
+#define MAXCHANNELS 20
 #define MAXTAGLEN    8       /* maximum length of sentence tag name */
+
+typedef struct {
+  int prn;     /* prn of satellite, -1 if no info */
+  int ss;      /* signal to noise ratio */
+  int used;    /* satellite is is being used */
+} gps_sat_t;
 
 struct gps_fix_t {
   double latitude;	/* Latitude in degrees */
@@ -41,19 +48,24 @@ struct gps_fix_t {
   double altitude;      /* Altitude in meters */
   double eph;  	        /* Horizontal position uncertainty, meters */
   double track;	        /* Course made good (relative to true north) */
+
+  int sat_num;
+  gps_sat_t sat_data[MAXCHANNELS];
 };
 
 typedef unsigned int gps_mask_t;
 
-#define LATLON_SET	 (1<<0)
-#define ALTITUDE_SET	 (1<<1)
-#define TRACK_SET	 (1<<2)
-#define HERR_SET	 (1<<3)
+#define LATLON_SET	  (1<<0)
+#define ALTITUDE_SET	  (1<<1)
+#define TRACK_SET	  (1<<2)
+#define HERR_SET	  (1<<3)
+#define SATELLITE_SET	  (1<<4)
 
-#define LATLON_CHANGED   (LATLON_SET   << 8)
-#define ALTITUDE_CHANGED (ALTITUDE_SET << 8)
-#define TRACK_CHANGED    (TRACK_SET    << 8)
-#define HERR_CHANGED     (HERR_SET     << 8)
+#define LATLON_CHANGED    (LATLON_SET    << 8)
+#define ALTITUDE_CHANGED  (ALTITUDE_SET  << 8)
+#define TRACK_CHANGED     (TRACK_SET     << 8)
+#define HERR_CHANGED      (HERR_SET      << 8)
+#define SATELLITE_CHANGED (SATELLITE_SET << 8)
 
 #define CHANGED_MASK 0xff00
 

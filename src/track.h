@@ -47,6 +47,7 @@ void track_import(GtkWidget *map);
 void track_export(GtkWidget *map);
 void track_clear(GtkWidget *map);
 void track_capture_enable(GtkWidget *map, gboolean enable); 
+void track_graph(GtkWidget *map);
 
 void track_restore(GtkWidget *map);
 void track_save(GtkWidget *map);

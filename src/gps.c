@@ -200,6 +200,7 @@ static double parse_double(char *val) {
 /* unpack a daemon response into a status structure */
 static void gps_unpack(char *buf, gps_state_t *gps_state) {
   char *ns, *sp, *tp;
+  int j;
 
   for(ns = buf; ns; ns = strstr(ns+1, "GPSD")) {
     if(strncmp(ns, "GPSD", 4) == 0) {
@@ -248,6 +249,32 @@ static void gps_unpack(char *buf, gps_state_t *gps_state) {
 		gps_state->set |= ALTITUDE_SET;
 	    }
 	  }
+	  break;
+
+        case 'Y': 
+	  gps_state->fix.sat_num = 0;
+
+          if (sp[2] != '?') {
+            (void)sscanf(sp, "Y=%*s %*s %d ", &gps_state->fix.sat_num);
+
+	    /* clear all slots */
+            for (j = 0; j < gps_state->fix.sat_num; j++) 
+	      gps_state->fix.sat_data[j].prn = 
+	      gps_state->fix.sat_data[j].ss = 
+	      gps_state->fix.sat_data[j].used = 0;
+
+	    printf("gps: sats = %d\n", gps_state->fix.sat_num);
+            for (j = 0; j < gps_state->fix.sat_num; j++) {
+              if ((sp != NULL) && ((sp = strchr(sp, ':')) != NULL)) {
+                sp++;
+                (void)sscanf(sp, "%d %*d %*d %d %d", 
+			     &gps_state->fix.sat_data[j].prn,
+			     &gps_state->fix.sat_data[j].ss, 
+			     &gps_state->fix.sat_data[j].used);
+              }
+            }
+          }
+          gps_state->set |= SATELLITE_SET;
 	  break;
 	}
       }

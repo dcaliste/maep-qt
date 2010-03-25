@@ -27,7 +27,7 @@ MAEMO_VERSION_MAJOR = @MAEMO_VERSION_MAJOR@
 
 bindir = @bindir@
 
-OBJS = main.o menu.o gps.o misc.o icon.o about.o track.o net_io.o geonames.o $(EXTRA_OBJS) 
+OBJS = main.o menu.o gps.o misc.o icon.o about.o track.o net_io.o geonames.o graph.o $(EXTRA_OBJS) 
 
 DEFS = -DVERSION=\"$(VERSION)\" -DPREFIX=\"$(prefix)\" -DDATADIR=\"$(datadir)/$(APP)/\" -DAPP=\"$(APP)\"
 CFLAGS = -Wall -O2 $(DEFS) @CFLAGS@

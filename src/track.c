@@ -26,6 +26,7 @@
 #include "misc.h"
 #include "menu.h"
 #include "gps.h"
+#include "graph.h"
 
 #include <math.h>
 #include <libxml/parser.h>
@@ -289,6 +290,7 @@ void track_draw(GtkWidget *map, track_t *track) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   menu_enable(toplevel, "Track/Clear", TRUE);
   menu_enable(toplevel, "Track/Export", TRUE);
+  menu_enable(toplevel, "Track/Graph", TRUE);
 }
 
 /* this imports a track and adds it to the set of existing tracks */
@@ -371,6 +373,7 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
       GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
       menu_enable(toplevel, "Track/Clear", TRUE);
       menu_enable(toplevel, "Track/Export", TRUE);
+      menu_enable(toplevel, "Track/Graph", TRUE);
       
       printf("gps: creating new track\n");
       track = g_new0(track_t, 1);
@@ -412,6 +415,7 @@ void track_clear(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   menu_enable(toplevel, "Track/Clear", FALSE);
   menu_enable(toplevel, "Track/Export", FALSE);
+  menu_enable(toplevel, "Track/Graph", FALSE);
 
   osm_gps_map_clear_tracks(OSM_GPS_MAP(map));
 
@@ -652,6 +656,7 @@ void track_restore(GtkWidget *map) {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_enable(toplevel, "Track/Clear", FALSE);
     menu_enable(toplevel, "Track/Export", FALSE);
+    menu_enable(toplevel, "Track/Graph", FALSE);
   }
 
   g_free(path);
@@ -707,4 +712,26 @@ void track_save(GtkWidget *map) {
   track_write(path, track);
   
   g_free(path);
+}
+
+void track_graph(GtkWidget *map) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+
+  GtkWidget *dialog = gtk_dialog_new_with_buttons(_("Track graph"),
+	  GTK_WINDOW(toplevel), GTK_DIALOG_MODAL,
+          GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
+
+#ifdef USE_MAEMO
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 640, 480);
+#else
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
+#endif
+
+  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), graph_new());
+
+  gtk_widget_show_all(dialog);
+  
+  gtk_dialog_run(GTK_DIALOG(dialog));
+  gtk_widget_destroy(dialog);
 }
