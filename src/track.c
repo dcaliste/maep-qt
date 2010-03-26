@@ -28,6 +28,7 @@
 #include "gps.h"
 #include "graph.h"
 
+#include <stdio.h>
 #include <math.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -92,9 +93,42 @@ static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
   return TRUE;
 }
 
+static void track_parse_tpext(xmlDocPtr doc, xmlNode *a_node, 
+			      track_point_t *point) {
+  
+  /* scan for children */
+  xmlNode *cur_node = NULL;
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+
+      /* heart rate */
+      if(strcasecmp((char*)cur_node->name, "hr") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	point->hr = atoi(str);
+ 	xmlFree(str);
+      }
+    }
+  }
+}
+
+static void track_parse_ext(xmlDocPtr doc, xmlNode *a_node, 
+			    track_point_t *point) {
+
+  /* scan for children */
+  xmlNode *cur_node = NULL;
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+
+      if(strcasecmp((char*)cur_node->name, "TrackPointExtension") == 0) 
+	track_parse_tpext(doc, cur_node, point); 
+    }
+  }
+}
+
 static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
   track_point_t *point = g_new0(track_point_t, 1);
   point->altitude = NAN;
+  point->hr = -1;
   point->coord.rlat = NAN;
   point->coord.rlon = NAN;
 
@@ -124,6 +158,10 @@ static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
 	if(ptr) point->time = mktime(&time);
  	xmlFree(str);
       }
+
+      /* extensions */
+      if(strcasecmp((char*)cur_node->name, "extensions") == 0)
+	track_parse_ext(doc, cur_node, point);
     }
   }
 
@@ -458,6 +496,7 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
     
     /* save current position for later use */
     last->altitude = fix->altitude;
+    last->hr = -1;
     last->time = time(NULL);
     last->coord.rlat = deg2rad(fix->latitude);
     last->coord.rlon = deg2rad(fix->longitude);
@@ -476,6 +515,7 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
   if(set & LATLON_SET) {
     track_point_t *point = g_new0(track_point_t, 1);
     point->altitude = fix->altitude;
+    point->hr = -1;
     point->time = time(NULL);
     point->coord.rlat = deg2rad(fix->latitude);
     point->coord.rlon = deg2rad(fix->longitude);
@@ -532,6 +572,17 @@ void track_save_points(track_point_t *point, xmlNodePtr node) {
       xmlNewTextChild(node_point, NULL, BAD_CAST "ele", BAD_CAST str);
     }
 
+    if(point->hr >= 0) {
+      xmlNodePtr ext = 
+	xmlNewChild(node_point, NULL, BAD_CAST "extensions", NULL);
+
+      xmlNodePtr tpext = 
+	xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
+
+      snprintf(str, sizeof(str), "%u", point->hr);
+      xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST str);
+    }
+
     if(point->time) {
       strftime(str, sizeof(str), DATE_FORMAT, localtime(&point->time));
       xmlNewTextChild(node_point, NULL, BAD_CAST "time", BAD_CAST str);
@@ -557,7 +608,9 @@ void track_write(char *name, track_t *track) {
   xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
   xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
 	     "http://www.topografix.com/GPX/1/0");
-
+  xmlNewProp(root_node, BAD_CAST "xmlns:gpxtpx", BAD_CAST 
+	     "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
+  
   xmlNodePtr trk_node = xmlNewChild(root_node, NULL, BAD_CAST "trk", NULL);
   xmlDocSetRootElement(doc, root_node);
   
@@ -728,10 +781,28 @@ void track_graph(GtkWidget *map) {
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 #endif
 
-  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), graph_new());
+  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), 
+			      graph_new(track));
 
   gtk_widget_show_all(dialog);
   
   gtk_dialog_run(GTK_DIALOG(dialog));
   gtk_widget_destroy(dialog);
+}
+
+int track_length(track_t *track) {
+  int len = 0;
+
+  if(track) {
+    track_seg_t *seg = track->track_seg;
+    while(seg) {
+      track_point_t *point = seg->track_point;
+      while(point) {
+	len++;
+	point = point->next;
+      }
+      seg = seg->next;
+    }
+  }
+  return len;
 }

@@ -26,6 +26,7 @@
 typedef struct track_point_s {
   coord_t coord;
   float altitude;
+  int hr;          // heart rate
   time_t time;
   struct track_point_s *next;
 } track_point_t;
@@ -51,5 +52,6 @@ void track_graph(GtkWidget *map);
 
 void track_restore(GtkWidget *map);
 void track_save(GtkWidget *map);
+int track_length(track_t *track);
 
 #endif // TRACK_H

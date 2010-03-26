@@ -25,6 +25,8 @@
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
-GtkWidget *graph_new(void);
+#include "track.h"
+
+GtkWidget *graph_new(track_t *);
 
 #endif // GRAPH_H
