@@ -154,7 +154,13 @@ int main(int argc, char **argv) {
     printf("got %d\n", size);
     hexdump(buf, size);
 
-    printf("hr = %d\n", buf[12]);
+    printf("bat   = %d\n", buf[11]);
+    printf("hr    = %d\n", buf[12]);
+    printf("hrno  = %u\n", buf[13]);
+    printf("dist  = %f\n", *((short*)(buf+50)) / 16.0 );
+    printf("speed = %f\n", *((short*)(buf+52)) / 256.0 );
+    printf("steps = %u\n", *((short*)(buf+54)));
+    printf("cad   = %f\n", *((short*)(buf+56)) / 256.0);
   }
   
 
