@@ -26,6 +26,12 @@
 #define HXM_CLASS  0x001f00
 #define HXM_VENDOR 0x000780
 
+#define HXM_POLY  0x8c
+#define HXM_STX   0x02
+#define HXM_ID    0x26
+#define HXM_ETX   0x03
+
+
 #define HXM_PACKET_SIZE			60
 
 /* hexdump for debug */
@@ -54,11 +60,11 @@ void hexdump(void *buf, int size) {
 	      ptr[i]<127)?ptr[i]:'.');
 
     printf("\n");
-
+    
     ptr  += b2c;
     size -= b2c;
     n    += b2c;
- }
+  }
 }
 
 
@@ -108,10 +114,18 @@ bdaddr_t *inquiry() {
   uint8_t lap[3] = { 0x33, 0x8b, 0x9e };
   int num_rsp, i;
   bdaddr_t *result = NULL;
+  int dev_id = hci_get_route(NULL);
+
+  int sock = hci_open_dev( dev_id );
+  if (dev_id < 0 || sock < 0) {
+    perror("opening socket");
+    return NULL;
+  }
 
   num_rsp = hci_inquiry(-1, 8, 0, lap, &info, 0);
   if (num_rsp < 0) {
     perror("Inquiry failed.");
+    close( sock );
     return NULL;
   }
 
@@ -123,13 +137,45 @@ bdaddr_t *inquiry() {
        (info+i)->bdaddr.b[4] == ((HXM_VENDOR >> 8) & 0xff) &&
        (info+i)->bdaddr.b[5] == ((HXM_VENDOR >> 16) & 0xff) 
        ) {
-      result = malloc(sizeof(bdaddr_t));
-      *result = (info+i)->bdaddr;
-      return result;
+
+      /* check if device name starts with "HXM" */
+      char name[248];    
+      memset(name, 0, sizeof(name));
+      if((hci_read_remote_name(sock, &(info+i)->bdaddr, sizeof(name), 
+	       name, 0) == 0) && (strncmp("HXM", name, 3) == 0)) {
+
+	result = malloc(sizeof(bdaddr_t));
+	*result = (info+i)->bdaddr;
+	close( sock );
+	return result;
+      }
     }
   }
 
+  close( sock );
   return result;
+}
+
+static int check_frame(unsigned char *pkt) {
+  
+  int crc = 0, i, bit;
+
+  if((pkt[0] != HXM_STX) || (pkt[59] != HXM_ETX))
+    return 1;
+
+  if(pkt[1] != HXM_ID)
+    return 2;
+
+  for (i = 3; i < 58; i++) {
+    crc = (crc ^ pkt[i]);
+  
+    for (bit = 0; bit < 8; bit++) {
+      if (crc & 1) crc = ((crc >> 1) ^ HXM_POLY);
+      else         crc =  (crc >> 1);
+    }
+  }
+
+  return (crc == pkt[58])?0:3;
 }
 
 int main(int argc, char **argv) {
@@ -142,25 +188,37 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  char addr[18];
-  ba2str(bdaddr, addr);
-  printf("hxm device address %s\n", addr);
+  printf("HXM device found ...\n");
 
   bt = bluez_connect(bdaddr, 1);
+
   while(1) {
     char buf[HXM_PACKET_SIZE];
     int size = read_num(bt, buf, sizeof(buf));
 
-    printf("got %d\n", size);
     hexdump(buf, size);
 
-    printf("bat   = %d\n", buf[11]);
-    printf("hr    = %d\n", buf[12]);
-    printf("hrno  = %u\n", buf[13]);
-    printf("dist  = %f\n", *((short*)(buf+50)) / 16.0 );
-    printf("speed = %f\n", *((short*)(buf+52)) / 256.0 );
-    printf("steps = %u\n", *((short*)(buf+54)));
-    printf("cad   = %f\n", *((short*)(buf+56)) / 256.0);
+    /* check frame format */
+    if(check_frame(buf) != 0) {
+      printf("invalid frame, re-sync\n");
+      
+      /* try to re-sync */
+      /* the 60 bytes should somewhere contain the ETX followed by */
+      /* the STX marker. Skip HXM_PACKET_SIZE bytes after STX */
+      int i;
+      for(i=0;i<(HXM_PACKET_SIZE-1) &&
+	    (buf[i] != HXM_ETX || buf[i+1] != HXM_STX) ;i++);
+      
+      read_num(bt, buf, i+1);
+    } else {
+      printf("bat   = %d\n", 0xff & buf[11]);
+      printf("hr    = %d\n", 0xff & buf[12]);
+      printf("hrno  = %u\n", 0xff & buf[13]);
+      printf("dist  = %f\n", *((short*)(buf+50)) / 16.0 );
+      printf("speed = %f\n", *((short*)(buf+52)) / 256.0 );
+      printf("steps = %u\n", *((short*)(buf+54)));
+      printf("cad   = %f\n", *((short*)(buf+56)) / 256.0);
+    }
   }
   
 
