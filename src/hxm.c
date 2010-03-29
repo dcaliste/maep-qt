@@ -23,8 +23,19 @@
 #include <errno.h>
 #include <stdlib.h>
 
+typedef struct {
+  unsigned char bat;     // in percent
+  unsigned char hr;      // heart rate (30..240)
+  unsigned char hrno;    // heart rate number
+  float dist;            // 0..256 m
+  float speed;           // 0 - 15,996 m/s
+  unsigned short steps;  // 0-127
+  float cad;             // steps/min
+} hxm_t;
+
 #define HXM_CLASS  0x001f00
 #define HXM_VENDOR 0x000780
+#define HXM_NAME   "HXM"
 
 #define HXM_POLY  0x8c
 #define HXM_STX   0x02
@@ -133,16 +144,17 @@ bdaddr_t *inquiry() {
     if((info+i)->dev_class[0] == ((HXM_CLASS >> 0) & 0xff) &&
        (info+i)->dev_class[1] == ((HXM_CLASS >> 8) & 0xff) &&
        (info+i)->dev_class[2] == ((HXM_CLASS >> 16) & 0xff) &&
-       (info+i)->bdaddr.b[3] == ((HXM_VENDOR >> 0) & 0xff) &&
-       (info+i)->bdaddr.b[4] == ((HXM_VENDOR >> 8) & 0xff) &&
-       (info+i)->bdaddr.b[5] == ((HXM_VENDOR >> 16) & 0xff) 
+       (info+i)->bdaddr.b[3]  == ((HXM_VENDOR >> 0) & 0xff) &&
+       (info+i)->bdaddr.b[4]  == ((HXM_VENDOR >> 8) & 0xff) &&
+       (info+i)->bdaddr.b[5]  == ((HXM_VENDOR >> 16) & 0xff) 
        ) {
-
+      
       /* check if device name starts with "HXM" */
       char name[248];    
       memset(name, 0, sizeof(name));
       if((hci_read_remote_name(sock, &(info+i)->bdaddr, sizeof(name), 
-	       name, 0) == 0) && (strncmp("HXM", name, 3) == 0)) {
+			       name, 0) == 0) && 
+	 (strncmp(HXM_NAME, name, sizeof(HXM_NAME)-1) == 0)) {
 
 	result = malloc(sizeof(bdaddr_t));
 	*result = (info+i)->bdaddr;
@@ -166,6 +178,9 @@ static int check_frame(unsigned char *pkt) {
   if(pkt[1] != HXM_ID)
     return 2;
 
+  if(pkt[1] != 55)
+    return 3;
+
   for (i = 3; i < 58; i++) {
     crc = (crc ^ pkt[i]);
   
@@ -175,7 +190,7 @@ static int check_frame(unsigned char *pkt) {
     }
   }
 
-  return (crc == pkt[58])?0:3;
+  return (crc == pkt[58])?0:4;
 }
 
 int main(int argc, char **argv) {
@@ -193,6 +208,7 @@ int main(int argc, char **argv) {
   bt = bluez_connect(bdaddr, 1);
 
   while(1) {
+    hxm_t hxm;
     char buf[HXM_PACKET_SIZE];
     int size = read_num(bt, buf, sizeof(buf));
 
@@ -211,13 +227,23 @@ int main(int argc, char **argv) {
       
       read_num(bt, buf, i+1);
     } else {
-      printf("bat   = %d\n", 0xff & buf[11]);
-      printf("hr    = %d\n", 0xff & buf[12]);
-      printf("hrno  = %u\n", 0xff & buf[13]);
-      printf("dist  = %f\n", *((short*)(buf+50)) / 16.0 );
-      printf("speed = %f\n", *((short*)(buf+52)) / 256.0 );
-      printf("steps = %u\n", *((short*)(buf+54)));
-      printf("cad   = %f\n", *((short*)(buf+56)) / 256.0);
+      // fill hxm data structure
+      hxm.bat   = 0xff & buf[11];
+      hxm.hr    = 0xff & buf[12];
+      hxm.hrno  = 0xff & buf[13];
+      hxm.dist  = *((short*)(buf+50)) / 16.0;
+      hxm.speed = *((short*)(buf+52)) / 256.0;
+      hxm.steps = *((short*)(buf+54));
+      hxm.cad   = *((short*)(buf+56)) / 256.0;
+
+      printf("bat   = %d\n", hxm.bat);
+      printf("hr    = %d\n", hxm.hr);
+      printf("hrno  = %u\n", hxm.hrno);
+      printf("dist  = %f\n", hxm.dist);
+      printf("speed = %f\n", hxm.speed);
+      printf("steps = %u\n", hxm.steps);
+      printf("cad   = %f\n", hxm.cad);
+	     
     }
   }
   
