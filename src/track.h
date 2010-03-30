@@ -22,11 +22,19 @@
 
 #include "osm-gps-map.h"
 
+/* parts of a track */
+#define TRACK_SPEED    (1<<0)
+#define TRACK_ALTITUDE (1<<1)
+#define TRACK_HR       (1<<2)
+#define TRACK_CADENCE  (1<<3)
+
 /* a point is just that */
 typedef struct track_point_s {
   coord_t coord;
   float altitude;
-  int hr;          // heart rate
+  float speed;
+  float hr;          // heart rate
+  float cad;         // cadence
   time_t time;
   struct track_point_s *next;
 } track_point_t;
@@ -53,5 +61,8 @@ void track_graph(GtkWidget *map);
 void track_restore(GtkWidget *map);
 void track_save(GtkWidget *map);
 int track_length(track_t *track);
+
+int track_contents(track_t *track);
+void track_get_min_max(track_t *track, int flag, float *min, float *max);
 
 #endif // TRACK_H

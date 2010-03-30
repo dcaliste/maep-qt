@@ -104,7 +104,7 @@ static void track_parse_tpext(xmlDocPtr doc, xmlNode *a_node,
       /* heart rate */
       if(strcasecmp((char*)cur_node->name, "hr") == 0) {
 	char *str = (char*)xmlNodeGetContent(cur_node);
-	point->hr = atoi(str);
+	point->hr = g_ascii_strtod(str, NULL);
  	xmlFree(str);
       }
     }
@@ -128,7 +128,9 @@ static void track_parse_ext(xmlDocPtr doc, xmlNode *a_node,
 static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
   track_point_t *point = g_new0(track_point_t, 1);
   point->altitude = NAN;
-  point->hr = -1;
+  point->speed = NAN;
+  point->hr = NAN;
+  point->cad = NAN;
   point->coord.rlat = NAN;
   point->coord.rlon = NAN;
 
@@ -279,6 +281,10 @@ static track_t *track_read(char *filename) {
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
+  
+  // this sets the local timezone etc.
+  time_t tim = time(NULL);
+  localtime(&tim);
   
   /* parse the file and get the DOM */
   if((doc = xmlReadFile(filename, NULL, 0)) == NULL) {
@@ -496,7 +502,9 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
     
     /* save current position for later use */
     last->altitude = fix->altitude;
-    last->hr = -1;
+    last->speed = NAN;
+    last->hr = NAN;
+    last->cad = NAN;
     last->time = time(NULL);
     last->coord.rlat = deg2rad(fix->latitude);
     last->coord.rlon = deg2rad(fix->longitude);
@@ -515,8 +523,10 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
   if(set & LATLON_SET) {
     track_point_t *point = g_new0(track_point_t, 1);
     point->altitude = fix->altitude;
-    point->hr = -1;
     point->time = time(NULL);
+    point->speed = NAN;
+    point->hr = NAN;
+    point->cad = NAN;
     point->coord.rlat = deg2rad(fix->latitude);
     point->coord.rlon = deg2rad(fix->longitude);
 
@@ -579,7 +589,7 @@ void track_save_points(track_point_t *point, xmlNodePtr node) {
       xmlNodePtr tpext = 
 	xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
 
-      snprintf(str, sizeof(str), "%u", point->hr);
+      g_ascii_formatd(str, sizeof(str), "%.01f", point->hr);
       xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST str);
     }
 
@@ -607,7 +617,7 @@ void track_write(char *name, track_t *track) {
   xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "gpx");
   xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
   xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
-	     "http://www.topografix.com/GPX/1/0");
+	     "http://www.topografix.com/GPX/1/0/gpx.xsd");
   xmlNewProp(root_node, BAD_CAST "xmlns:gpxtpx", BAD_CAST 
 	     "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
   
@@ -781,8 +791,20 @@ void track_graph(GtkWidget *map) {
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 #endif
 
-  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), 
-			      graph_new(track));
+  GtkWidget *win = scrolled_window_new();
+  GtkWidget *graph = graph_new(track);
+  scrolled_window_add_with_viewport(win, graph);
+  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), win);
+
+  GtkWidget *but, *hbox = gtk_hbox_new(FALSE, 0);
+  but = gtk_button_new_with_label(_("Zoom out"));
+  gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
+  but = gtk_button_new_with_label(_("Zoom in"));
+  gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
+  graph_zoom(graph, 1); // zoom in one step
+
+  gtk_box_pack_start(GTK_BOX((GTK_DIALOG(dialog))->vbox), 
+		     hbox, FALSE, FALSE, 0);
 
   gtk_widget_show_all(dialog);
   
@@ -805,4 +827,70 @@ int track_length(track_t *track) {
     }
   }
   return len;
+}
+
+int track_contents(track_t *track) {
+  int flags = 0;
+  if(track) {
+    track_seg_t *seg = track->track_seg; 
+    while(seg) {
+      track_point_t *point = seg->track_point;
+      while(point) {
+	if(!isnan(point->speed))    flags |= TRACK_SPEED;
+	if(!isnan(point->altitude)) flags |= TRACK_ALTITUDE;
+	if(!isnan(point->hr))       flags |= TRACK_HR;
+	if(!isnan(point->cad))      flags |= TRACK_CADENCE;
+	
+	point = point->next;
+      }
+      seg = seg->next;
+    }
+  }
+  return flags;
+}
+
+void track_get_min_max(track_t *track, int flag, float *min, float *max) {
+  *min =  MAXFLOAT;
+  *max = -MAXFLOAT;
+
+  if(track) {
+    track_seg_t *seg = track->track_seg;
+    while(seg) {
+      track_point_t *point = seg->track_point;
+      while(point) {
+	switch(flag) {
+	case TRACK_SPEED:
+	  if(!isnan(point->speed)) {
+	    if(point->speed < *min) *min = point->speed;
+	    if(point->speed > *max) *max = point->speed;
+	  }
+	  break;
+	  
+	case TRACK_ALTITUDE:
+	  if(!isnan(point->altitude)) {
+	    if(point->altitude < *min) *min = point->altitude;
+	    if(point->altitude > *max) *max = point->altitude;
+	  }
+	  break;
+	  
+	case TRACK_HR:
+	  if(!isnan(point->hr)) {
+	    if(point->hr < *min) *min = point->hr;
+	    if(point->hr > *max) *max = point->hr;
+	  }
+	  break;
+	  
+	case TRACK_CADENCE:
+	  if(!isnan(point->cad)) {
+	    if(point->cad < *min) *min = point->cad;
+	    if(point->cad > *max) *max = point->cad;
+	  }
+	  break;
+	  
+	}
+	point = point->next;
+      }
+      seg = seg->next;
+    }
+  }
 }

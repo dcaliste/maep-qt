@@ -17,11 +17,17 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "graph.h"
 #include "track.h"
 
-void graph_time(GtkWidget *widget, int x, time_t val) {
+typedef struct {
+  track_t *track;
+  float zoom;
+} graph_priv_t;
+
+int graph_time(GtkWidget *widget, int x, time_t val) {
   GdkPixmap *pixmap = g_object_get_data(G_OBJECT(widget), "pixmap");
   gint width = widget->allocation.width;
   gint height = widget->allocation.height;
@@ -51,7 +57,8 @@ void graph_time(GtkWidget *widget, int x, time_t val) {
   gdk_draw_layout(pixmap, widget->style->fg_gc[GTK_STATE_NORMAL], 
 		  c, height-th-th2, layout);
   g_object_unref(layout);
-  
+
+  return height - th - th2;
 }
 
 static void graph_draw(GtkWidget *widget) {
@@ -61,22 +68,22 @@ static void graph_draw(GtkWidget *widget) {
   gint height = widget->allocation.height;
   /* erase background */
   gdk_draw_rectangle(pixmap, widget->style->bg_gc[GTK_STATE_NORMAL], TRUE,
-		     0, 0, width, height);
+  		     0, 0, width, height);
 
   printf("graph widget size: %d x %d\n", width, height);
 
   /* do some basic track analysis */
-  track_t *track = g_object_get_data(G_OBJECT(widget), "track");
-  if(!track_length(track)) {
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
+  if(!track_length(priv->track)) {
     printf("no valid track!\n");
   } else {
-    printf("track is %d points long\n", track_length(track));   
+    printf("track is %d points long\n", track_length(priv->track));   
 
     time_t tmin = INT32_MAX, tmax = 0;
     assert(tmin > time(NULL));  // make sure out tests will work at all
 
     // get smallest and biggest time
-    track_seg_t *seg = track->track_seg;
+    track_seg_t *seg = priv->track->track_seg;
     while(seg) {
       track_point_t *point = seg->track_point;
       while(point) {
@@ -88,25 +95,31 @@ static void graph_draw(GtkWidget *widget) {
       seg = seg->next;
     }
 
-#if 0
-    GdkGC *circle_gc = widget->style->white_gc;
-    if(widget->style->bg[GTK_STATE_NORMAL].red + 
-       widget->style->bg[GTK_STATE_NORMAL].green +
-       widget->style->bg[GTK_STATE_NORMAL].blue > 3*60000) {
-      circle_gc = gdk_gc_new(pixmap);
-      gdk_gc_copy(circle_gc, widget->style->black_gc);
-      GdkColor lgrey_color;
-      gdk_color_parse("#DDDDDD", &lgrey_color);
-      gdk_gc_set_rgb_fg_color(circle_gc,  &lgrey_color);
-    }
-#endif
+    // default: altitude
+    float min, max;
+    track_get_min_max(priv->track, TRACK_ALTITUDE, &min, &max);
+    
+    GdkGC *graph_gc = widget->style->fg_gc[GTK_STATE_NORMAL];
 
-    graph_time(widget, 0,       tmin);
+    int gheight = graph_time(widget, 0, tmin);
     graph_time(widget, width-1, tmax);
 
     /* finally draw the graph itself */
+    seg = priv->track->track_seg;
+    while(seg) {
+      track_point_t *point = seg->track_point;
+      while(point) {
+	if(!isnan(point->altitude)) {
+	  int x = width*(point->time-tmin)/(tmax-tmin);
+	  int y = gheight*(point->altitude-min)/(max-min);
 
-
+	  gdk_draw_line(pixmap, graph_gc, x, gheight, x, gheight-y);
+	}
+	
+	point = point->next;
+      }
+      seg = seg->next;
+    }
   }
 }
 
@@ -144,13 +157,23 @@ static gint graph_expose_event(GtkWidget *widget, GdkEventExpose *event,
 }
 
 gint graph_destroy_event(GtkWidget *widget, gpointer data ) {
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
+  g_free(priv);
 
   return FALSE;
 }
 
 GtkWidget *graph_new(track_t *track) {
+  graph_priv_t *priv = g_new0(graph_priv_t, 1);
+
   GtkWidget *graph = gtk_drawing_area_new();
-  g_object_set_data(G_OBJECT(graph), "track", track);
+  g_object_set_data(G_OBJECT(graph), "priv", priv);
+  priv->track = track;
+  priv->zoom = 1.0;
+
+  int flags = track_contents(track);
+  
+  printf("flags = %x\n", flags);
 
   gtk_signal_connect(GTK_OBJECT(graph), "expose_event",
 		     G_CALLBACK(graph_expose_event), NULL);
@@ -160,4 +183,21 @@ GtkWidget *graph_new(track_t *track) {
 		   G_CALLBACK(graph_destroy_event), NULL);
 
   return graph;
+}
+
+void graph_zoom(GtkWidget *graph, int zoom_dir) {
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(graph), "priv");
+
+  switch(zoom_dir) {
+  case -1: 
+    priv->zoom /= 2.0;
+    break;
+  case 0: 
+    priv->zoom = 1.0;
+    break;
+  case 1: 
+    priv->zoom *= 2.0;
+    break;
+  }
+  printf("zoom to %f\n", priv->zoom);
 }

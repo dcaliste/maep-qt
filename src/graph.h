@@ -28,5 +28,6 @@
 #include "track.h"
 
 GtkWidget *graph_new(track_t *);
+void graph_zoom(GtkWidget *graph, int zoom);
 
 #endif // GRAPH_H
