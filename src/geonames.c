@@ -739,7 +739,8 @@ static void wikipedia_details(GtkWidget *map, geonames_entry_t *entry) {
 
     /* scrolling text window */
     /* put this inside a scrolled view */
-    GtkWidget *scrolled_window = scrolled_window_new();
+    GtkWidget *scrolled_window = 
+      scrolled_window_new(GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
     scrolled_window_add_with_viewport(scrolled_window, label);
     gtk_box_pack_start_defaults(GTK_BOX(vbox), scrolled_window);
   }

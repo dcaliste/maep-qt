@@ -22,16 +22,10 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-typedef struct {
-  unsigned char bat;     // in percent
-  unsigned char hr;      // heart rate (30..240)
-  unsigned char hrno;    // heart rate number
-  float dist;            // 0..256 m
-  float speed;           // 0 - 15,996 m/s
-  unsigned short steps;  // 0-127
-  float cad;             // steps/min
-} hxm_t;
+#include "hxm.h"
+#include "misc.h"
 
 #define HXM_CLASS  0x001f00
 #define HXM_VENDOR 0x000780
@@ -53,7 +47,7 @@ void hexdump(void *buf, int size) {
   if(!size) return;
 
   while(size>0) {
-    printf("  %04x: ", n);
+    printf("HXM:   %04x: ", n);
 
     b2c = (size>16)?16:size;
 
@@ -85,7 +79,7 @@ static int bluez_connect(bdaddr_t *bdaddr, int channel) {
 
   // bluez connects to BlueClient
   if( (bt = socket(PF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) < 0 ) {
-    fprintf(stderr, "Can't create socket. %s(%d)\n", strerror(errno), errno);
+    fprintf(stderr, "HXM: Can't create socket. %s(%d)\n", strerror(errno), errno);
     return -1;                                                               
   }
 
@@ -95,7 +89,7 @@ static int bluez_connect(bdaddr_t *bdaddr, int channel) {
   rem_addr.rc_bdaddr = *bdaddr;
   rem_addr.rc_channel = channel;
   if( connect(bt, (struct sockaddr *)&rem_addr, sizeof(rem_addr)) < 0 ){
-    fprintf(stderr, "Can't connect. %s(%d)\n", strerror(errno), errno);
+    fprintf(stderr, "HXM: Can't connect. %s(%d)\n", strerror(errno), errno);
     close(bt);
     return -1;
   }
@@ -120,7 +114,7 @@ static ssize_t read_num(int fd, void *data, size_t count) {
   return total;
 }
 
-bdaddr_t *inquiry() {
+static bdaddr_t *inquiry() {
   inquiry_info *info = NULL;
   uint8_t lap[3] = { 0x33, 0x8b, 0x9e };
   int num_rsp, i;
@@ -178,7 +172,7 @@ static int check_frame(unsigned char *pkt) {
   if(pkt[1] != HXM_ID)
     return 2;
 
-  if(pkt[1] != 55)
+  if(pkt[2] != 55)
     return 3;
 
   for (i = 3; i < 58; i++) {
@@ -193,61 +187,203 @@ static int check_frame(unsigned char *pkt) {
   return (crc == pkt[58])?0:4;
 }
 
-int main(int argc, char **argv) {
-  int bt;
-  bdaddr_t *bdaddr = NULL;
+static void hxm_cb_func(gpointer data, gpointer user_data) {
+  hxm_callback_t *callback = (hxm_callback_t*)data;
+  hxm_t *hxm = (hxm_t*)user_data;
 
-  bdaddr = inquiry();
-  if(!bdaddr) {
-    printf("not found\n");
-    return 0;
+  callback->cb(hxm, callback->data);
+}
+
+static void hxm_destroy(hxm_t *hxm) {
+  printf("HXM: request to destroy context\n");
+
+  g_mutex_lock(hxm->mutex);
+  hxm->clients--;
+  g_mutex_unlock(hxm->mutex);
+
+  if(hxm->clients > 0)
+    printf("HXM: still %d clients, keeping context\n", hxm->clients);
+  else {
+    printf("HXM: last client gone, destroying context\n");
+    g_free(hxm);
+  }
+}
+
+static gboolean hxm_notify(gpointer data) {
+  hxm_t *hxm = (hxm_t*)data;
+
+  if(hxm->callbacks) {
+    g_mutex_lock(hxm->mutex);
+
+    /* tell all clients */
+    g_slist_foreach(hxm->callbacks, hxm_cb_func, hxm);
+
+    g_mutex_unlock(hxm->mutex);
   }
 
-  printf("HXM device found ...\n");
+  return FALSE; 
+}
 
-  bt = bluez_connect(bdaddr, 1);
+/* start a background process to connect to and handle hxm */
+static gpointer hxm_thread(gpointer data) {
+  bdaddr_t *bdaddr = NULL;
+  hxm_t *hxm = (hxm_t*)data;
 
-  while(1) {
-    hxm_t hxm;
-    char buf[HXM_PACKET_SIZE];
-    int size = read_num(bt, buf, sizeof(buf));
+  char addr[18];
+  printf("HXM: starting hxm\n");
+  
+  hxm->clients++;;
 
-    hexdump(buf, size);
+  char *bdaddr_str = gconf_get_string("hxm_bdaddr");
+  if(bdaddr_str) {
+    printf("HXM: trying to connect to preset hxm\n");
+    
+    /* if an address was found in gconf, try to use it */
+    bdaddr = g_new0(bdaddr_t, 1);
+    baswap(bdaddr, strtoba(bdaddr_str));
 
-    /* check frame format */
-    if(check_frame(buf) != 0) {
-      printf("invalid frame, re-sync\n");
-      
-      /* try to re-sync */
-      /* the 60 bytes should somewhere contain the ETX followed by */
-      /* the STX marker. Skip HXM_PACKET_SIZE bytes after STX */
-      int i;
-      for(i=0;i<(HXM_PACKET_SIZE-1) &&
-	    (buf[i] != HXM_ETX || buf[i+1] != HXM_STX) ;i++);
-      
-      read_num(bt, buf, i+1);
-    } else {
-      // fill hxm data structure
-      hxm.bat   = 0xff & buf[11];
-      hxm.hr    = 0xff & buf[12];
-      hxm.hrno  = 0xff & buf[13];
-      hxm.dist  = *((short*)(buf+50)) / 16.0;
-      hxm.speed = *((short*)(buf+52)) / 256.0;
-      hxm.steps = *((short*)(buf+54));
-      hxm.cad   = *((short*)(buf+56)) / 256.0;
+    hxm->state = HXM_STATE_CONNECTING;
+    g_idle_add(hxm_notify, hxm); 
+    hxm->handle = bluez_connect(bdaddr, 1);
+  }
 
-      printf("bat   = %d\n", hxm.bat);
-      printf("hr    = %d\n", hxm.hr);
-      printf("hrno  = %u\n", hxm.hrno);
-      printf("dist  = %f\n", hxm.dist);
-      printf("speed = %f\n", hxm.speed);
-      printf("steps = %u\n", hxm.steps);
-      printf("cad   = %f\n", hxm.cad);
-	     
+  /* no initial address or initial connect failed: perform search */
+  if(hxm->handle < 0) {
+    printf("HXM: preset connection not present/failed\n");
+
+    hxm->state = HXM_STATE_INQUIRY;
+    g_idle_add(hxm_notify, hxm); 
+
+    bdaddr = inquiry();
+    if(!bdaddr) {
+      printf("HXM: not hxm found\n");
+      hxm->state = HXM_STATE_FAILED;
+      g_idle_add(hxm_notify, hxm); 
+      return NULL;
     }
+
+    ba2str(bdaddr, addr);
+    printf("HXM: device %s found ...\n", addr);
+
+    hxm->state = HXM_STATE_CONNECTING;
+    hxm->handle = bluez_connect(bdaddr, 1);
+    if(hxm->handle < 0) {
+      printf("HXM: connection failed\n");
+      if(bdaddr) g_free(bdaddr);
+      hxm->state = HXM_STATE_FAILED;
+      g_idle_add(hxm_notify, hxm); 
+      return NULL;
+    }
+
+    /* save device name in gconf */
+    gconf_set_string("hxm_bdaddr", addr);
   }
   
+  hxm->state = HXM_STATE_CONNECTED;
+  ba2str(bdaddr, addr);
+  printf("HXM: connected to %s\n", addr);
 
-  free(bdaddr);
-  close(bt);
+  /* do the work while link ok and master still there... */
+  while(hxm->handle >= 0 && hxm->clients > 1) {
+    unsigned char buf[HXM_PACKET_SIZE];
+    int size = read_num(hxm->handle, buf, sizeof(buf));
+    if(size < 0) {
+      printf("HXM: read failed\n");
+      hxm->state = HXM_STATE_FAILED;
+      g_idle_add(hxm_notify, hxm); 
+      hxm->handle = -1;
+    } else {
+      //      hexdump(buf, size);
+
+      /* check frame format */
+      int i;
+      if((i = check_frame(buf)) != 0) {
+	printf("HXM: invalid frame %d, re-sync\n", i);
+	
+	/* try to re-sync */
+	/* the 60 bytes should somewhere contain the ETX followed by */
+	/* the STX marker. Skip HXM_PACKET_SIZE bytes after STX */
+	int i;
+	for(i=0;i<(HXM_PACKET_SIZE-1) &&
+	      (buf[i] != HXM_ETX || buf[i+1] != HXM_STX) ;i++);
+	
+	read_num(hxm->handle, buf, i+1);
+      } else {
+	g_mutex_lock(hxm->mutex);
+	// fill hxm data structure
+	hxm->time  = time(NULL);
+	hxm->bat   = 0xff & buf[11];
+	hxm->hr    = 0xff & buf[12];
+	hxm->hrno  = 0xff & buf[13];
+	hxm->dist  = *((short*)(buf+50)) / 16.0;
+	hxm->speed = *((short*)(buf+52)) / 256.0;
+	hxm->steps = *((short*)(buf+54));
+	hxm->cad   = *((short*)(buf+56)) / 256.0;
+	g_mutex_unlock(hxm->mutex);
+
+	g_idle_add(hxm_notify, hxm); 
+      }
+    }
+  }
+
+  hxm->state = HXM_STATE_DISCONNECTED;
+  g_idle_add(hxm_notify, hxm); 
+
+  if(bdaddr) g_free(bdaddr);
+
+  close(hxm->handle);
+  hxm->handle = -1;
+
+  hxm_destroy(hxm);
+
+  return NULL;
+}
+
+hxm_t *hxm_init(void) {
+  hxm_t *hxm = g_new0(hxm_t, 1);
+
+  hxm->clients = 1;
+  hxm->handle = -1;
+  hxm->state = HXM_STATE_UNKNOWN;
+
+  /* start a new thread to listen to gpsd */
+  hxm->mutex = g_mutex_new();
+  hxm->thread_p = 
+    g_thread_create(hxm_thread, hxm, FALSE, NULL);
+
+  return hxm;
+}
+
+void hxm_register_callback(hxm_t *hxm, hxm_cb cb, void *data) {
+  hxm_callback_t *callback = g_new0(hxm_callback_t, 1);
+
+  callback->cb = cb;
+  callback->data = data;
+
+  hxm->callbacks = g_slist_append(hxm->callbacks, callback);
+}
+
+static gint compare(gconstpointer a, gconstpointer b) {
+  return ((hxm_callback_t*)a)->cb != b;
+}
+
+void hxm_unregister_callback(hxm_t *hxm, hxm_cb cb) {
+  /* find callback in list */
+  GSList *list = g_slist_find_custom(hxm->callbacks, cb, compare);
+  g_assert(list);
+
+  /* and de-chain and free it */
+  g_free(list->data);
+  hxm->callbacks = g_slist_remove(hxm->callbacks, list->data);
+}
+
+static void hxm_unregister_all(hxm_t *hxm) {
+  g_slist_foreach(hxm->callbacks, (GFunc)g_free, NULL);
+  g_slist_free(hxm->callbacks);
+  hxm->callbacks = NULL;
+}
+
+void hxm_release(hxm_t *hxm) { 
+  hxm_unregister_all(hxm);
+  hxm_destroy(hxm);
 }

@@ -25,6 +25,7 @@
 #include "menu.h"
 #include "track.h"
 #include "geonames.h"
+#include "hxm.h"
 
 #ifdef MAEMO5
 #include <gdk/gdkx.h>
@@ -254,6 +255,9 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
 
 }
 
+static void hxm_callback(hxm_t *hxm, void *data) {
+}
+
 static GtkWidget *map_new(void) {
   /* It is recommanded that all applications share these same */
   /* map path, so data is only cached once. The path should be: */
@@ -339,8 +343,11 @@ static GtkWidget *map_new(void) {
   /* request all GPS information required for map display */
   gps_register_callback(gps, LATLON_CHANGED | TRACK_CHANGED | HERR_CHANGED, 
 			gps_callback, widget);
-
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
+
+  hxm_t *hxm = hxm_init();
+  hxm_register_callback(hxm, hxm_callback, widget);
+  g_object_set_data(G_OBJECT(widget), "hxm", hxm);
 
   return widget;
 }
@@ -385,6 +392,10 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
   gps_state_t *state = g_object_get_data(G_OBJECT(widget), "gps_state");
   g_assert(state);
   gps_release(state);
+
+  hxm_t *hxm = g_object_get_data(G_OBJECT(widget), "hxm");
+  g_assert(hxm);
+  hxm_release(hxm);
 
   map_save_state(widget);
 }

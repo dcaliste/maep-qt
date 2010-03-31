@@ -87,6 +87,11 @@ cb_menu_track_capture(GtkWidget *item, gpointer data) {
 }
 
 static void 
+cb_menu_track_hr(GtkWidget *item, gpointer data) {
+  track_hr_enable(GTK_WIDGET(data), menu_get_active(item)); 
+}
+
+static void 
 cb_menu_track_export(GtkWidget *item, gpointer data) {
   track_export(GTK_WIDGET(data));
 }
@@ -97,11 +102,12 @@ cb_menu_track_graph(GtkWidget *item, gpointer data) {
 }
 
 static const menu_entry_t track_menu[] = {
-  { MENU_CHECK_ENTRY, "Capture",   { .cb = cb_menu_track_capture } },
-  { MENU_ENTRY,       "Clear",     { .cb = cb_menu_track_clear } } ,
-  { MENU_ENTRY,       "Import",    { .cb = cb_menu_track_import } },
-  { MENU_ENTRY,       "Export",    { .cb = cb_menu_track_export } },
-  { MENU_ENTRY,       "Graph",     { .cb = cb_menu_track_graph } },
+  { MENU_CHECK_ENTRY, "Capture",    { .cb = cb_menu_track_capture } },
+  { MENU_CHECK_ENTRY, "Heart Rate", { .cb = cb_menu_track_hr } },
+  { MENU_ENTRY,       "Clear",      { .cb = cb_menu_track_clear } } ,
+  { MENU_ENTRY,       "Import",     { .cb = cb_menu_track_import } },
+  { MENU_ENTRY,       "Export",     { .cb = cb_menu_track_export } },
+  { MENU_ENTRY,       "Graph",      { .cb = cb_menu_track_graph } },
 
   { MENU_END,         NULL,        { NULL } }
 };

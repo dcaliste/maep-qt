@@ -29,5 +29,7 @@
 
 GtkWidget *graph_new(track_t *);
 void graph_zoom(GtkWidget *graph, int zoom);
+gboolean graph_min_reached(GtkWidget *graph);
+gboolean graph_max_reached(GtkWidget *graph);
 
 #endif // GRAPH_H

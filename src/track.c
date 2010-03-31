@@ -27,6 +27,7 @@
 #include "menu.h"
 #include "gps.h"
 #include "graph.h"
+#include "hxm.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -107,6 +108,13 @@ static void track_parse_tpext(xmlDocPtr doc, xmlNode *a_node,
 	point->hr = g_ascii_strtod(str, NULL);
  	xmlFree(str);
       }
+
+      /* cadence */
+      if(strcasecmp((char*)cur_node->name, "cad") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	point->cad = g_ascii_strtod(str, NULL);
+ 	xmlFree(str);
+      }
     }
   }
 }
@@ -155,8 +163,14 @@ static track_point_t *track_parse_trkpt(xmlDocPtr doc, xmlNode *a_node) {
       /* time */
       if(strcasecmp((char*)cur_node->name, "time") == 0) {
 	struct tm time;
-	char *str = (char*)xmlNodeGetContent(cur_node);
-	char *ptr = strptime(str, DATE_FORMAT, &time);
+	char *ptr, *str = (char*)xmlNodeGetContent(cur_node);
+
+	/* mktime may adjust the time zone settings which in turn affect */
+	/* strptime. Doing this twice is an ugly hack, but solves the */
+	/* problem */
+	ptr = strptime(str, DATE_FORMAT, &time);
+	if(ptr) point->time = mktime(&time);
+	ptr = strptime(str, DATE_FORMAT, &time);
 	if(ptr) point->time = mktime(&time);
  	xmlFree(str);
       }
@@ -281,10 +295,6 @@ static track_t *track_read(char *filename) {
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
-  
-  // this sets the local timezone etc.
-  time_t tim = time(NULL);
-  localtime(&tim);
   
   /* parse the file and get the DOM */
   if((doc = xmlReadFile(filename, NULL, 0)) == NULL) {
@@ -508,7 +518,14 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
     last->time = time(NULL);
     last->coord.rlat = deg2rad(fix->latitude);
     last->coord.rlon = deg2rad(fix->longitude);
-    
+
+    /* add hxm data if available */
+    hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
+    if(hxm && (time(NULL) - hxm->time) < 5) {
+      last->hr  = hxm->hr;
+      last->cad = hxm->cad;
+    }
+
     g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, last);
   } else {
     /* no fix -> forget about last point */
@@ -530,11 +547,22 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
     point->coord.rlat = deg2rad(fix->latitude);
     point->coord.rlon = deg2rad(fix->longitude);
 
+    /* add hxm data if available */
+    hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
+    if(hxm && (time(NULL) - hxm->time) < 5) {
+      point->hr  = hxm->hr;
+      point->cad = hxm->cad;
+    }
+
     track_point_new(GTK_WIDGET(map), point);
   } else {
     g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
     g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
   }
+}
+
+void track_hr_enable(GtkWidget *map, gboolean enable) {
+  printf("%sabling heart rate capture\n", enable?"en":"dis");
 }
 
 void track_capture_enable(GtkWidget *map, gboolean enable) {
@@ -561,6 +589,9 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
     g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
     g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
   }
+
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+  menu_enable(toplevel, "Track/Heart Rate", enable); 
 }
 
 /* ----------------------  saving track --------------------------- */
@@ -582,15 +613,22 @@ void track_save_points(track_point_t *point, xmlNodePtr node) {
       xmlNewTextChild(node_point, NULL, BAD_CAST "ele", BAD_CAST str);
     }
 
-    if(point->hr >= 0) {
+    if(!isnan(point->hr) || !isnan(point->cad)) {
       xmlNodePtr ext = 
 	xmlNewChild(node_point, NULL, BAD_CAST "extensions", NULL);
 
       xmlNodePtr tpext = 
 	xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
 
-      g_ascii_formatd(str, sizeof(str), "%.01f", point->hr);
-      xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST str);
+      if(!isnan(point->hr)) {
+	snprintf(str, sizeof(str), "%u", (unsigned)point->hr);
+	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST str);
+      }
+
+      if(!isnan(point->cad)) {
+	snprintf(str, sizeof(str), "%u", (unsigned)point->cad);
+	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:cad", BAD_CAST str);
+      }
     }
 
     if(point->time) {
@@ -618,8 +656,11 @@ void track_write(char *name, track_t *track) {
   xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
   xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
 	     "http://www.topografix.com/GPX/1/0/gpx.xsd");
-  xmlNewProp(root_node, BAD_CAST "xmlns:gpxtpx", BAD_CAST 
-	     "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
+
+  /* add TrackPointExtension only if it will actually be used */
+  if(track_contents(track) & (TRACK_HR | TRACK_CADENCE))
+    xmlNewProp(root_node, BAD_CAST "xmlns:gpxtpx", BAD_CAST 
+	       "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
   
   xmlNodePtr trk_node = xmlNewChild(root_node, NULL, BAD_CAST "trk", NULL);
   xmlDocSetRootElement(doc, root_node);
@@ -777,6 +818,25 @@ void track_save(GtkWidget *map) {
   g_free(path);
 }
 
+static void set_buttons(GtkWidget *graph) {
+  GtkWidget *but = g_object_get_data(G_OBJECT(graph), "zoom_out_button");
+  gtk_widget_set_sensitive(but, !graph_min_reached(graph));
+  but = g_object_get_data(G_OBJECT(graph), "zoom_in_button");
+  gtk_widget_set_sensitive(but, !graph_max_reached(graph));
+}
+
+void on_zoom_out_clicked(GtkWidget *button, gpointer data) {
+  GtkWidget *graph = GTK_WIDGET(data);
+  graph_zoom(graph, -1);
+  set_buttons(graph);
+}
+
+void on_zoom_in_clicked(GtkWidget *button, gpointer data) {
+  GtkWidget *graph = GTK_WIDGET(data);
+  graph_zoom(graph, +1);
+  set_buttons(graph);
+}
+
 void track_graph(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   track_t *track = g_object_get_data(G_OBJECT(map), "track");
@@ -791,17 +851,21 @@ void track_graph(GtkWidget *map) {
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 #endif
 
-  GtkWidget *win = scrolled_window_new();
   GtkWidget *graph = graph_new(track);
-  scrolled_window_add_with_viewport(win, graph);
-  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), win);
+  gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), graph);
 
   GtkWidget *but, *hbox = gtk_hbox_new(FALSE, 0);
   but = gtk_button_new_with_label(_("Zoom out"));
+  gtk_widget_set_sensitive(but, FALSE);
+  g_object_set_data(G_OBJECT(graph), "zoom_out_button", but);
+  gtk_signal_connect(GTK_OBJECT(but), "clicked",
+	     GTK_SIGNAL_FUNC(on_zoom_out_clicked), graph);
   gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
   but = gtk_button_new_with_label(_("Zoom in"));
+  g_object_set_data(G_OBJECT(graph), "zoom_in_button", but);
+  gtk_signal_connect(GTK_OBJECT(but), "clicked",
+	     GTK_SIGNAL_FUNC(on_zoom_in_clicked), graph);
   gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
-  graph_zoom(graph, 1); // zoom in one step
 
   gtk_box_pack_start(GTK_BOX((GTK_DIALOG(dialog))->vbox), 
 		     hbox, FALSE, FALSE, 0);

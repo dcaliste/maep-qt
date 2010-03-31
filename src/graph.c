@@ -21,14 +21,16 @@
 
 #include "graph.h"
 #include "track.h"
+#include "misc.h"
 
 typedef struct {
+  GdkPixmap *pixmap;
   track_t *track;
-  float zoom;
+  int zoom;
 } graph_priv_t;
 
 int graph_time(GtkWidget *widget, int x, time_t val) {
-  GdkPixmap *pixmap = g_object_get_data(G_OBJECT(widget), "pixmap");
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
   gint width = widget->allocation.width;
   gint height = widget->allocation.height;
 
@@ -43,7 +45,7 @@ int graph_time(GtkWidget *widget, int x, time_t val) {
   c = x - tw/2;
   if(c < 0)          c = 0;
   if(c + tw > width) c = width-tw;
-  gdk_draw_layout(pixmap, widget->style->fg_gc[GTK_STATE_NORMAL], 
+  gdk_draw_layout(priv->pixmap, widget->style->fg_gc[GTK_STATE_NORMAL], 
 		  c, height-th, layout);
   g_object_unref(layout);
 
@@ -54,7 +56,7 @@ int graph_time(GtkWidget *widget, int x, time_t val) {
   if(c < 0)          c = 0;
   if(c + tw > width) c = width-tw;
   
-  gdk_draw_layout(pixmap, widget->style->fg_gc[GTK_STATE_NORMAL], 
+  gdk_draw_layout(priv->pixmap, widget->style->fg_gc[GTK_STATE_NORMAL], 
 		  c, height-th-th2, layout);
   g_object_unref(layout);
 
@@ -62,18 +64,19 @@ int graph_time(GtkWidget *widget, int x, time_t val) {
 }
 
 static void graph_draw(GtkWidget *widget) {
-  GdkPixmap *pixmap = g_object_get_data(G_OBJECT(widget), "pixmap");
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
 
-  gint width = widget->allocation.width;
-  gint height = widget->allocation.height;
+  int width, height;
+  gdk_drawable_get_size(priv->pixmap, &width, &height);
+  printf("pixmap size = %d x %d\n", width, height);
+
   /* erase background */
-  gdk_draw_rectangle(pixmap, widget->style->bg_gc[GTK_STATE_NORMAL], TRUE,
+  gdk_draw_rectangle(priv->pixmap, widget->style->bg_gc[GTK_STATE_NORMAL], TRUE,
   		     0, 0, width, height);
 
   printf("graph widget size: %d x %d\n", width, height);
 
   /* do some basic track analysis */
-  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
   if(!track_length(priv->track)) {
     printf("no valid track!\n");
   } else {
@@ -113,7 +116,7 @@ static void graph_draw(GtkWidget *widget) {
 	  int x = width*(point->time-tmin)/(tmax-tmin);
 	  int y = gheight*(point->altitude-min)/(max-min);
 
-	  gdk_draw_line(pixmap, graph_gc, x, gheight, x, gheight-y);
+	  gdk_draw_line(priv->pixmap, graph_gc, x, gheight, x, gheight-y);
 	}
 	
 	point = point->next;
@@ -123,17 +126,31 @@ static void graph_draw(GtkWidget *widget) {
   }
 }
 
+// whenever the scrolled window is resized, the bitmap inside
+// will also be resized
+static gint swin_expose_event(GtkWidget *widget, GdkEventExpose *event, 
+			      GtkWidget *graph) {
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(graph), "priv");
+  g_assert(priv);
+
+  // resize embedded graph if size of scrolled window changed
+  if(graph->allocation.width != priv->zoom * widget->allocation.width) 
+    gtk_drawing_area_size(GTK_DRAWING_AREA(graph), 
+			  priv->zoom * widget->allocation.width, -1);
+
+  return FALSE;
+}
+
 /* Create a new backing pixmap of the appropriate size */
 static gint graph_configure_event(GtkWidget *widget, GdkEventConfigure *event,
 				  gpointer data) {
-  GdkPixmap *pixmap = g_object_get_data(G_OBJECT(widget), "pixmap");
-  if(pixmap) gdk_pixmap_unref(pixmap);
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
+  if(priv->pixmap) gdk_pixmap_unref(priv->pixmap);
   
-  g_object_set_data(G_OBJECT(widget), "pixmap", 
-		    gdk_pixmap_new(widget->window,
-				   widget->allocation.width,
-				   widget->allocation.height,
-				   -1));
+  priv->pixmap = gdk_pixmap_new(widget->window,
+			       widget->allocation.width,
+			       widget->allocation.height,
+			       -1);
 
   graph_draw(widget);
 
@@ -144,11 +161,11 @@ static gint graph_configure_event(GtkWidget *widget, GdkEventConfigure *event,
 static gint graph_expose_event(GtkWidget *widget, GdkEventExpose *event, 
 			       gpointer data) {
 
-  GdkPixmap *pixmap = g_object_get_data(G_OBJECT(widget), "pixmap");
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
   
   gdk_draw_pixmap(widget->window,
                   widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
-                  pixmap,
+                  priv->pixmap,
                   event->area.x, event->area.y,
                   event->area.x, event->area.y,
                   event->area.width, event->area.height);
@@ -158,6 +175,7 @@ static gint graph_expose_event(GtkWidget *widget, GdkEventExpose *event,
 
 gint graph_destroy_event(GtkWidget *widget, gpointer data ) {
   graph_priv_t *priv = g_object_get_data(G_OBJECT(widget), "priv");
+  if(priv->pixmap) gdk_pixmap_unref(priv->pixmap);
   g_free(priv);
 
   return FALSE;
@@ -166,10 +184,12 @@ gint graph_destroy_event(GtkWidget *widget, gpointer data ) {
 GtkWidget *graph_new(track_t *track) {
   graph_priv_t *priv = g_new0(graph_priv_t, 1);
 
+  GtkWidget *win = scrolled_window_new(GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
   GtkWidget *graph = gtk_drawing_area_new();
+
   g_object_set_data(G_OBJECT(graph), "priv", priv);
   priv->track = track;
-  priv->zoom = 1.0;
+  priv->zoom = 1;
 
   int flags = track_contents(track);
   
@@ -182,22 +202,62 @@ GtkWidget *graph_new(track_t *track) {
   g_signal_connect(G_OBJECT(graph), "destroy", 
 		   G_CALLBACK(graph_destroy_event), NULL);
 
-  return graph;
+  gtk_widget_add_events(win, GDK_STRUCTURE_MASK);
+  gtk_signal_connect(GTK_OBJECT(win), "expose_event",
+		     G_CALLBACK(swin_expose_event), graph);
+
+  scrolled_window_add_with_viewport(win, graph);
+  return win;
 }
 
 void graph_zoom(GtkWidget *graph, int zoom_dir) {
-  graph_priv_t *priv = g_object_get_data(G_OBJECT(graph), "priv");
+  /* the graph itself is inside the scolled window/viewport pair */
+  GtkWidget *child = 
+    gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(graph))));
+
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(child), "priv");
+  g_assert(priv);
 
   switch(zoom_dir) {
   case -1: 
-    priv->zoom /= 2.0;
+    priv->zoom /= 2;
     break;
   case 0: 
-    priv->zoom = 1.0;
+    priv->zoom = 1;
     break;
   case 1: 
-    priv->zoom *= 2.0;
+    priv->zoom *= 2;
     break;
   }
-  printf("zoom to %f\n", priv->zoom);
+
+  if(priv->zoom < 1) priv->zoom = 1;
+
+  gtk_drawing_area_size(GTK_DRAWING_AREA(child), 
+			priv->zoom * graph->allocation.width, -1);
+}
+
+gboolean graph_min_reached(GtkWidget *graph) {
+  /* the graph itself is inside the scolled window/viewport pair */
+  GtkWidget *child = 
+    gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(graph))));
+
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(child), "priv");
+  g_assert(priv);
+
+  return priv->zoom <= 1;
+}
+
+/* a pixmap may have 16384 pixels width at max, so make sure */
+/* the zoom is limited not to exceed this */
+gboolean graph_max_reached(GtkWidget *graph) {
+  /* the graph itself is inside the scolled window/viewport pair */
+  GtkWidget *child = 
+    gtk_bin_get_child(GTK_BIN(gtk_bin_get_child(GTK_BIN(graph))));
+
+  graph_priv_t *priv = g_object_get_data(G_OBJECT(child), "priv");
+  g_assert(priv);
+
+  int width, height;
+  gdk_drawable_get_size(priv->pixmap, &width, &height);
+  return width >= 8192;
 }

@@ -375,13 +375,12 @@ GtkWidget *label_wrap_new(char *str) {
 }
 
 /* create a pannable area */
-GtkWidget *scrolled_window_new(void) {
+GtkWidget *scrolled_window_new(GtkPolicyType hp,  GtkPolicyType vp) {
 #ifdef MAEMO5
   return hildon_pannable_area_new();
 #else
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
-  				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), hp, vp);
   gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled_window), 
 				      GTK_SHADOW_NONE);
   return scrolled_window;
@@ -396,5 +395,9 @@ void scrolled_window_add_with_viewport(GtkWidget *win, GtkWidget *child) {
   GtkWidget *viewport = gtk_bin_get_child(GTK_BIN(win));
   gtk_viewport_set_shadow_type(GTK_VIEWPORT(viewport), GTK_SHADOW_NONE);
 #endif
+}
+
+void scrolled_window_add(GtkWidget *win, GtkWidget *child) {
+  gtk_container_add(GTK_CONTAINER(win), child);
 }
 

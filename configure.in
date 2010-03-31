@@ -93,6 +93,14 @@ PKG_CHECK_MODULES([gconf], [gconf-2.0], [
     AC_MSG_ERROR([ERROR: gconf missing])
 ])
 
+# check for bluetooth
+PKG_CHECK_MODULES([bluez], [bluez], [
+  CFLAGS="$CFLAGS $bluez_CFLAGS"
+  LIBS="$LIBS $bluez_LIBS"
+], [
+    AC_MSG_ERROR([ERROR: bluetooth support missing])
+])
+
 # check for maemo
 AC_MSG_CHECKING([for Maemo])
 PKG_CHECK_EXISTS(maemo-version, [
