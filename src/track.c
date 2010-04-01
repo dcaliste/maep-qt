@@ -38,6 +38,7 @@
 
 #define DATE_FORMAT "%FT%T"
 #define TRACK_CAPTURE_ENABLED "track_capture_enabled"
+#define TRACK_HR_ENABLED      "track_hr_enabled"
 #define TRACK_CAPTURE_LAST    "track_capture_last"
 
 #ifndef LIBXML_TREE_ENABLED
@@ -427,7 +428,6 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
       GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
       menu_enable(toplevel, "Track/Clear", TRUE);
       menu_enable(toplevel, "Track/Export", TRUE);
-      menu_enable(toplevel, "Track/Graph", TRUE);
       
       printf("gps: creating new track\n");
       track = g_new0(track_t, 1);
@@ -459,6 +459,13 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
     point = seg->track_point = new_point;
   
   g_object_set_data(G_OBJECT(map), "track_current_segment", seg);
+  
+  /* if track length just became 2, then also enable the graph */
+  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  if(track_length(track) == 2) {
+    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+    menu_enable(toplevel, "Track/Graph", TRUE);
+  }
 }
 
 void track_clear(GtkWidget *map) {
@@ -561,8 +568,35 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
   }
 }
 
+static void hxm_callback(hxm_t *hxm, void *data) {
+}
+
 void track_hr_enable(GtkWidget *map, gboolean enable) {
   printf("%sabling heart rate capture\n", enable?"en":"dis");
+
+  /* verify that tracking isn't already in the requested state */
+  gboolean cur_state = 
+    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_HR_ENABLED);
+
+  g_assert(cur_state != enable);
+
+  /* save new tracking state */
+  g_object_set_data(G_OBJECT(map), TRACK_HR_ENABLED, (gpointer)enable);
+
+  hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
+
+  if(enable) {
+    g_assert(!hxm);
+
+    hxm = hxm_init();
+    hxm_register_callback(hxm, hxm_callback, map);
+    g_object_set_data(G_OBJECT(map), "hxm", hxm);
+  } else {
+    g_assert(hxm);
+
+    g_object_set_data(G_OBJECT(map), "hxm", NULL);
+    hxm_release(hxm);
+  }
 }
 
 void track_capture_enable(GtkWidget *map, gboolean enable) {
@@ -765,10 +799,16 @@ void track_restore(GtkWidget *map) {
 
   g_free(path);
 
-  /* we may also have to restore track capture */
+  /* we may also have to restore track capture ... */
   if(gconf_get_bool(TRACK_CAPTURE_ENABLED, FALSE)) {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_check_set_active(toplevel, "Track/Capture", TRUE);
+  }
+
+  /* ... incl. heart rate data */
+  if(gconf_get_bool(TRACK_HR_ENABLED, FALSE)) {
+    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+    menu_check_set_active(toplevel, "Track/Heart Rate", TRUE);
   }
 
   /* install callback for capturing */
@@ -782,6 +822,9 @@ void track_save(GtkWidget *map) {
   /* save state of capture engine */
   gconf_set_bool(TRACK_CAPTURE_ENABLED, 
 	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED));
+
+  gconf_set_bool(TRACK_HR_ENABLED, 
+	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_HR_ENABLED));
 
   gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
   gps_unregister_callback(gps_state, gps_callback);
@@ -818,25 +861,6 @@ void track_save(GtkWidget *map) {
   g_free(path);
 }
 
-static void set_buttons(GtkWidget *graph) {
-  GtkWidget *but = g_object_get_data(G_OBJECT(graph), "zoom_out_button");
-  gtk_widget_set_sensitive(but, !graph_min_reached(graph));
-  but = g_object_get_data(G_OBJECT(graph), "zoom_in_button");
-  gtk_widget_set_sensitive(but, !graph_max_reached(graph));
-}
-
-void on_zoom_out_clicked(GtkWidget *button, gpointer data) {
-  GtkWidget *graph = GTK_WIDGET(data);
-  graph_zoom(graph, -1);
-  set_buttons(graph);
-}
-
-void on_zoom_in_clicked(GtkWidget *button, gpointer data) {
-  GtkWidget *graph = GTK_WIDGET(data);
-  graph_zoom(graph, +1);
-  set_buttons(graph);
-}
-
 void track_graph(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   track_t *track = g_object_get_data(G_OBJECT(map), "track");
@@ -853,22 +877,6 @@ void track_graph(GtkWidget *map) {
 
   GtkWidget *graph = graph_new(track);
   gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), graph);
-
-  GtkWidget *but, *hbox = gtk_hbox_new(FALSE, 0);
-  but = gtk_button_new_with_label(_("Zoom out"));
-  gtk_widget_set_sensitive(but, FALSE);
-  g_object_set_data(G_OBJECT(graph), "zoom_out_button", but);
-  gtk_signal_connect(GTK_OBJECT(but), "clicked",
-	     GTK_SIGNAL_FUNC(on_zoom_out_clicked), graph);
-  gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
-  but = gtk_button_new_with_label(_("Zoom in"));
-  g_object_set_data(G_OBJECT(graph), "zoom_in_button", but);
-  gtk_signal_connect(GTK_OBJECT(but), "clicked",
-	     GTK_SIGNAL_FUNC(on_zoom_in_clicked), graph);
-  gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
-
-  gtk_box_pack_start(GTK_BOX((GTK_DIALOG(dialog))->vbox), 
-		     hbox, FALSE, FALSE, 0);
 
   gtk_widget_show_all(dialog);
   

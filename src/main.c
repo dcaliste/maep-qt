@@ -255,9 +255,6 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
 
 }
 
-static void hxm_callback(hxm_t *hxm, void *data) {
-}
-
 static GtkWidget *map_new(void) {
   /* It is recommanded that all applications share these same */
   /* map path, so data is only cached once. The path should be: */
@@ -345,10 +342,6 @@ static GtkWidget *map_new(void) {
 			gps_callback, widget);
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
 
-  hxm_t *hxm = hxm_init();
-  hxm_register_callback(hxm, hxm_callback, widget);
-  g_object_set_data(G_OBJECT(widget), "hxm", hxm);
-
   return widget;
 }
 
@@ -394,8 +387,10 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
   gps_release(state);
 
   hxm_t *hxm = g_object_get_data(G_OBJECT(widget), "hxm");
-  g_assert(hxm);
-  hxm_release(hxm);
+  if(hxm) {
+    g_object_set_data(G_OBJECT(widget), "hxm", NULL);
+    hxm_release(hxm);
+  }
 
   map_save_state(widget);
 }

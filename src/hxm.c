@@ -256,9 +256,10 @@ static gpointer hxm_thread(gpointer data) {
 
     bdaddr = inquiry();
     if(!bdaddr) {
-      printf("HXM: not hxm found\n");
+      printf("HXM: no hxm found\n");
       hxm->state = HXM_STATE_FAILED;
       g_idle_add(hxm_notify, hxm); 
+      hxm_destroy(hxm);
       return NULL;
     }
 
@@ -272,6 +273,7 @@ static gpointer hxm_thread(gpointer data) {
       if(bdaddr) g_free(bdaddr);
       hxm->state = HXM_STATE_FAILED;
       g_idle_add(hxm_notify, hxm); 
+      hxm_destroy(hxm);
       return NULL;
     }
 

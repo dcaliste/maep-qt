@@ -356,6 +356,18 @@ GtkWidget *label_big_new(char *str) {
   return label;
 }
 
+GtkWidget *label_left_new(char *str) {
+  GtkWidget *widget = gtk_label_new(str);
+  gtk_misc_set_alignment(GTK_MISC(widget), 0.0f, 0.5f);
+  return widget;
+}
+
+GtkWidget *label_right_new(char *str) {
+  GtkWidget *widget = gtk_label_new(str);
+  gtk_misc_set_alignment(GTK_MISC(widget), 1.0f, 0.5f);
+  return widget;
+}
+
 static void  
 on_label_realize(GtkWidget *widget, gpointer user_data)  {
   /* get parent size (which is a container) */
