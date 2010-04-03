@@ -247,6 +247,12 @@ GtkWidget *authors_page_new(GtkWidget *parent) {
 
   /* -------------------------------------------- */
   ivbox = gtk_vbox_new(FALSE, 0);
+  author_add(ivbox, _("Patches/bug fixes by:"));
+  author_add(ivbox, _("Roman Kapusta"));
+  gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
+
+  /* -------------------------------------------- */
+  ivbox = gtk_vbox_new(FALSE, 0);
   author_add(ivbox, _("Search and wikipedia feature provided by:"));
   link_add(ivbox, parent, _("http://geonames.org"));
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
