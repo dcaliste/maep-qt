@@ -63,13 +63,13 @@ static void graph_zoom(GtkWidget *graph, int zoom_dir) {
   g_assert(priv);
 
   switch(zoom_dir) {
-  case -1: 
+  case -1:              // zoom out
     priv->zoom /= 2;
     break;
-  case 0: 
+  case 0:               // reset zoom
     priv->zoom = 1;
     break;
-  case 1: 
+  case 1:               // zoom in
     priv->zoom *= 2;
     break;
   }
