@@ -389,7 +389,14 @@ GtkWidget *label_wrap_new(char *str) {
 /* create a pannable area */
 GtkWidget *scrolled_window_new(GtkPolicyType hp,  GtkPolicyType vp) {
 #ifdef MAEMO5
-  return hildon_pannable_area_new();
+  HildonMovementMode mode = 0;
+  GtkWidget *pannable_area = hildon_pannable_area_new();
+  if(hp != GTK_POLICY_NEVER) mode |= HILDON_MOVEMENT_MODE_HORIZ;
+  if(vp != GTK_POLICY_NEVER) mode |= HILDON_MOVEMENT_MODE_VERT;
+
+  g_object_set(G_OBJECT(pannable_area), "mov-mode", mode, NULL);
+
+  return pannable_area;
 #else
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), hp, vp);

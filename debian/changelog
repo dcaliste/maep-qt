@@ -1,6 +1,9 @@
 maep (1.3.4) unstable; urgency=low
 
   * Track graph
+  * Applied patch [#5562] Memory leak
+  * Initial HXM heart rate monitor support
+  * Extended altitude and heart rate/cadence support for tracks
 
  -- Till Harbaum <till@harbaum.org>  Thu, 25 Mar 2010 21:27:49 +0100
 
@@ -17,7 +20,7 @@ maep (1.3.2) unstable; urgency=low
   * Screensaver disabled only when map has focus
   * GPS framework simplified and reduced power consumption
   * Reduced "drag" threshold
-	
+
  -- Till Harbaum <till@harbaum.org>  Wed, 27 Jan 2010 09:09:13 +0100
 
 maep (1.3.1) unstable; urgency=low
@@ -25,7 +28,7 @@ maep (1.3.1) unstable; urgency=low
   * Inclusion of altitude from GPS into track
   * Closed icon memory leak
   * Allow cancellation of search
-	
+
  -- Till Harbaum <till@harbaum.org>  Sun, 24 Jan 2010 20:47:58 +0100
 
 maep (1.3) unstable; urgency=low
@@ -33,7 +36,7 @@ maep (1.3) unstable; urgency=low
   * Display wikipedia links
   * Major internal changes in osm-gps-map
   * Small usability updates on search
-	
+
  -- Till Harbaum <till@harbaum.org>  Wed, 13 Jan 2010 18:47:21 +0100
 
 maep (1.2) unstable; urgency=low
@@ -71,21 +74,21 @@ maep (1.1) unstable; urgency=low
   * Enabled auto /opt-ification for binary/app icons/...
   * Disable screen saver over ~3kph
   * Moved tile cache to /home/user/MyDocs/.maps on fremantle
-	
+
  -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
 
 maep (1.0.2) unstable; urgency=low
 
   * Fixed GPS disable on diablo/chinook
   * Optimized map center handling
-	
+
  -- Till Harbaum <till@harbaum.org>  Thu, 24 Dec 2009 20:38:43 +0100
 
 maep (1.0.1) unstable; urgency=low
 
   * Keep map centered on configure, no need for app to catch event anymore
   * Added Public Transport map from öpnvkarte.de
-	
+
  -- Till Harbaum <till@harbaum.org>  Fri, 11 Dec 2009 11:05:37 +0100
 
 maep (1.0) unstable; urgency=low

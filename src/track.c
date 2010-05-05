@@ -655,13 +655,15 @@ void track_save_points(track_point_t *point, xmlNodePtr node) {
 	xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
 
       if(!isnan(point->hr)) {
-	snprintf(str, sizeof(str), "%u", (unsigned)point->hr);
-	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST str);
+	char *lstr = g_strdup_printf("%u", (unsigned)point->hr);
+	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST lstr);
+	g_free(lstr);
       }
 
       if(!isnan(point->cad)) {
-	snprintf(str, sizeof(str), "%u", (unsigned)point->cad);
-	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:cad", BAD_CAST str);
+	char *lstr = g_strdup_printf("%u", (unsigned)point->cad);
+	xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:cad", BAD_CAST lstr);
+	g_free(lstr);
       }
     }
 

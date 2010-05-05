@@ -322,6 +322,7 @@ static gpointer gps_thread(gpointer data) {
 	sleep(10);
       else 
 	connected = TRUE;
+
     } else {
       if(GNOME_VFS_OK == 
 	 (vfs_result = gnome_vfs_socket_write(gps_state->socket,
@@ -334,6 +335,7 @@ static gpointer gps_thread(gpointer data) {
 	if(bytes_read == (strlen(msg)+1)) {
 	  vfs_result = gnome_vfs_socket_read(gps_state->socket,
 	     str, sizeof(str)-1, &bytes_read, NULL);
+
 	  if(vfs_result == GNOME_VFS_OK) {
 	    str[bytes_read] = 0; 
 

@@ -24,12 +24,15 @@
 #include "misc.h"
 
 typedef struct {
-  GtkWidget *graph, *tmin_w, *tmax_w;
+  GtkWidget *graph;
+  GtkWidget *tmin_w, *tmax_w;
+  GtkWidget *vmin_w, *vmax_w;
   GtkAdjustment *adj;
   GdkPixmap *pixmap;
   track_t *track;
   int zoom;
   float tmin, tmax;
+  float vmin, vmax;
 } graph_priv_t;
 
 static gboolean graph_min_reached(GtkWidget *graph) {
@@ -183,8 +186,15 @@ static void graph_draw(GtkWidget *widget) {
     scroll_changed(priv->adj, priv);
 
     // default: altitude
-    float min, max;
-    track_get_min_max(priv->track, TRACK_ALTITUDE, &min, &max);
+    track_get_min_max(priv->track, TRACK_ALTITUDE, &priv->vmin, &priv->vmax);
+
+    // fill range widgets
+    char *str = g_strdup_printf("%.1f", priv->vmax);
+    gtk_label_set_text(GTK_LABEL(priv->vmax_w), str);
+    g_free(str);
+    str = g_strdup_printf("%.1f", priv->vmin);
+    gtk_label_set_text(GTK_LABEL(priv->vmin_w), str);
+    g_free(str);
     
     GdkGC *graph_gc = widget->style->fg_gc[GTK_STATE_NORMAL];
 
@@ -195,7 +205,7 @@ static void graph_draw(GtkWidget *widget) {
       while(point) {
 	if(!isnan(point->altitude)) {
 	  int x = width*(point->time-priv->tmin)/(priv->tmax-priv->tmin);
-	  int y = height*(point->altitude-min)/(max-min);
+	  int y = height*(point->altitude-priv->vmin)/(priv->vmax-priv->vmin);
 
 	  gdk_draw_line(priv->pixmap, graph_gc, x, height, x, height-y);
 	}
@@ -233,7 +243,8 @@ static gint graph_configure_event(GtkWidget *widget, GdkEventConfigure *event,
     int width, height;
     gdk_drawable_get_size(priv->pixmap, &width, &height);
 
-    if(width != widget->allocation.width) {
+    if((width != widget->allocation.width) ||
+       (height != widget->allocation.height)) {
       gdk_pixmap_unref(priv->pixmap);
       priv->pixmap = NULL;
     }
@@ -288,13 +299,15 @@ static GtkWidget *graph_bottom_box(GtkWidget *vbox, track_t *track) {
   priv->tmin_w = graph_time_new(0, TRUE);
   gtk_box_pack_start_defaults(GTK_BOX(hbox), priv->tmin_w);
 
-  but = gtk_button_new_with_label(_("Zoom out"));
+  but = gtk_button_new_from_stock(GTK_STOCK_ZOOM_OUT);
+  //  but = gtk_button_new_with_label(_("Zoom out"));
   gtk_widget_set_sensitive(but, FALSE);
   g_object_set_data(G_OBJECT(vbox), "zoom_out_button", but);
   gtk_signal_connect(GTK_OBJECT(but), "clicked",
 	     GTK_SIGNAL_FUNC(on_zoom_out_clicked), vbox);
   gtk_box_pack_start_defaults(GTK_BOX(hbox), but);
-  but = gtk_button_new_with_label(_("Zoom in"));
+  but = gtk_button_new_from_stock(GTK_STOCK_ZOOM_IN);
+  //  but = gtk_button_new_with_label(_("Zoom in"));
   g_object_set_data(G_OBJECT(vbox), "zoom_in_button", but);
   gtk_signal_connect(GTK_OBJECT(but), "clicked",
 	     GTK_SIGNAL_FUNC(on_zoom_in_clicked), vbox);
@@ -304,6 +317,28 @@ static GtkWidget *graph_bottom_box(GtkWidget *vbox, track_t *track) {
   gtk_box_pack_start_defaults(GTK_BOX(hbox), priv->tmax_w);
 
   return hbox;
+}
+
+static GtkWidget *graph_range_new(graph_priv_t *priv) {
+  GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+
+  gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
+
+  priv->vmax_w = gtk_label_new("---");
+  gtk_box_pack_start(GTK_BOX(vbox), priv->vmax_w, FALSE, FALSE, 0);
+
+  GtkWidget *ivbox = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start_defaults(GTK_BOX(ivbox), gtk_label_new("Altitude"));
+  gtk_box_pack_start_defaults(GTK_BOX(ivbox), gtk_label_new("(m)"));
+
+  gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
+
+  priv->vmin_w = gtk_label_new("---");
+  gtk_box_pack_start(GTK_BOX(vbox), priv->vmin_w, FALSE, FALSE, 0);
+
+  gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
+
+  return vbox;
 }
 
 GtkWidget *graph_new(track_t *track) {
@@ -340,7 +375,12 @@ GtkWidget *graph_new(track_t *track) {
   gtk_signal_connect(GTK_OBJECT(priv->adj), "value_changed",
 		     G_CALLBACK(scroll_changed), priv);
 
-  gtk_box_pack_start_defaults(GTK_BOX(vbox), win);
+  GtkWidget *hbox = gtk_hbox_new(FALSE, 5);
+
+  gtk_box_pack_start(GTK_BOX(hbox), graph_range_new(priv), FALSE, FALSE, 0);
+  gtk_box_pack_start_defaults(GTK_BOX(hbox), win);
+
+  gtk_box_pack_start_defaults(GTK_BOX(vbox), hbox);
 
   GtkWidget *bottom_box = graph_bottom_box(vbox, track);
   gtk_box_pack_start(GTK_BOX(vbox), bottom_box, FALSE, FALSE, 0);
