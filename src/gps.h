@@ -29,6 +29,10 @@
 #include <libgnomevfs/gnome-vfs.h>
 #include <libgnomevfs/gnome-vfs-inet-connection.h>
 
+#ifdef USE_LIBGPS
+#include <gps.h>
+#endif
+
 #ifndef NAN
 #define NAN (0.0/0.0)
 #endif /* !NAN */
@@ -42,7 +46,7 @@ typedef struct {
   int used;    /* satellite is is being used */
 } gps_sat_t;
 
-struct gps_fix_t {
+struct gps_t {
   double latitude;	/* Latitude in degrees */
   double longitude;	/* Longitude in degrees */
   double altitude;      /* Altitude in meters */
@@ -55,11 +59,13 @@ struct gps_fix_t {
 
 typedef unsigned int gps_mask_t;
 
+#ifndef USE_LIBGPS
 #define LATLON_SET	  (1<<0)
 #define ALTITUDE_SET	  (1<<1)
 #define TRACK_SET	  (1<<2)
 #define HERR_SET	  (1<<3)
 #define SATELLITE_SET	  (1<<4)
+#endif
 
 #define LATLON_CHANGED    (LATLON_SET    << 8)
 #define ALTITUDE_CHANGED  (ALTITUDE_SET  << 8)
@@ -77,7 +83,7 @@ typedef unsigned int gps_mask_t;
 #include <errno.h>
 #endif
 
-typedef void (*gps_cb)(gps_mask_t set, struct gps_fix_t *fix, void *data);
+typedef void (*gps_cb)(gps_mask_t set, struct gps_t *fix, void *data);
 #define GPS_CB(f) ((gps_cb)(f))
 
 typedef struct {
@@ -99,8 +105,13 @@ typedef struct gps_state {
 
   GThread* thread_p;
   GMutex *mutex, *control_mutex;
+
+#ifdef USE_LIBGPS
+  struct gps_data_t *data;
+#else
   GnomeVFSInetConnection *iconn;
   GnomeVFSSocket *socket;
+#endif
 
 #else
   LocationGPSDevice *device;
@@ -110,11 +121,11 @@ typedef struct gps_state {
 #endif
 
   struct {
-    struct gps_fix_t fix;
+    struct gps_t fix;
     gps_mask_t set;
   } last;
 
-  struct gps_fix_t fix;   
+  struct gps_t fix;   
   gps_mask_t set;
 
   GSList *callbacks;

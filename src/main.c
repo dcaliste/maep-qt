@@ -169,7 +169,7 @@ static int dist2pixel(OsmGpsMap *map, float km) {
 static void
 cb_map_gps(osd_button_t but, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
-  struct gps_fix_t *fix = g_object_get_data(G_OBJECT(map), "gps_fix");
+  struct gps_t *fix = g_object_get_data(G_OBJECT(map), "gps_fix");
 
   if(but == OSD_GPS && fix) {
 
@@ -188,7 +188,7 @@ static float get_distance(coord_t *p1, coord_t *p2) {
 }
 #endif
 
-static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
+static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
 #ifdef USE_MAEMO
   GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));

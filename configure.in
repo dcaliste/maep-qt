@@ -187,6 +187,11 @@ XB-Maemo-Icon-26:
   CFLAGS="$CFLAGS $gnome2_CFLAGS -DENABLE_BROWSER_INTERFACE"
   LIBS="$LIBS $gnome2_LIBS"
 
+  # check for libgps
+  PKG_CHECK_MODULES([gps], [libgps], [], [AC_MSG_ERROR([libgps missing])])
+  CFLAGS="$CFLAGS $gps_CFLAGS -DUSE_LIBGPS"
+  LIBS="$LIBS $gps_LIBS"
+
   INSTALL_PLATTFORM="install-debian"
 
   ICON=" No icon"

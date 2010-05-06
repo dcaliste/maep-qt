@@ -36,6 +36,10 @@
 #include <gpsmgr.h>
 #endif
 #include <errno.h>
+#else
+#ifdef USE_LIBGPS
+#include <gps.h>
+#endif
 #endif
 
 #include "gps.h"
@@ -50,12 +54,12 @@ static void gps_unregister_all(gps_state_t *gps_state);
 #define ALTITUDE_PRECISION (1.0)        // 1 meters
 
 static gboolean 
-track_differs(struct gps_fix_t *fix1, struct gps_fix_t *fix2) {
+track_differs(struct gps_t *fix1, struct gps_t *fix2) {
   return( fabsf(fix1->track - fix2->track) >= TRACK_PRECISION);
 }
 
 static gboolean 
-latlon_differs(struct gps_fix_t *fix1, struct gps_fix_t *fix2) {
+latlon_differs(struct gps_t *fix1, struct gps_t *fix2) {
   if( fabsf(fix1->latitude - fix2->latitude) >= POS_PRECISION)
     return TRUE;
 
@@ -66,12 +70,12 @@ latlon_differs(struct gps_fix_t *fix1, struct gps_fix_t *fix2) {
 }
 
 static gboolean 
-eph_differs(struct gps_fix_t *fix1, struct gps_fix_t *fix2) {
+eph_differs(struct gps_t *fix1, struct gps_t *fix2) {
   return( fabsf(fix1->eph - fix2->eph) >= EPH_PRECISION);
 }
 
 static gboolean 
-altitude_differs(struct gps_fix_t *fix1, struct gps_fix_t *fix2) {
+altitude_differs(struct gps_t *fix1, struct gps_t *fix2) {
   return( fabsf(fix1->altitude - fix2->altitude) >= ALTITUDE_PRECISION);
 }
 
@@ -119,6 +123,8 @@ static void gps_cb_func(gpointer data, gpointer user_data) {
 }
 
 #ifndef ENABLE_LIBLOCATION
+
+#ifndef USE_LIBGPS
 
 /* maybe user configurable later on ... */
 #define GPSD_HOST "127.0.0.1"
@@ -219,7 +225,7 @@ static void gps_unpack(char *buf, gps_state_t *gps_state) {
 	    gps_state->fix.track = NAN;
 	    gps_state->fix.eph = NAN;
 	  } else {
-	    struct gps_fix_t nf;
+	    struct gps_t nf;
 	    char tag[MAXTAGLEN+1], alt[20];
 	    char eph[20], track[20],speed[20];
 	    char lat[20], lon[20];
@@ -388,6 +394,62 @@ void gps_release(gps_state_t *gps_state) {
 
   g_free(gps_state);
 }
+
+#else // USE_LIBGPS
+
+static gpointer gps_thread(gpointer data) {
+  gps_state_t *gps_state = (gps_state_t*)data;
+
+  while(1) {
+    /* just lock and unlock the control mutex. This stops the thread */
+    /* while the main process locks this mutex */
+    g_mutex_lock(gps_state->control_mutex);
+    g_mutex_unlock(gps_state->control_mutex);
+
+    gps_poll(gps_state->data);
+
+    if(gps_state->data->fix.mode >= MODE_2D) {
+      /* latlon valid */
+      printf("latlon valid\n");
+    }
+
+    if(gps_state->data->fix.mode >= MODE_3D) {
+      /* altitude valid */
+
+      printf("altitude valid\n");
+    }
+
+  }
+
+  printf("gps: thread ended???\n");
+  return NULL;
+}
+
+gps_state_t *gps_init(void) {
+  gps_state_t *gps_state = g_new0(gps_state_t, 1);
+
+  gps_state->mutex = g_mutex_new();
+  gps_state->control_mutex = g_mutex_new();
+
+  gps_state->data = gps_open("127.0.0.1", DEFAULT_GPSD_PORT );
+  if(!gps_state->data)
+    perror("gps_open()");
+
+  (void)gps_stream(gps_state->data, WATCH_ENABLE, NULL);
+
+  gps_state->thread_p = 
+    g_thread_create(gps_thread, gps_state, FALSE, NULL);
+
+  return gps_state;
+}
+
+void gps_release(gps_state_t *gps_state) { 
+  gps_unregister_all(gps_state);
+  gps_close(gps_state->data); 
+  g_free(gps_state);
+}
+
+#endif // USE_LIBGPS
 
 static void gps_background_enable(gps_state_t *gps_state, gboolean enable) {
   printf("GPS: %sable background process\n", enable?"en":"dis");
