@@ -270,13 +270,27 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
 
 static gboolean on_focus_change(GtkWidget *widget, GdkEventFocus *event,
 				gpointer user_data) {
+  GtkWidget *map = GTK_WIDGET(user_data);
+
+  gps_state_t *gps = g_object_get_data(G_OBJECT(map), "gps_state");
+  g_assert(gps);
 
   printf("map focus-%s event\n", event->in?"in":"out");
+
+  /* disconnect from gps if map looses focus */
+  /* this is to save energy if maep runs in background */
+  
+  if(event->in) {
+    /* request all GPS information required for map display */
+    gps_register_callback(gps, LATLON_CHANGED | TRACK_CHANGED | HERR_CHANGED, 
+			  gps_callback, map);
+  } else
+    gps_unregister_callback(gps, gps_callback);
 
   return TRUE;
 }
 
-static GtkWidget *map_new(void) {
+static GtkWidget *map_new(GtkWidget *window) {
   /* It is recommanded that all applications share these same */
   /* map path, so data is only cached once. The path should be: */
   /* ~/.osm-gps-map on standard PC     (users home) */
@@ -365,12 +379,12 @@ static GtkWidget *map_new(void) {
 			gps_callback, widget);
   g_object_set_data(G_OBJECT(widget), "gps_state", gps);
 
-  g_signal_connect(G_OBJECT(widget), "focus-in-event", 
-		   G_CALLBACK(on_focus_change), NULL);
-
-  g_signal_connect(G_OBJECT(widget), "focus-out-event", 
-		   G_CALLBACK(on_focus_change), NULL);
-
+  g_signal_connect(G_OBJECT(window), "focus-in-event", 
+		   G_CALLBACK(on_focus_change), widget);
+  
+  g_signal_connect(G_OBJECT(window), "focus-out-event", 
+		   G_CALLBACK(on_focus_change), widget);
+  
   return widget;
 }
 
@@ -481,7 +495,7 @@ int main(int argc, char *argv[]) {
   gtk_container_add(GTK_CONTAINER(window), vbox);
 
   /* create map widget */
-  GtkWidget *map = map_new();
+  GtkWidget *map = map_new(window);
 
   /* attach menu to main window */
   menu_create(vbox, map);

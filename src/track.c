@@ -611,6 +611,8 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
   /* save new tracking state */
   g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED, (gpointer)enable);
 
+  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+
   if(enable) {
     track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
 
@@ -618,10 +620,15 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
     if(last) 
       track_point_new(GTK_WIDGET(map), g_memdup(last, sizeof(track_point_t)));
 
+    /* request all GPS information required for track capturing */
+    gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
+			  gps_callback, map);
   } else {
     /* stop all visual things */
     g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
     g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
+
+    gps_unregister_callback(gps_state, gps_callback);
   }
 
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
@@ -801,35 +808,41 @@ void track_restore(GtkWidget *map) {
 
   g_free(path);
 
-  /* we may also have to restore track capture ... */
-  if(gconf_get_bool(TRACK_CAPTURE_ENABLED, FALSE)) {
-    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-    menu_check_set_active(toplevel, "Track/Capture", TRUE);
-  }
-
-  /* ... incl. heart rate data */
-  if(gconf_get_bool(TRACK_HR_ENABLED, FALSE)) {
-    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-    menu_check_set_active(toplevel, "Track/Heart Rate", TRUE);
-  }
-
   /* install callback for capturing */
   gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
-  /* request all GPS information required for track capturing */
-  gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
-			gps_callback, map);
+
+  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
+
+  /* we may also have to restore track capture ... */
+  if(gconf_get_bool(TRACK_CAPTURE_ENABLED, FALSE)) {
+    menu_check_set_active(toplevel, "Track/Capture", TRUE);
+
+    /* request all GPS information required for track capturing */
+    gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
+			  gps_callback, map);
+  } else
+    menu_enable(toplevel, "Track/Heart Rate", FALSE); 
+
+  /* ... incl. heart rate data */
+  if(gconf_get_bool(TRACK_HR_ENABLED, FALSE)) 
+    menu_check_set_active(toplevel, "Track/Heart Rate", TRUE);
 }
 
 void track_save(GtkWidget *map) {
+  gboolean cur_state = 
+    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED);
+
   /* save state of capture engine */
-  gconf_set_bool(TRACK_CAPTURE_ENABLED, 
-	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED));
+  gconf_set_bool(TRACK_CAPTURE_ENABLED, cur_state);
 
   gconf_set_bool(TRACK_HR_ENABLED, 
 	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_HR_ENABLED));
 
-  gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
-  gps_unregister_callback(gps_state, gps_callback);
+  /* unregister callback if present */
+  if(cur_state) {
+    gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+    gps_unregister_callback(gps_state, gps_callback);
+  }
 
   /* free "last" coordinate if present */
   track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);

@@ -239,8 +239,8 @@ static gpointer hxm_thread(gpointer data) {
     printf("HXM: trying to connect to preset hxm\n");
     
     /* if an address was found in gconf, try to use it */
-    bdaddr = g_new0(bdaddr_t, 1);
-    baswap(bdaddr, strtoba(bdaddr_str));
+    bdaddr = strtoba(bdaddr_str);
+    baswap(bdaddr, bdaddr);
 
     hxm->state = HXM_STATE_CONNECTING;
     g_idle_add(hxm_notify, hxm); 

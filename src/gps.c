@@ -285,6 +285,8 @@ static void gps_unpack(char *buf, gps_state_t *gps_state) {
 static gboolean gps_notify(gpointer data) {
   gps_state_t *gps_state = (gps_state_t*)data;
 
+  printf("notifying all clients\n");
+
   if(gps_state->callbacks) {
     g_mutex_lock(gps_state->mutex);
 
@@ -315,6 +317,11 @@ static gpointer gps_thread(gpointer data) {
   gboolean connected = FALSE;
 
   while(1) {
+    /* just lock and unlock the control mutex. This stops the thread */
+    /* while the main process locks this mutex */
+    g_mutex_lock(gps_state->control_mutex);
+    g_mutex_unlock(gps_state->control_mutex);
+
     if(!connected) {
       printf("gps: trying to connect\n");
 
@@ -365,6 +372,7 @@ gps_state_t *gps_init(void) {
 
   /* start a new thread to listen to gpsd */
   gps_state->mutex = g_mutex_new();
+  gps_state->control_mutex = g_mutex_new();
   gps_state->thread_p = 
     g_thread_create(gps_thread, gps_state, FALSE, NULL);
 
@@ -377,7 +385,16 @@ void gps_release(gps_state_t *gps_state) {
 #ifdef USE_MAEMO
   gpsbt_stop(&gps_state->context);
 #endif
+
   g_free(gps_state);
+}
+
+static void gps_background_enable(gps_state_t *gps_state, gboolean enable) {
+  printf("GPS: %sable background process\n", enable?"en":"dis");
+
+  /* start and stop gps thread by locking and unlocking the control mutex */
+  if(enable) g_mutex_unlock(gps_state->control_mutex);
+  else       g_mutex_lock(gps_state->control_mutex);
 }
 
 #else
@@ -426,6 +443,7 @@ gps_state_t *gps_init(void) {
   gps_state->idd_changed = 
     g_signal_connect(gps_state->device, "changed", 
 		     G_CALLBACK(location_changed), gps_state);
+  gps_state->connected = TRUE;
 
   gps_state->control = location_gpsd_control_get_default();
 
@@ -455,25 +473,55 @@ void gps_release(gps_state_t *gps_state) {
   
   /* Disconnect signal */
   g_signal_handler_disconnect(gps_state->device, gps_state->idd_changed);
+  gps_state->connected = FALSE;
   
   g_free(gps_state);
 }
 
-#endif // USE_LIBLOCATION
+static void gps_background_enable(gps_state_t *gps_state, gboolean enable) {
+  printf("GPS: %sable background process\n", enable?"en":"dis");
 
-void gps_register_callback(gps_state_t *gps_state, int mask, 
-			   gps_cb cb, void *data) {
-  gps_callback_t *callback = g_new0(gps_callback_t, 1);
-
-  callback->mask = mask;
-  callback->cb = cb;
-  callback->data = data;
-
-  gps_state->callbacks = g_slist_append(gps_state->callbacks, callback);
+  if(enable) {
+    if(!gps_state->connected) {
+      gps_state->idd_changed = 
+	g_signal_connect(gps_state->device, "changed", 
+			 G_CALLBACK(location_changed), gps_state);
+      gps_state->connected = TRUE;
+    }
+  } else {
+    if(gps_state->connected) {
+      /* Disconnect signal */
+      g_signal_handler_disconnect(gps_state->device, gps_state->idd_changed);
+      gps_state->connected = FALSE;
+    }
+  }
 }
+
+#endif // USE_LIBLOCATION
 
 static gint compare(gconstpointer a, gconstpointer b) {
   return ((gps_callback_t*)a)->cb != b;
+}
+
+void gps_register_callback(gps_state_t *gps_state, int mask, 
+			   gps_cb cb, void *data) {
+  /* make sure the callback isn't already registered */
+  GSList *list = g_slist_find_custom(gps_state->callbacks, cb, compare);
+  if(list) {
+    printf("GPS register: ignoring duplicate\n"); 
+    return;
+  }
+
+  gps_callback_t *callback = g_new0(gps_callback_t, 1);
+  
+  callback->mask = mask;
+  callback->cb = cb;
+  callback->data = data;
+  
+  gps_state->callbacks = g_slist_append(gps_state->callbacks, callback);
+  
+  if(g_slist_length(gps_state->callbacks) == 1)
+    gps_background_enable(gps_state, TRUE);
 }
 
 void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb) {
@@ -484,6 +532,9 @@ void gps_unregister_callback(gps_state_t *gps_state, gps_cb cb) {
   /* and de-chain and free it */
   g_free(list->data);
   gps_state->callbacks = g_slist_remove(gps_state->callbacks, list->data);
+
+  if(g_slist_length(gps_state->callbacks) == 0)
+    gps_background_enable(gps_state, FALSE);
 }
 
 static void gps_unregister_all(gps_state_t *gps_state) {

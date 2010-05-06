@@ -98,13 +98,14 @@ typedef struct gps_state {
 #endif
 
   GThread* thread_p;
-  GMutex *mutex;
+  GMutex *mutex, *control_mutex;
   GnomeVFSInetConnection *iconn;
   GnomeVFSSocket *socket;
 
 #else
   LocationGPSDevice *device;
   LocationGPSDControl *control;
+  gboolean connected;
   guint idd_changed;
 #endif
 
