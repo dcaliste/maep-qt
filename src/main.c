@@ -198,19 +198,19 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
     (gps_mask_t)g_object_get_data(G_OBJECT(map), "gps_set"); 
 
   /* ... and enable "goto" button if it's valid */
-  if((set & LATLON_SET) != (gps_set & LATLON_SET)) {
+  if((set & FIX_LATLON_SET) != (gps_set & FIX_LATLON_SET)) {
     osm_gps_map_osd_enable_gps(map,  
-       OSM_GPS_MAP_OSD_CALLBACK((set&LATLON_SET)?cb_map_gps:NULL), map);
+       OSM_GPS_MAP_OSD_CALLBACK((set&FIX_LATLON_SET)?cb_map_gps:NULL), map);
 
     g_object_set_data(G_OBJECT(map), "gps_set", (gpointer)set); 
   }
 
-  if(set & LATLON_SET) {
+  if(set & FIX_LATLON_SET) {
     /* save fix in case the user later wants to enable gps */
     g_object_set_data(G_OBJECT(map), "gps_fix", fix); 
 
     /* get error */
-    int radius = (set & HERR_SET)?dist2pixel(map, fix->eph/1000):0;
+    int radius = (set & FIX_HERR_SET)?dist2pixel(map, fix->eph/1000):0;
 
     g_object_set(map, "gps-track-highlight-radius", radius, NULL);
     osm_gps_map_draw_gps(map, fix->latitude, fix->longitude, fix->track);
@@ -221,7 +221,7 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   }
 
 #ifdef USE_MAEMO
-  if((set & LATLON_SET) && toplevel) {
+  if((set & FIX_LATLON_SET) && toplevel) {
 
     /* check if toplevel has focus */
     if(GTK_WIDGET_HAS_FOCUS(toplevel)) {

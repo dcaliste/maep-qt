@@ -507,13 +507,13 @@ void track_clear(GtkWidget *map) {
 
 /* this callback is called from the gps layer as long as */
 /* captureing is enabled */
-static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
+static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   OsmGpsMap *map = OSM_GPS_MAP(data);
 
   track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
 
   /* save point as we may need it later to (re-)enable caturing */
-  if(set & LATLON_SET) {
+  if(set & FIX_LATLON_SET) {
     /* create storage if not present yet */
     if(!last) last = g_new0(track_point_t, 1);
     
@@ -544,7 +544,7 @@ static void gps_callback(gps_mask_t set, struct gps_fix_t *fix, void *data) {
      return;
 
   /* save gps position in track */
-  if(set & LATLON_SET) {
+  if(set & FIX_LATLON_SET) {
     track_point_t *point = g_new0(track_point_t, 1);
     point->altitude = fix->altitude;
     point->time = time(NULL);

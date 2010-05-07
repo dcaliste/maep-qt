@@ -41,7 +41,6 @@
 
 /* map configuration: */
 #define ENABLE_OSD
-#undef OSD_BALLOON
 #define OSD_SCALE
 #define OSD_CROSSHAIR
 #define OSD_COORDINATES

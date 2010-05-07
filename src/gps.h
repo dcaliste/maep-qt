@@ -59,13 +59,11 @@ struct gps_t {
 
 typedef unsigned int gps_mask_t;
 
-#ifndef USE_LIBGPS
-#define LATLON_SET	  (1<<0)
-#define ALTITUDE_SET	  (1<<1)
-#define TRACK_SET	  (1<<2)
-#define HERR_SET	  (1<<3)
-#define SATELLITE_SET	  (1<<4)
-#endif
+#define FIX_LATLON_SET	   (1<<0)
+#define FIX_ALTITUDE_SET   (1<<1)
+#define FIX_TRACK_SET	   (1<<2)
+#define FIX_HERR_SET	   (1<<3)
+#define FIX_SATELLITE_SET  (1<<4)
 
 #define LATLON_CHANGED    (LATLON_SET    << 8)
 #define ALTITUDE_CHANGED  (ALTITUDE_SET  << 8)

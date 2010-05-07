@@ -96,26 +96,34 @@ static void gps_cb_func(gpointer data, gpointer user_data) {
 
   /* check for changes in position */
   if(callback->mask & LATLON_CHANGED &&
-     (((gps_state->set & LATLON_SET) != (gps_state->last.set & LATLON_SET)) ||
-      ((gps_state->set & LATLON_SET) && latlon_differs(&gps_state->last.fix, &gps_state->fix)))) 
+     (((gps_state->set & FIX_LATLON_SET) != 
+       (gps_state->last.set & FIX_LATLON_SET)) ||
+      ((gps_state->set & FIX_LATLON_SET) && 
+       latlon_differs(&gps_state->last.fix, &gps_state->fix)))) 
     gps_state->set |= LATLON_CHANGED;
 
   /* check for changes in eph */
   if(callback->mask & HERR_CHANGED &&
-     (((gps_state->set & HERR_SET) != (gps_state->last.set & HERR_SET)) ||
-      ((gps_state->set & HERR_SET) && eph_differs(&gps_state->last.fix, &gps_state->fix))))
+     (((gps_state->set & FIX_HERR_SET) != 
+       (gps_state->last.set & FIX_HERR_SET)) ||
+      ((gps_state->set & FIX_HERR_SET) && 
+       eph_differs(&gps_state->last.fix, &gps_state->fix))))
     gps_state->set |= HERR_CHANGED;
 
   /* check for changes in track */
   if(callback->mask & TRACK_CHANGED &&
-     (((gps_state->set & TRACK_SET) != (gps_state->last.set & TRACK_SET)) ||
-      ((gps_state->set & TRACK_SET) && track_differs(&gps_state->last.fix, &gps_state->fix))))
+     (((gps_state->set & FIX_TRACK_SET) != 
+       (gps_state->last.set & FIX_TRACK_SET)) ||
+      ((gps_state->set & FIX_TRACK_SET) && 
+       track_differs(&gps_state->last.fix, &gps_state->fix))))
     gps_state->set |= TRACK_CHANGED;
 
   /* check for changes in altitude */
   if(callback->mask & ALTITUDE_CHANGED &&
-     (((gps_state->set & ALTITUDE_SET) != (gps_state->last.set & ALTITUDE_SET)) ||
-      ((gps_state->set & ALTITUDE_SET) && altitude_differs(&gps_state->last.fix, &gps_state->fix))))
+     (((gps_state->set & FIX_ALTITUDE_SET) != 
+       (gps_state->last.set & FIX_ALTITUDE_SET)) ||
+      ((gps_state->set & FIX_ALTITUDE_SET) && 
+       altitude_differs(&gps_state->last.fix, &gps_state->fix))))
     gps_state->set |= ALTITUDE_CHANGED;
 
   if(gps_state->set & CHANGED_MASK)
@@ -123,6 +131,25 @@ static void gps_cb_func(gpointer data, gpointer user_data) {
 }
 
 #ifndef ENABLE_LIBLOCATION
+
+static gboolean gps_notify(gpointer data) {
+  gps_state_t *gps_state = (gps_state_t*)data;
+
+  if(gps_state->callbacks) {
+    g_mutex_lock(gps_state->mutex);
+
+    /* tell all clients */
+    g_slist_foreach(gps_state->callbacks, gps_cb_func, gps_state);
+
+    g_mutex_unlock(gps_state->mutex);
+  }
+
+  /* remember last state reported */
+  gps_state->last.set = gps_state->set;
+  gps_state->last.fix = gps_state->fix;
+  
+  return FALSE; 
+}
 
 #ifndef USE_LIBGPS
 
@@ -243,16 +270,16 @@ static void gps_unpack(char *buf, gps_state_t *gps_state) {
 	      nf.track = parse_double(track);
 
 	      if (!isnan(nf.eph))
-		gps_state->set |= HERR_SET;
+		gps_state->set |= FIX_HERR_SET;
 
 	      if (!isnan(nf.track))
-		gps_state->set |= TRACK_SET;
+		gps_state->set |= FIX_TRACK_SET;
 
 	      gps_state->fix = nf;
-	      gps_state->set |= LATLON_SET;
+	      gps_state->set |= FIX_LATLON_SET;
 
 	      if(!isnan(nf.altitude))
-		gps_state->set |= ALTITUDE_SET;
+		gps_state->set |= FIX_ALTITUDE_SET;
 	    }
 	  }
 	  break;
@@ -280,33 +307,12 @@ static void gps_unpack(char *buf, gps_state_t *gps_state) {
               }
             }
           }
-          gps_state->set |= SATELLITE_SET;
+          gps_state->set |= FIX_SATELLITE_SET;
 	  break;
 	}
       }
     }
   }
-}
-
-static gboolean gps_notify(gpointer data) {
-  gps_state_t *gps_state = (gps_state_t*)data;
-
-  printf("notifying all clients\n");
-
-  if(gps_state->callbacks) {
-    g_mutex_lock(gps_state->mutex);
-
-    /* tell all clients */
-    g_slist_foreach(gps_state->callbacks, gps_cb_func, gps_state);
-
-    g_mutex_unlock(gps_state->mutex);
-  }
-
-  /* remember last state reported */
-  gps_state->last.set = gps_state->set;
-  gps_state->last.fix = gps_state->fix;
-  
-  return FALSE; 
 }
 
 static gpointer gps_thread(gpointer data) {
@@ -315,8 +321,6 @@ static gpointer gps_thread(gpointer data) {
   GnomeVFSFileSize bytes_read;
   GnomeVFSResult vfs_result;
   char str[512];
-
-  const char *msg = "o\r\n";   /* pos request */
 
   gps_state->set = 0;
 
@@ -337,6 +341,8 @@ static gpointer gps_thread(gpointer data) {
 	connected = TRUE;
 
     } else {
+      const char *msg = "o\r\n";   /* pos request */
+
       if(GNOME_VFS_OK == 
 	 (vfs_result = gnome_vfs_socket_write(gps_state->socket,
 		      msg, strlen(msg)+1, &bytes_read, NULL))) {
@@ -400,6 +406,11 @@ void gps_release(gps_state_t *gps_state) {
 static gpointer gps_thread(gpointer data) {
   gps_state_t *gps_state = (gps_state_t*)data;
 
+  /* the following is required for libgps to be able to parse */
+  /* the gps messages. Unfortunately this also affect the rest of */
+  /* the program and the main thread */
+  setlocale(LC_NUMERIC, "C");
+
   while(1) {
     /* just lock and unlock the control mutex. This stops the thread */
     /* while the main process locks this mutex */
@@ -408,17 +419,34 @@ static gpointer gps_thread(gpointer data) {
 
     gps_poll(gps_state->data);
 
+    g_mutex_lock(gps_state->mutex);
+    
+    /* assume we could't parse anything ... */
+    gps_state->set = 0;
+    
     if(gps_state->data->fix.mode >= MODE_2D) {
       /* latlon valid */
-      printf("latlon valid\n");
+      gps_state->set |= FIX_LATLON_SET | FIX_HERR_SET | FIX_TRACK_SET;
+      gps_state->fix.latitude = gps_state->data->fix.latitude;
+      gps_state->fix.longitude = gps_state->data->fix.longitude;
+      gps_state->fix.eph = 
+	gps_state->data->fix.epy > gps_state->data->fix.epx ?
+	gps_state->data->fix.epy : gps_state->data->fix.epx;
+      gps_state->fix.track = gps_state->data->fix.track;
     }
 
     if(gps_state->data->fix.mode >= MODE_3D) {
       /* altitude valid */
+      gps_state->set |= FIX_ALTITUDE_SET;
+      gps_state->fix.altitude = gps_state->data->fix.altitude;
+    } else
+      gps_state->fix.altitude = NAN;
 
-      printf("altitude valid\n");
-    }
-
+    /* notify applications of state if useful */
+    g_idle_add(gps_notify, gps_state); 
+    
+    g_mutex_unlock(gps_state->mutex);	    
+    
   }
 
   printf("gps: thread ended???\n");
@@ -467,20 +495,20 @@ location_changed(LocationGPSDevice *device, gps_state_t *gps_state) {
   gps_state->set = 0;
 
   if(device->fix->fields & LOCATION_GPS_DEVICE_LATLONG_SET) { 
-    gps_state->set |= LATLON_SET | HERR_SET;
+    gps_state->set |= FIX_LATLON_SET | FIX_HERR_SET;
     gps_state->fix.latitude = device->fix->latitude;
     gps_state->fix.longitude = device->fix->longitude;
     gps_state->fix.eph = device->fix->eph/100.0;  // we want eph in meters
   }
 
   if(device->fix->fields & LOCATION_GPS_DEVICE_ALTITUDE_SET) {
-    gps_state->set |= ALTITUDE_SET;
+    gps_state->set |= FIX_ALTITUDE_SET;
     gps_state->fix.altitude = device->fix->altitude;
   } else
     gps_state->fix.altitude = NAN;
 
   if(device->fix->fields & LOCATION_GPS_DEVICE_TRACK_SET) {
-    gps_state->set |= TRACK_SET;
+    gps_state->set |= FIX_TRACK_SET;
     gps_state->fix.track = device->fix->track;
   }
 
