@@ -559,14 +559,16 @@ void geonames_enable_search(GtkWidget *map) {
   g_object_set_data(G_OBJECT(toplevel), GEONAMES_SEARCH, hbox);
 }
 
-static void wiki_context_free(GtkWidget *widget) {
+static void wiki_context_free(GtkWidget *widget, gboolean destroy) {
   wiki_context_t *context = 
     (wiki_context_t *)g_object_get_data(G_OBJECT(widget), "wikipedia");
 
   g_assert(context);
 
-  osm_gps_map_clear_images(OSM_GPS_MAP(widget));
-  osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(widget));
+  if(!destroy) {
+    osm_gps_map_clear_images(OSM_GPS_MAP(widget));
+    osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(widget));
+  }
 
   /* if a list of entries is present, then remove it */
   if(context->list) {
@@ -615,7 +617,7 @@ static void wiki_context_free(GtkWidget *widget) {
 }
 
 static void on_map_destroy (GtkWidget *widget, gpointer data) {
-  wiki_context_free(widget);
+  wiki_context_free(widget, TRUE);
 }
 
 static void geonames_entry_render(gpointer data, gpointer user_data) {
@@ -1059,7 +1061,7 @@ void geonames_enable_wikipedia(GtkWidget *map, gboolean enable) {
       wiki_update(map);
 
   } else
-    wiki_context_free(map);
+    wiki_context_free(map, FALSE);
 
   gconf_set_bool("wikipedia", enable);
 }

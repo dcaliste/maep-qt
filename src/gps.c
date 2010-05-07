@@ -426,13 +426,17 @@ static gpointer gps_thread(gpointer data) {
     
     if(gps_state->data->fix.mode >= MODE_2D) {
       /* latlon valid */
-      gps_state->set |= FIX_LATLON_SET | FIX_HERR_SET | FIX_TRACK_SET;
+      gps_state->set |= FIX_LATLON_SET;
       gps_state->fix.latitude = gps_state->data->fix.latitude;
       gps_state->fix.longitude = gps_state->data->fix.longitude;
+
       gps_state->fix.eph = 
 	gps_state->data->fix.epy > gps_state->data->fix.epx ?
 	gps_state->data->fix.epy : gps_state->data->fix.epx;
+      if(!isnan(gps_state->fix.eph)) gps_state->set |= FIX_HERR_SET;
+
       gps_state->fix.track = gps_state->data->fix.track;
+      if(!isnan(gps_state->fix.track)) gps_state->set |= FIX_TRACK_SET;
     }
 
     if(gps_state->data->fix.mode >= MODE_3D) {
