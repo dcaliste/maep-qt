@@ -4,7 +4,8 @@ maep (1.3.4) unstable; urgency=low
   * Applied patch [#5562] Memory leak
   * Initial HXM heart rate monitor support
   * Extended altitude and heart rate/cadence support for tracks
-  * Support for multiple tracks within one file
+  * Fixed [#5604] Support for loading gpx files with multiple tracks?
+  * Fixed [#5515] Maep drains battery & slows down device by ...
 
  -- Till Harbaum <till@harbaum.org>  Thu, 25 Mar 2010 21:27:49 +0100
 
