@@ -29,7 +29,7 @@ typedef struct {
   GtkWidget *vmin_w, *vmax_w;
   GtkAdjustment *adj;
   GdkPixmap *pixmap;
-  track_t *track;
+  track_state_t *track_state;
   int zoom;
   float tmin, tmax;
   float vmin, vmax;
@@ -150,16 +150,20 @@ static void setup_time_bounds(graph_priv_t *priv) {
   assert(priv->tmin > time(NULL));  // make sure out tests will work at all
   
   // get smallest and biggest time
-  track_seg_t *seg = priv->track->track_seg;
-  while(seg) {
-    track_point_t *point = seg->track_point;
-    while(point) {
-      if(point->time > priv->tmax) priv->tmax = point->time;
-      if(point->time < priv->tmin) priv->tmin = point->time;
-      
-      point = point->next;
+  track_t *track = priv->track_state->track;
+  while(track) {
+    track_seg_t *seg = track->track_seg;
+    while(seg) {
+      track_point_t *point = seg->track_point;
+      while(point) {
+	if(point->time > priv->tmax) priv->tmax = point->time;
+	if(point->time < priv->tmin) priv->tmin = point->time;
+	
+	point = point->next;
+      }
+      seg = seg->next;
     }
-    seg = seg->next;
+    track = track->next;
   }
 }
 
@@ -177,16 +181,16 @@ static void graph_draw(GtkWidget *widget) {
   		     0, 0, width, height);
 
   /* do some basic track analysis */
-  if(track_length(priv->track) <= 1) {
+  if(track_length(priv->track_state) <= 1) {
     printf("no valid track!\n");
   } else {
-    printf("track is %d points long\n", track_length(priv->track));   
+    printf("track is %d points long\n", track_length(priv->track_state));   
 
     setup_time_bounds(priv);
     scroll_changed(priv->adj, priv);
 
     // default: altitude
-    track_get_min_max(priv->track, TRACK_ALTITUDE, &priv->vmin, &priv->vmax);
+    track_get_min_max(priv->track_state, TRACK_ALTITUDE, &priv->vmin, &priv->vmax);
 
     // fill range widgets
     char *str = g_strdup_printf("%.1f", priv->vmax);
@@ -199,20 +203,24 @@ static void graph_draw(GtkWidget *widget) {
     GdkGC *graph_gc = widget->style->fg_gc[GTK_STATE_NORMAL];
 
     /* finally draw the graph itself */
-    track_seg_t *seg = priv->track->track_seg;
-    while(seg) {
-      track_point_t *point = seg->track_point;
-      while(point) {
-	if(!isnan(point->altitude)) {
-	  int x = width*(point->time-priv->tmin)/(priv->tmax-priv->tmin);
-	  int y = height*(point->altitude-priv->vmin)/(priv->vmax-priv->vmin);
-
-	  gdk_draw_line(priv->pixmap, graph_gc, x, height, x, height-y);
+    track_t *track = priv->track_state->track;
+    while(track) {
+      track_seg_t *seg = track->track_seg;
+      while(seg) {
+	track_point_t *point = seg->track_point;
+	while(point) {
+	  if(!isnan(point->altitude)) {
+	    int x = width*(point->time-priv->tmin)/(priv->tmax-priv->tmin);
+	    int y = height*(point->altitude-priv->vmin)/(priv->vmax-priv->vmin);
+	    
+	    gdk_draw_line(priv->pixmap, graph_gc, x, height, x, height-y);
+	  }
+	  
+	  point = point->next;
 	}
-	
-	point = point->next;
+	seg = seg->next;
       }
-      seg = seg->next;
+      track = track->next;
     }
   }
 }
@@ -289,7 +297,7 @@ gint graph_destroy_event(GtkWidget *widget, gpointer data ) {
   return FALSE;
 }
 
-static GtkWidget *graph_bottom_box(GtkWidget *vbox, track_t *track) {
+static GtkWidget *graph_bottom_box(GtkWidget *vbox) {
   graph_priv_t *priv = g_object_get_data(G_OBJECT(vbox), "priv");
   g_assert(priv);
 
@@ -341,9 +349,9 @@ static GtkWidget *graph_range_new(graph_priv_t *priv) {
   return vbox;
 }
 
-GtkWidget *graph_new(track_t *track) {
+GtkWidget *graph_new(track_state_t *track_state) {
   graph_priv_t *priv = g_new0(graph_priv_t, 1);
-  priv->track = track;
+  priv->track_state = track_state;
   priv->zoom = 1;
 
   /* outmost widget: a vbox */
@@ -353,7 +361,7 @@ GtkWidget *graph_new(track_t *track) {
   GtkWidget *win = scrolled_window_new(GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
   priv->graph = gtk_drawing_area_new();
 
-  int flags = track_contents(track);
+  int flags = track_contents(track_state);
   
   printf("flags = %x\n", flags);
 
@@ -382,7 +390,7 @@ GtkWidget *graph_new(track_t *track) {
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), hbox);
 
-  GtkWidget *bottom_box = graph_bottom_box(vbox, track);
+  GtkWidget *bottom_box = graph_bottom_box(vbox);
   gtk_box_pack_start(GTK_BOX(vbox), bottom_box, FALSE, FALSE, 0);
 
   return vbox;

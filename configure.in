@@ -188,9 +188,10 @@ XB-Maemo-Icon-26:
   LIBS="$LIBS $gnome2_LIBS"
 
   # check for libgps
-  PKG_CHECK_MODULES([gps], [libgps], [], [AC_MSG_ERROR([libgps missing])])
-  CFLAGS="$CFLAGS $gps_CFLAGS -DUSE_LIBGPS"
-  LIBS="$LIBS $gps_LIBS"
+  PKG_CHECK_MODULES([gps], [libgps], [
+    CFLAGS="$CFLAGS $gps_CFLAGS -DUSE_LIBGPS"
+    LIBS="$LIBS $gps_LIBS"
+  ], [AC_MSG_NOTICE([No libgps found, using direct GPSD])])
 
   INSTALL_PLATTFORM="install-debian"
 

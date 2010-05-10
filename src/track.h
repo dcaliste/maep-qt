@@ -47,10 +47,16 @@ typedef struct track_seg_s {
 
 /* a track is a series of segments */
 typedef struct track_s {
+  char *name;
   track_seg_t *track_seg;
-  gboolean dirty;
-  track_seg_t *cur_seg;
+  struct track_s *next;
 } track_t;
+
+/* the state of the track handler */
+typedef struct {
+  track_t *track;
+  gboolean dirty;
+} track_state_t;
 
 void track_import(GtkWidget *map);
 void track_export(GtkWidget *map);
@@ -61,9 +67,9 @@ void track_hr_enable(GtkWidget *map, gboolean enable);
 
 void track_restore(GtkWidget *map);
 void track_save(GtkWidget *map);
-int track_length(track_t *track);
+int track_length(track_state_t *);
 
-int track_contents(track_t *track);
-void track_get_min_max(track_t *track, int flag, float *min, float *max);
+int track_contents(track_state_t *);
+void track_get_min_max(track_state_t *, int flag, float *min, float *max);
 
 #endif // TRACK_H

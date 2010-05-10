@@ -55,6 +55,47 @@
 #include <hildon/hildon-file-chooser-dialog.h>
 #endif
 
+/* --------------------------------------------------------------- */
+
+static void track_point_free(track_point_t *point) {
+  g_free(point);
+}
+
+static void track_seg_free(track_seg_t *seg) {
+  track_point_t *point = seg->track_point;
+  while(point) {
+    track_point_t *next = point->next;
+    track_point_free(point);
+    point = next;
+  }
+
+  g_free(seg);
+}
+
+static void track_free(track_t *trk) {
+  if(trk->name) g_free(trk->name);
+
+  track_seg_t *seg = trk->track_seg;
+  while(seg) {
+    track_seg_t *next = seg->next;
+    track_seg_free(seg);
+    seg = next;
+  }
+
+  g_free(trk);
+}
+
+static void track_state_free(track_state_t *track_state) {
+  track_t *track = track_state->track;
+  while(track) {
+    track_t *next = track->next;
+    track_free(track);
+    track = next;
+  }
+
+  g_free(track_state);
+}
+
 static void filemgr_setup(GtkWidget *dialog, gboolean save) {
   char *track_path = gconf_get_string("track_path");
 
@@ -227,7 +268,11 @@ static track_t *track_parse_trk(xmlDocPtr doc, xmlNode *a_node) {
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
-      if(strcasecmp((char*)cur_node->name, "trkseg") == 0) {
+      if(strcasecmp((char*)cur_node->name, "name") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	if(str && !track->name) track->name = g_strdup(str);
+	xmlFree(str);
+      } else if(strcasecmp((char*)cur_node->name, "trkseg") == 0) {
 	track_parse_trkseg(track, doc, cur_node);
       } else
 	printf("found unhandled gpx/trk/%s\n", cur_node->name);
@@ -237,48 +282,53 @@ static track_t *track_parse_trk(xmlDocPtr doc, xmlNode *a_node) {
   return track;
 }
 
-static track_t *track_parse_gpx(xmlDocPtr doc, xmlNode *a_node) {
-  track_t *track = NULL;
+static track_state_t *track_parse_gpx(xmlDocPtr doc, xmlNode *a_node) {
+  track_state_t *track_state = g_new0(track_state_t, 1);
+  track_t **track = &(track_state->track);
   xmlNode *cur_node = NULL;
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
       if(strcasecmp((char*)cur_node->name, "trk") == 0) {
-	if(!track) 
-	  track = track_parse_trk(doc, cur_node);
-	else
-	  printf("ignoring additional track\n");
+	*track = track_parse_trk(doc, cur_node);
+	if(*track) {
+	  /* check if track really contains segments */
+	  if(!(*track)->track_seg)
+	    track_free(*track);
+	  else
+	    track = &(*track)->next;
+	}
       } else
 	printf("found unhandled gpx/%s\n", cur_node->name);      
     }
   }
-  return track;
+  return track_state;
 }
 
 /* parse root element and search for "track" */
-static track_t *track_parse_root(xmlDocPtr doc, xmlNode *a_node) {
-  track_t *track = NULL;
+static track_state_t *track_parse_root(xmlDocPtr doc, xmlNode *a_node) {
+  track_state_t *track_state = NULL;
   xmlNode *cur_node = NULL;
 
   for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
       /* parse track file ... */
       if(strcasecmp((char*)cur_node->name, "gpx") == 0) 
-      	track = track_parse_gpx(doc, cur_node);
+      	track_state = track_parse_gpx(doc, cur_node);
       else 
 	printf("found unhandled %s\n", cur_node->name);
     }
   }
-  return track;
+  return track_state;
 }
 
-static track_t *track_parse_doc(xmlDocPtr doc) {
-  track_t *track;
+static track_state_t *track_parse_doc(xmlDocPtr doc) {
+  track_state_t *track_state;
 
   /* Get the root element node */
   xmlNode *root_element = xmlDocGetRootElement(doc);
 
-  track = track_parse_root(doc, root_element);  
+  track_state = track_parse_root(doc, root_element);  
 
   /*free the document */
   xmlFreeDoc(doc);
@@ -289,10 +339,10 @@ static track_t *track_parse_doc(xmlDocPtr doc) {
    */
   xmlCleanupParser();
 
-  return track;
+  return track_state;
 }
 
-static track_t *track_read(char *filename) {
+static track_state_t *track_read(char *filename) {
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
@@ -304,43 +354,47 @@ static track_t *track_read(char *filename) {
     return NULL;
   }
 
-  track_t *track = track_parse_doc(doc); 
+  track_state_t *track_state = track_parse_doc(doc); 
 
-  if(!track || !track->track_seg) {
+  if(!track_state || !track_state->track) {
     printf("track was empty/invalid track\n");
     return NULL;
   }
 
-  track->dirty = TRUE;
+  track_state->dirty = TRUE;
   
-  return track;
+  return track_state;
 }
 
-void track_draw(GtkWidget *map, track_t *track) {
+void track_draw(GtkWidget *map, track_state_t *track_state) {
   /* erase any previous track */
   track_clear(map);
 
-  if(!track) return;
+  if(!track_state) return;
 
-  track_seg_t *seg = track->track_seg;
-  while(seg) {
-    GSList *points = NULL;
-    track_point_t *point = seg->track_point;
+  track_t *track = track_state->track;
+  while(track) {
+    track_seg_t *seg = track->track_seg;
+    while(seg) {
+      GSList *points = NULL;
+      track_point_t *point = seg->track_point;
     
-    while(point) {
-      /* we need to create a copy of the coordinate since */
-      /* the map will free them */
-      coord_t *new_point = g_memdup(&point->coord, sizeof(coord_t));
-      points = g_slist_append(points, new_point);
-      point = point->next;
+      while(point) {
+	/* we need to create a copy of the coordinate since */
+	/* the map will free them */
+	coord_t *new_point = g_memdup(&point->coord, sizeof(coord_t));
+	points = g_slist_append(points, new_point);
+	point = point->next;
+      }
+      osm_gps_map_add_track(OSM_GPS_MAP(map), points);
+
+      seg = seg->next;    
     }
-    seg = seg->next;
-    
-    osm_gps_map_add_track(OSM_GPS_MAP(map), points);
+    track = track->next;    
   }
 
   /* save track reference in map */
-  g_object_set_data(G_OBJECT(map), "track", track);
+  g_object_set_data(G_OBJECT(map), "track_state", track_state);
 
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
   menu_enable(toplevel, "Track/Clear", TRUE);
@@ -355,7 +409,7 @@ void track_import(GtkWidget *map) {
   /* open a file selector */
   GtkWidget *dialog;
 
-  track_t *track = NULL;
+  track_state_t *track_state = NULL;
   
 #ifdef USE_MAEMO
   dialog = hildon_file_chooser_dialog_new(GTK_WINDOW(toplevel), 
@@ -375,35 +429,17 @@ void track_import(GtkWidget *map) {
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
     /* load a track */
-    track = track_read(filename);
-    if(track) 
+    track_state = track_read(filename);
+    if(track_state) 
       gconf_set_string("track_path", filename);
 
-    g_free (filename);
+    g_free(filename);
 
-    track_draw(map, track);
+    track_draw(map, track_state);
   }
 
   gtk_widget_destroy (dialog);
 }
-
-/* --------------------------------------------------------------- */
-
-void track_point_free(track_point_t *point) {
-  g_free(point);
-}
-
-void track_seg_free(track_seg_t *seg) {
-  track_point_t *point = seg->track_point;
-  while(point) {
-    track_point_t *next = point->next;
-    track_point_free(point);
-    point = next;
-  }
-
-  g_free(seg);
-}
-
 
 static void track_point_new(GtkWidget *map, track_point_t *new_point) {
 
@@ -422,21 +458,35 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
   
   if(!seg) {
     /* append a new segment */
-    track_t *track = g_object_get_data(G_OBJECT(map), "track");
-    if(!track) {
-      /* no tracks at all sp far -> enable menu */
+    track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
+    if(!track_state) {
+      /* no tracks at all so far -> enable menu */
       GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
       menu_enable(toplevel, "Track/Clear", TRUE);
       menu_enable(toplevel, "Track/Export", TRUE);
       
       printf("gps: creating new track\n");
-      track = g_new0(track_t, 1);
-      g_object_set_data(G_OBJECT(map), "track", track);
+      track_state = g_new0(track_state_t, 1);
+      g_object_set_data(G_OBJECT(map), "track_state", track_state);
     }
     
-    track->dirty = TRUE;
+    track_state->dirty = TRUE;
     
-    printf("gps: creating new segment\n");
+    printf("track: now active segment, starting new one\n");
+
+    /* get last track, create one if none present */
+    track_t *track = track_state->track;
+    if(!track) {
+      printf("track: no track so far, creating new track\n");
+
+      track = track_state->track = g_new0(track_t, 1);
+
+      time_t tval = time(NULL);
+      struct tm *loctime = localtime(&tval);
+      char str[64];
+      strftime(str, sizeof(str), "Track started %x %X", loctime);
+      track->name = g_strdup(str);
+    }
     
     /* search last segment */
     if((seg = track->track_seg)) {
@@ -461,15 +511,15 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
   g_object_set_data(G_OBJECT(map), "track_current_segment", seg);
   
   /* if track length just became 2, then also enable the graph */
-  track_t *track = g_object_get_data(G_OBJECT(map), "track");
-  if(track_length(track) == 2) {
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
+  if(track_length(track_state) == 2) {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_enable(toplevel, "Track/Graph", TRUE);
   }
 }
 
 void track_clear(GtkWidget *map) {
-  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
 
   g_object_set_data(G_OBJECT(map), "track_current", NULL);
 
@@ -484,17 +534,10 @@ void track_clear(GtkWidget *map) {
   g_object_set_data(G_OBJECT(map), "track_current_draw", NULL);
   g_object_set_data(G_OBJECT(map), "track_current_segment", NULL);
 
-  if (!track) return;
+  if (!track_state) return;
 
-  g_object_set_data(G_OBJECT(map), "track", NULL);
-
-  track_seg_t *seg = track->track_seg;
-  while(seg) {
-    track_seg_t *next = seg->next;
-    track_seg_free(seg);
-    seg = next;
-  }
-  g_free(track);
+  g_object_set_data(G_OBJECT(map), "track_state", NULL);
+  track_state_free(track_state);
 
   /* if we are still captureing a track and we have a valid fix, then */
   /* start a new one immediately */
@@ -691,38 +734,49 @@ void track_save_segs(track_seg_t *seg, xmlNodePtr node) {
   }
 }
 
-void track_write(char *name, track_t *track) {
+void track_save_tracks(track_t *track, xmlNodePtr node) {
+  while(track) {
+    xmlNodePtr trk_node = xmlNewChild(node, NULL, BAD_CAST "trk", NULL);
+    if(track->name) 
+      xmlNewTextChild(trk_node, NULL, BAD_CAST "name", BAD_CAST track->name);
+
+    track_save_segs(track->track_seg, trk_node);
+    track = track->next;
+  }
+}
+
+void track_write(char *name, track_state_t *track_state) {
   LIBXML_TEST_VERSION;
  
   xmlDocPtr doc = xmlNewDoc(BAD_CAST "1.0");
   xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "gpx");
+  xmlNewProp(root_node, BAD_CAST "version", BAD_CAST "1.0");
   xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
   xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
 	     "http://www.topografix.com/GPX/1/0/gpx.xsd");
 
   /* add TrackPointExtension only if it will actually be used */
-  if(track_contents(track) & (TRACK_HR | TRACK_CADENCE))
+  if(track_contents(track_state) & (TRACK_HR | TRACK_CADENCE))
     xmlNewProp(root_node, BAD_CAST "xmlns:gpxtpx", BAD_CAST 
 	       "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
-  
-  xmlNodePtr trk_node = xmlNewChild(root_node, NULL, BAD_CAST "trk", NULL);
+
   xmlDocSetRootElement(doc, root_node);
-  
-  track_save_segs(track->track_seg, trk_node);
+
+  track_save_tracks(track_state->track, root_node);
 
   xmlSaveFormatFileEnc(name, doc, "UTF-8", 1);
   xmlFreeDoc(doc);
   xmlCleanupParser();
 
-  track->dirty = FALSE;
+  track_state->dirty = FALSE;
 }
 
 void track_export(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
 
   /* the menu should be disabled when no track is present */
-  g_assert(track);
+  g_assert(track_state);
 
   /* open a file selector */
   GtkWidget *dialog;
@@ -753,7 +807,7 @@ void track_export(GtkWidget *map) {
 
 	gconf_set_string("track_path", filename);
 
-	track_write(filename, track);
+	track_write(filename, track_state);
       }
     }
   }
@@ -792,13 +846,13 @@ void track_restore(GtkWidget *map) {
   char *path = build_path();
 
   if(g_file_test(path, G_FILE_TEST_IS_REGULAR)) {
-    track_t *track = track_read(path);
+    track_state_t *track_state = track_read(path);
 
-    if(track) 
-      track_draw(map, track);
+    if(track_state) 
+      track_draw(map, track_state);
 
     /* the track comes fresh from the disk */
-    track->dirty = FALSE;
+    track_state->dirty = FALSE;
   } else {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_enable(toplevel, "Track/Clear", FALSE);
@@ -852,14 +906,14 @@ void track_save(GtkWidget *map) {
   }
 
   char *path = build_path();
-  track_t *track = g_object_get_data(G_OBJECT(map), "track");
-  if(!track) {
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
+  if(!track_state) {
     remove(path);
     g_free(path);
     return;
   }
 
-  if(!track->dirty) {
+  if(!track_state->dirty) {
     g_free(path);
     return;
   }
@@ -871,14 +925,14 @@ void track_save(GtkWidget *map) {
   g_mkdir_with_parents(path, 0700);
   *last_sep = '/';
 
-  track_write(path, track);
+  track_write(path, track_state);
   
   g_free(path);
 }
 
 void track_graph(GtkWidget *map) {
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-  track_t *track = g_object_get_data(G_OBJECT(map), "track");
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
 
   GtkWidget *dialog = gtk_dialog_new_with_buttons(_("Track graph"),
 	  GTK_WINDOW(toplevel), GTK_DIALOG_MODAL,
@@ -890,7 +944,7 @@ void track_graph(GtkWidget *map) {
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 #endif
 
-  GtkWidget *graph = graph_new(track);
+  GtkWidget *graph = graph_new(track_state);
   gtk_box_pack_start_defaults(GTK_BOX((GTK_DIALOG(dialog))->vbox), graph);
 
   gtk_widget_show_all(dialog);
@@ -899,85 +953,97 @@ void track_graph(GtkWidget *map) {
   gtk_widget_destroy(dialog);
 }
 
-int track_length(track_t *track) {
+int track_length(track_state_t *track_state) {
   int len = 0;
 
-  if(track) {
-    track_seg_t *seg = track->track_seg;
-    while(seg) {
-      track_point_t *point = seg->track_point;
-      while(point) {
-	len++;
-	point = point->next;
+  if(track_state) {
+    track_t *track = track_state->track;
+    while(track) {
+      track_seg_t *seg = track->track_seg;
+      while(seg) {
+	track_point_t *point = seg->track_point;
+	while(point) {
+	  len++;
+	  point = point->next;
+	}
+	seg = seg->next;
       }
-      seg = seg->next;
+      track = track->next;
     }
   }
   return len;
 }
 
-int track_contents(track_t *track) {
+int track_contents(track_state_t *track_state) {
   int flags = 0;
-  if(track) {
-    track_seg_t *seg = track->track_seg; 
-    while(seg) {
-      track_point_t *point = seg->track_point;
-      while(point) {
-	if(!isnan(point->speed))    flags |= TRACK_SPEED;
-	if(!isnan(point->altitude)) flags |= TRACK_ALTITUDE;
-	if(!isnan(point->hr))       flags |= TRACK_HR;
-	if(!isnan(point->cad))      flags |= TRACK_CADENCE;
-	
-	point = point->next;
+  if(track_state) {
+    track_t *track = track_state->track;
+    while(track) {
+      track_seg_t *seg = track->track_seg; 
+      while(seg) {
+	track_point_t *point = seg->track_point;
+	while(point) {
+	  if(!isnan(point->speed))    flags |= TRACK_SPEED;
+	  if(!isnan(point->altitude)) flags |= TRACK_ALTITUDE;
+	  if(!isnan(point->hr))       flags |= TRACK_HR;
+	  if(!isnan(point->cad))      flags |= TRACK_CADENCE;
+	  
+	  point = point->next;
+	}
+	seg = seg->next;
       }
-      seg = seg->next;
+      track = track->next;
     }
   }
   return flags;
 }
 
-void track_get_min_max(track_t *track, int flag, float *min, float *max) {
+void track_get_min_max(track_state_t *track_state, int flag, float *min, float *max) {
   *min =  MAXFLOAT;
   *max = -MAXFLOAT;
-
-  if(track) {
-    track_seg_t *seg = track->track_seg;
-    while(seg) {
-      track_point_t *point = seg->track_point;
-      while(point) {
-	switch(flag) {
-	case TRACK_SPEED:
-	  if(!isnan(point->speed)) {
-	    if(point->speed < *min) *min = point->speed;
-	    if(point->speed > *max) *max = point->speed;
+  
+  if(track_state) {
+    track_t *track = track_state->track;
+    while(track) {
+      track_seg_t *seg = track->track_seg;
+      while(seg) {
+	track_point_t *point = seg->track_point;
+	while(point) {
+	  switch(flag) {
+	  case TRACK_SPEED:
+	    if(!isnan(point->speed)) {
+	      if(point->speed < *min) *min = point->speed;
+	      if(point->speed > *max) *max = point->speed;
+	    }
+	    break;
+	    
+	  case TRACK_ALTITUDE:
+	    if(!isnan(point->altitude)) {
+	      if(point->altitude < *min) *min = point->altitude;
+	      if(point->altitude > *max) *max = point->altitude;
+	    }
+	    break;
+	    
+	  case TRACK_HR:
+	    if(!isnan(point->hr)) {
+	      if(point->hr < *min) *min = point->hr;
+	      if(point->hr > *max) *max = point->hr;
+	    }
+	    break;
+	    
+	  case TRACK_CADENCE:
+	    if(!isnan(point->cad)) {
+	      if(point->cad < *min) *min = point->cad;
+	      if(point->cad > *max) *max = point->cad;
+	    }
+	    break;
+	    
 	  }
-	  break;
-	  
-	case TRACK_ALTITUDE:
-	  if(!isnan(point->altitude)) {
-	    if(point->altitude < *min) *min = point->altitude;
-	    if(point->altitude > *max) *max = point->altitude;
-	  }
-	  break;
-	  
-	case TRACK_HR:
-	  if(!isnan(point->hr)) {
-	    if(point->hr < *min) *min = point->hr;
-	    if(point->hr > *max) *max = point->hr;
-	  }
-	  break;
-	  
-	case TRACK_CADENCE:
-	  if(!isnan(point->cad)) {
-	    if(point->cad < *min) *min = point->cad;
-	    if(point->cad > *max) *max = point->cad;
-	  }
-	  break;
-	  
+	  point = point->next;
 	}
-	point = point->next;
+	seg = seg->next;
       }
-      seg = seg->next;
+      track = track->next;
     }
   }
 }

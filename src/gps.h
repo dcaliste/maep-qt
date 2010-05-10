@@ -65,11 +65,11 @@ typedef unsigned int gps_mask_t;
 #define FIX_HERR_SET	   (1<<3)
 #define FIX_SATELLITE_SET  (1<<4)
 
-#define LATLON_CHANGED    (LATLON_SET    << 8)
-#define ALTITUDE_CHANGED  (ALTITUDE_SET  << 8)
-#define TRACK_CHANGED     (TRACK_SET     << 8)
-#define HERR_CHANGED      (HERR_SET      << 8)
-#define SATELLITE_CHANGED (SATELLITE_SET << 8)
+#define LATLON_CHANGED    (FIX_LATLON_SET    << 8)
+#define ALTITUDE_CHANGED  (FIX_ALTITUDE_SET  << 8)
+#define TRACK_CHANGED     (FIX_TRACK_SET     << 8)
+#define HERR_CHANGED      (FIX_HERR_SET      << 8)
+#define SATELLITE_CHANGED (FIX_SATELLITE_SET << 8)
 
 #define CHANGED_MASK 0xff00
 

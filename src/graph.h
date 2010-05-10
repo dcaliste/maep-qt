@@ -27,6 +27,6 @@
 
 #include "track.h"
 
-GtkWidget *graph_new(track_t *);
+GtkWidget *graph_new(track_state_t *);
 
 #endif // GRAPH_H
