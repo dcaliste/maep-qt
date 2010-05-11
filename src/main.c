@@ -500,11 +500,6 @@ int main(int argc, char *argv[]) {
   /* attach menu to main window */
   menu_create(vbox, map);
 
-  /* -------- update "Double Pixel" menu entry according to map state ----- */
-  gboolean dpix = FALSE;
-  g_object_get(map, "double-pixel", &dpix, NULL);
-  menu_check_set_active(window, "Double Pixel", dpix);
-
   g_signal_connect(G_OBJECT(map), "destroy", 
 		   G_CALLBACK(on_map_destroy), NULL);
 

@@ -6,7 +6,9 @@ maep (1.3.4) unstable; urgency=low
   * Extended altitude and heart rate/cadence support for tracks
   * Fixed [#5604] Support for loading gpx files with multiple tracks?
   * Fixed [#5515] Maep drains battery & slows down device by ...
-
+  * Applied [#5329] This patch adds new "Double Pixel" functionality ...
+  * Added Double-Pixel GUI to OSD
+	
  -- Till Harbaum <till@harbaum.org>  Thu, 25 Mar 2010 21:27:49 +0100
 
 maep (1.3.3) unstable; urgency=low

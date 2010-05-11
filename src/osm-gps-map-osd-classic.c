@@ -45,6 +45,14 @@ static OsmGpsMapSource_t map_sources[] = {
 };
 static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]);
 
+#ifdef OSD_DOUBLEPIXEL
+#define OSD_DPIX_EXTRA 1
+#define OSD_DPIX_SKIP  (OSD_FONT_SIZE/2)
+#else
+#define OSD_DPIX_EXTRA 0
+#define OSD_DPIX_SKIP  0
+#endif
+
 //the osd controls
 typedef struct {
     /* the offscreen representation of the OSD */
@@ -112,6 +120,7 @@ typedef struct {
         gint handler_id;
         gint width, height;
         gboolean rendered;
+        gint max_h;
     } source_sel;
 #endif
 
@@ -717,15 +726,64 @@ osd_source_content(osm_gps_map_osd_t *osd, cairo_t *cr, gint offset) {
                                     CAIRO_FONT_WEIGHT_BOLD);
             cairo_set_font_size (cr, OSD_FONT_SIZE);
 
-            int i, step = (priv->source_sel.height - 2*OSD_TEXT_BORDER) / 
-                num_map_sources;
-            for(i=0;i<num_map_sources;i++) {
+            int i, step = (priv->source_sel.height - 2*OSD_TEXT_BORDER - OSD_DPIX_SKIP) / 
+                (num_map_sources + OSD_DPIX_EXTRA);
+            for(i=0;i<num_map_sources + OSD_DPIX_EXTRA;i++) {
                 cairo_text_extents_t extents;
-                const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
+                const char *src = NULL;
+#if OSD_DPIX_EXTRA > 0
+                /* draw "double pixel" check button */
+                const char *dpix = _("Double Pixel");
+                if(i == num_map_sources) {
+                    src = dpix;
+                } else
+#endif
+                src = osm_gps_map_source_get_friendly_name( map_sources[i] );
+
                 cairo_text_extents (cr, src, &extents);
                 
                 int x = offset + OSD_S_PW + OSD_TEXT_BORDER;
                 int y = offset + step * i + OSD_TEXT_BORDER;
+
+#if OSD_DPIX_EXTRA > 0
+                if(i == num_map_sources) {
+                    int skip3 = OSD_DPIX_SKIP/3;
+
+                    gboolean dpix;
+                    g_object_get(osd->widget, "double-pixel", &dpix, NULL);
+
+                    cairo_set_line_width (cr, skip3);
+
+                    /* draw seperator line */
+                    cairo_move_to (cr, x, y + skip3);
+                    cairo_rel_line_to (cr, OSD_S_AREA_W - 2*OSD_TEXT_BORDER, 0);
+                    cairo_stroke(cr);
+
+                    y += OSD_DPIX_SKIP;
+
+                    /* draw check box */
+                    cairo_move_to (cr, x, y);
+                    cairo_rel_line_to (cr, OSD_FONT_SIZE, 0);
+                    cairo_rel_line_to (cr, 0, OSD_FONT_SIZE);
+                    cairo_rel_line_to (cr, -OSD_FONT_SIZE, 0);
+                    cairo_rel_line_to (cr, 0, -OSD_FONT_SIZE);
+                    cairo_stroke(cr);
+
+                    /* draw check if needed */
+                    if(dpix) {
+                        int space = OSD_FONT_SIZE/4;
+                        cairo_move_to (cr, x + space, y + space);
+                        cairo_rel_line_to (cr, OSD_FONT_SIZE - 2*space, OSD_FONT_SIZE - 2*space);
+                        cairo_stroke(cr);
+
+                        cairo_move_to (cr, x + OSD_FONT_SIZE - space, y + space);
+                        cairo_rel_line_to (cr, -(OSD_FONT_SIZE - 2*space), OSD_FONT_SIZE - 2*space);
+                        cairo_stroke(cr);
+                    }
+
+                    x += 1.5 * OSD_FONT_SIZE;
+                }
+#endif
 
                 /* draw filled rectangle if selected */
                 if(source == map_sources[i]) {
@@ -835,19 +893,20 @@ osd_source_reallocate(osm_gps_map_osd_t *osd) {
         cairo_set_font_size (cr, OSD_FONT_SIZE);
 
         /* calculate menu size */
-        int i, max_h = 0, max_w = 0;
+        int i,  max_w = 0;
+        priv->source_sel.max_h = 0;
         for(i=0;i<num_map_sources;i++) {
             const char *src = osm_gps_map_source_get_friendly_name( map_sources[i] );
             cairo_text_extents (cr, src, &extents);
 
             if(extents.width > max_w) max_w = extents.width;
-            if(extents.height > max_h) max_h = extents.height;
+            if(extents.height > priv->source_sel.max_h) priv->source_sel.max_h = extents.height;
         }
         cairo_destroy(cr);
        
         priv->source_sel.width  = max_w + 2*OSD_TEXT_BORDER;
-        priv->source_sel.height = num_map_sources * 
-            (max_h + 2*OSD_TEXT_SKIP) + 2*OSD_TEXT_BORDER;
+        priv->source_sel.height = (num_map_sources + OSD_DPIX_EXTRA) * 
+            (priv->source_sel.max_h + 2*OSD_TEXT_SKIP) + 2*OSD_TEXT_BORDER + OSD_DPIX_SKIP;
 
         w = OSD_S_EXP_W;
         h = OSD_S_EXP_H;
@@ -976,25 +1035,46 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
            y > 0 &&
            y < OSD_S_EXP_H) {
             
-            int step = (priv->source_sel.height - 2*OSD_TEXT_BORDER) 
-                / num_map_sources;
+            int step = (priv->source_sel.height - 2*OSD_TEXT_BORDER - OSD_DPIX_SKIP) 
+                / (num_map_sources + OSD_DPIX_EXTRA);
 
             y -= OSD_TEXT_BORDER - OSD_TEXT_SKIP;
-            y /= step;
+            int py = y / step;
 
             if(down) {
                 gint old = 0;
                 g_object_get(osd->widget, "map-source", &old, NULL);
 
-                if(y >= 0 &&
-                   y < num_map_sources &&
-                   old != map_sources[y]) {
-                    g_object_set(osd->widget, "map-source", map_sources[y], NULL);
+                if(py >= 0 &&
+                   py < num_map_sources &&
+                   old != map_sources[py]) {
+                    g_object_set(osd->widget, "map-source", map_sources[py], NULL);
                     
                     osd_render_source_sel(osd, TRUE);
                     osm_gps_map_repaint(OSM_GPS_MAP(osd->widget));
                     osm_gps_map_redraw(OSM_GPS_MAP(osd->widget));
                 }
+
+#if OSD_DPIX_EXTRA > 0
+                if(py >= num_map_sources) {
+                    /* xyz */
+
+                    y -= num_map_sources * (priv->source_sel.max_h + 2*OSD_TEXT_SKIP ) +
+                        OSD_TEXT_SKIP + OSD_DPIX_SKIP;
+
+                    if(y >= 0) {
+                        printf("TOGGLE DOUBLE\n");
+
+                        gboolean dpix = 0;
+                        g_object_get(osd->widget, "double-pixel", &dpix, NULL);
+                        g_object_set(osd->widget, "double-pixel", !dpix, NULL);
+                    
+                        osd_render_source_sel(osd, TRUE);
+                        osm_gps_map_repaint(OSM_GPS_MAP(osd->widget));
+                        osm_gps_map_redraw(OSM_GPS_MAP(osd->widget));
+                    }
+                }
+#endif
             }
             
             /* return "clicked in OSD background" to prevent further */

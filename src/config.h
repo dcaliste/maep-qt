@@ -92,5 +92,6 @@
 #define OSD_NO_DPAD          // no direction arrows (map is panned)
 #define OSD_SOURCE_SEL       // display source selection tab
 #define OSD_BALLOON
+#define OSD_DOUBLEPIXEL      // allow pixel doubling from OSD
 
 #endif // CONFIG_H

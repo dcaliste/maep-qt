@@ -62,11 +62,6 @@ cb_menu_about(GtkWidget *item, gpointer data) {
 }
 
 static void 
-cb_menu_double_pixel(GtkWidget *item, gpointer data) {
-  g_object_set(GTK_WIDGET(data), "double-pixel", menu_get_active(item), NULL);
-}
-
-static void 
 cb_menu_search(GtkWidget *item, gpointer data) {
   geonames_enable_search(GTK_WIDGET(data));
 }
@@ -124,8 +119,6 @@ static const menu_entry_t main_menu[] = {
   { MENU_SEPARATOR,   NULL,        { NULL } },
   { MENU_ENTRY,       "Search",    { .cb = cb_menu_search } },
   { MENU_CHECK_ENTRY, "Wikipedia", { .cb = cb_menu_wikipedia } },
-  { MENU_SEPARATOR,   NULL,        { NULL } },
-  { MENU_CHECK_ENTRY, "Double Pixel", { .cb = cb_menu_double_pixel } },
 
   { MENU_END,         NULL,        { NULL } }
 };
