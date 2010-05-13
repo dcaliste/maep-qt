@@ -22,6 +22,8 @@
 
 #include <glib.h>
 
+#define HXM_ENABLED "hxm_enabled"
+
 typedef enum {
   HXM_STATE_UNKNOWN = 0,
   HXM_STATE_CONNECTING,

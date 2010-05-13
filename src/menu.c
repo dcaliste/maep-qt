@@ -28,6 +28,8 @@
 #include "track.h"
 #include "geonames.h"
 
+extern void hxm_enable(GtkWidget *map, gboolean enable);
+
 #include <string.h>
 
 #ifdef MAEMO5
@@ -73,7 +75,7 @@ cb_menu_wikipedia(GtkWidget *item, gpointer data) {
 
 static void 
 cb_menu_hr(GtkWidget *item, gpointer data) {
-  track_hr_enable(GTK_WIDGET(data), menu_get_active(item)); 
+  hxm_enable(GTK_WIDGET(data), menu_get_active(item)); 
 }
 
 static void 

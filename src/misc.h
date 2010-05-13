@@ -32,6 +32,10 @@ void gconf_set_string(const char *key, const char *str);
 char *gconf_get_string(const char *key);
 void gconf_set_bool(char *key, gboolean value);
 gboolean gconf_get_bool(char *key, gboolean default_value);
+void gconf_set_int(char *key, gint value);
+gint gconf_get_int(char *key, gint default_value);
+void gconf_set_float(char *key, gfloat value);
+gfloat gconf_get_float(char *key, gfloat default_value);
 
 gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
 void errorf(GtkWidget *parent, const char *fmt, ...);

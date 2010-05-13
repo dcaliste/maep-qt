@@ -54,6 +54,7 @@
 #include "osm-gps-map.h"
 #include "osm-gps-map-osd-classic.h"
 #include "converter.h"
+#include "misc.h"
 
 #include "gps.h"
 
@@ -104,39 +105,11 @@ static const char *get_proxy_uri(void) {
 }
 
 /* the gconf keys the map state will be stored under */
-#define GCONF_PATH           "/apps/maep/"
-#define GCONF_KEY_ZOOM       GCONF_PATH "zoom"
-#define GCONF_KEY_SOURCE     GCONF_PATH "source"
-#define GCONF_KEY_LATITUDE   GCONF_PATH "latitude"
-#define GCONF_KEY_LONGITUDE  GCONF_PATH "longitude"
-#define GCONF_KEY_DOUBLEPIX  GCONF_PATH "double-pixel"
-
-static gint 
-gconf_get_bool(GConfClient *client, char *key, gboolean def_value) {
-  GConfValue *value = gconf_client_get(client, key, NULL);
-
-  if(!value) return def_value;
-
-  return gconf_client_get_bool(client, key, NULL);
-}
-
-static gint 
-gconf_get_int(GConfClient *client, char *key, gint def_value) {
-  GConfValue *value = gconf_client_get(client, key, NULL);
-
-  if(!value) return def_value;
-
-  return gconf_client_get_int(client, key, NULL);
-}
-
-static gfloat 
-gconf_get_float(GConfClient *client, char *key, gfloat def_value) {
-  GConfValue *value = gconf_client_get(client, key, NULL);
-
-  if(!value) return def_value;
-
-  return gconf_client_get_float(client, key, NULL);
-}
+#define GCONF_KEY_ZOOM       "zoom"
+#define GCONF_KEY_SOURCE     "source"
+#define GCONF_KEY_LATITUDE   "latitude"
+#define GCONF_KEY_LONGITUDE  "longitude"
+#define GCONF_KEY_DOUBLEPIX  "double-pixel"
 
 /* save the entire map state into gconf to be able */
 /* to restore the state at the next startup */
@@ -154,12 +127,11 @@ void map_save_state(GtkWidget *widget) {
 	       NULL);
 
   /* ... and store it in gconf */
-  GConfClient *gconf_client = gconf_client_get_default();
-  gconf_client_set_int(gconf_client, GCONF_KEY_ZOOM, zoom, NULL);
-  gconf_client_set_int(gconf_client, GCONF_KEY_SOURCE, source, NULL);
-  gconf_client_set_float(gconf_client, GCONF_KEY_LATITUDE, lat, NULL);
-  gconf_client_set_float(gconf_client, GCONF_KEY_LONGITUDE, lon, NULL);
-  gconf_client_set_bool(gconf_client, GCONF_KEY_DOUBLEPIX, dpix, NULL);
+  gconf_set_int(GCONF_KEY_ZOOM, zoom);
+  gconf_set_int(GCONF_KEY_SOURCE, source);
+  gconf_set_float(GCONF_KEY_LATITUDE, lat);
+  gconf_set_float(GCONF_KEY_LONGITUDE, lon);
+  gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
 }
 
 static int dist2pixel(OsmGpsMap *map, float km) {
@@ -317,16 +289,15 @@ static GtkWidget *map_new(GtkWidget *window) {
   path = g_strdup("/media/mmc2/osm-gps-map");
 #endif
 #endif
-  GConfClient *gconf_client = gconf_client_get_default();
-  gint source = gconf_get_int(gconf_client, GCONF_KEY_SOURCE, MAP_SOURCE);
+  gint source = gconf_get_int(GCONF_KEY_SOURCE, MAP_SOURCE);
 
   const char *proxy = get_proxy_uri();
 
   /* get zoom, latitude and longitude from gconf if possible */
-  gint zoom = gconf_get_int(gconf_client, GCONF_KEY_ZOOM, 3);
-  gfloat lat = gconf_get_float(gconf_client, GCONF_KEY_LATITUDE, 50.0);
-  gfloat lon = gconf_get_float(gconf_client, GCONF_KEY_LONGITUDE, 21.0);
-  gboolean dpix = gconf_get_bool(gconf_client, GCONF_KEY_DOUBLEPIX, FALSE);
+  gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
+  gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
+  gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
+  gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
     
   GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
@@ -387,7 +358,6 @@ static GtkWidget *map_new(GtkWidget *window) {
   
 
   osm_gps_map_osd_draw_hr (OSM_GPS_MAP(widget), 299);
-
   return widget;
 }
 
@@ -422,6 +392,38 @@ static void on_window_destroy (GtkWidget *widget, gpointer data) {
   gtk_main_quit();
 }
 
+static void hxm_callback(hxm_t *hxm, void *data) {
+  printf("callback with %u!!!\n", hxm->hr);
+}
+
+void hxm_enable(GtkWidget *map, gboolean enable) {
+  printf("%sabling heart rate capture\n", enable?"en":"dis");
+
+  /* verify that tracking isn't already in the requested state */
+  gboolean cur_state = 
+    (gboolean)g_object_get_data(G_OBJECT(map), HXM_ENABLED);
+
+  g_assert(cur_state != enable);
+
+  /* save new tracking state */
+  g_object_set_data(G_OBJECT(map), HXM_ENABLED, (gpointer)enable);
+
+  hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
+
+  if(enable) {
+    g_assert(!hxm);
+
+    hxm = hxm_init();
+    hxm_register_callback(hxm, hxm_callback, map);
+    g_object_set_data(G_OBJECT(map), "hxm", hxm);
+  } else {
+    g_assert(hxm);
+
+    g_object_set_data(G_OBJECT(map), "hxm", NULL);
+    hxm_release(hxm);
+  }
+}
+
 static void on_map_destroy (GtkWidget *widget, gpointer data) {
   track_save(widget);
 
@@ -437,6 +439,9 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
     g_object_set_data(G_OBJECT(widget), "hxm", NULL);
     hxm_release(hxm);
   }
+
+  gconf_set_bool(HXM_ENABLED, 
+    (gboolean)g_object_get_data(G_OBJECT(widget), HXM_ENABLED));
 
   map_save_state(widget);
 }
@@ -508,6 +513,9 @@ int main(int argc, char *argv[]) {
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), map);
 
+  /* heart rate data */
+  if(gconf_get_bool(HXM_ENABLED, FALSE)) 
+    menu_check_set_active(window, "Heart Rate", TRUE);
   
   track_restore(map);
   geonames_wikipedia_restore(map);

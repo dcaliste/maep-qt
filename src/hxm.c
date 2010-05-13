@@ -123,13 +123,13 @@ static bdaddr_t *inquiry() {
 
   int sock = hci_open_dev( dev_id );
   if (dev_id < 0 || sock < 0) {
-    perror("opening socket");
+    perror("HXM: opening socket");
     return NULL;
   }
 
   num_rsp = hci_inquiry(-1, 8, 0, lap, &info, 0);
   if (num_rsp < 0) {
-    perror("Inquiry failed.");
+    perror("HXM: Inquiry failed");
     close( sock );
     return NULL;
   }
@@ -236,11 +236,11 @@ static gpointer hxm_thread(gpointer data) {
 
   char *bdaddr_str = gconf_get_string("hxm_bdaddr");
   if(bdaddr_str) {
-    printf("HXM: trying to connect to preset hxm\n");
+    printf("HXM: trying to connect to preset hxm %s\n", bdaddr_str);
     
     /* if an address was found in gconf, try to use it */
-    bdaddr = strtoba(bdaddr_str);
-    baswap(bdaddr, bdaddr);
+    bdaddr = g_new0(bdaddr_t, 1);
+    baswap(bdaddr, strtoba(bdaddr_str));
 
     hxm->state = HXM_STATE_CONNECTING;
     g_idle_add(hxm_notify, hxm); 
@@ -253,6 +253,8 @@ static gpointer hxm_thread(gpointer data) {
 
     hxm->state = HXM_STATE_INQUIRY;
     g_idle_add(hxm_notify, hxm); 
+
+    sleep(5);
 
     bdaddr = inquiry();
     if(!bdaddr) {
@@ -389,3 +391,4 @@ void hxm_release(hxm_t *hxm) {
   hxm_unregister_all(hxm);
   hxm_destroy(hxm);
 }
+

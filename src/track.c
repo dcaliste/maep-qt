@@ -38,7 +38,6 @@
 
 #define DATE_FORMAT "%FT%T"
 #define TRACK_CAPTURE_ENABLED "track_capture_enabled"
-#define TRACK_HR_ENABLED      "track_hr_enabled"
 #define TRACK_CAPTURE_LAST    "track_capture_last"
 
 #ifndef LIBXML_TREE_ENABLED
@@ -611,37 +610,6 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   }
 }
 
-static void hxm_callback(hxm_t *hxm, void *data) {
-}
-
-void track_hr_enable(GtkWidget *map, gboolean enable) {
-  printf("%sabling heart rate capture\n", enable?"en":"dis");
-
-  /* verify that tracking isn't already in the requested state */
-  gboolean cur_state = 
-    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_HR_ENABLED);
-
-  g_assert(cur_state != enable);
-
-  /* save new tracking state */
-  g_object_set_data(G_OBJECT(map), TRACK_HR_ENABLED, (gpointer)enable);
-
-  hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
-
-  if(enable) {
-    g_assert(!hxm);
-
-    hxm = hxm_init();
-    hxm_register_callback(hxm, hxm_callback, map);
-    g_object_set_data(G_OBJECT(map), "hxm", hxm);
-  } else {
-    g_assert(hxm);
-
-    g_object_set_data(G_OBJECT(map), "hxm", NULL);
-    hxm_release(hxm);
-  }
-}
-
 void track_capture_enable(GtkWidget *map, gboolean enable) {
   printf("%sabling track capture\n", enable?"en":"dis");
 
@@ -673,9 +641,6 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
 
     gps_unregister_callback(gps_state, gps_callback);
   }
-
-  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-  menu_enable(toplevel, "Heart Rate", enable); 
 }
 
 /* ----------------------  saving track --------------------------- */
@@ -874,12 +839,7 @@ void track_restore(GtkWidget *map) {
     /* request all GPS information required for track capturing */
     gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
 			  gps_callback, map);
-  } else
-    menu_enable(toplevel, "Heart Rate", FALSE); 
-
-  /* ... incl. heart rate data */
-  if(gconf_get_bool(TRACK_HR_ENABLED, FALSE)) 
-    menu_check_set_active(toplevel, "Heart Rate", TRUE);
+  }
 }
 
 void track_save(GtkWidget *map) {
@@ -888,9 +848,6 @@ void track_save(GtkWidget *map) {
 
   /* save state of capture engine */
   gconf_set_bool(TRACK_CAPTURE_ENABLED, cur_state);
-
-  gconf_set_bool(TRACK_HR_ENABLED, 
-	 (gboolean)g_object_get_data(G_OBJECT(map), TRACK_HR_ENABLED));
 
   /* unregister callback if present */
   if(cur_state) {

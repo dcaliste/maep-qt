@@ -114,6 +114,50 @@ gboolean gconf_get_bool(char *m_key, gboolean default_value) {
   return ret;
 }
 
+void gconf_set_int(char *m_key, gint value) {
+  GConfClient *client = gconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  gconf_client_set_int(client, key, value, NULL);
+  g_free(key);
+}
+
+gint gconf_get_int(char *m_key, gint def_value) {
+  GConfClient *client = gconf_client_get_default();
+
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GConfValue *value = gconf_client_get(client, key, NULL);
+  if(!value) {
+    g_free(key);
+    return def_value;
+  }
+
+  gint ret = gconf_client_get_int(client, key, NULL);
+  g_free(key);
+  return ret;
+}
+
+void gconf_set_float(char *m_key, gfloat value) {
+  GConfClient *client = gconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  gconf_client_set_float(client, key, value, NULL);
+  g_free(key);
+}
+
+gfloat gconf_get_float(char *m_key, gfloat def_value) {
+  GConfClient *client = gconf_client_get_default();
+
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GConfValue *value = gconf_client_get(client, key, NULL);
+  if(!value) {
+    g_free(key);
+    return def_value;
+  }
+
+  gfloat ret = gconf_client_get_float(client, key, NULL);
+  g_free(key);
+  return ret;
+}
+
 static const char *data_paths[] = {
   "~/." APP,                 // in home directory
   DATADIR ,                  // final installation path (e.g. /usr/share/maep)
