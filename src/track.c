@@ -675,7 +675,7 @@ void track_capture_enable(GtkWidget *map, gboolean enable) {
   }
 
   GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-  menu_enable(toplevel, "Track/Heart Rate", enable); 
+  menu_enable(toplevel, "Heart Rate", enable); 
 }
 
 /* ----------------------  saving track --------------------------- */
@@ -875,11 +875,11 @@ void track_restore(GtkWidget *map) {
     gps_register_callback(gps_state, LATLON_CHANGED | ALTITUDE_CHANGED, 
 			  gps_callback, map);
   } else
-    menu_enable(toplevel, "Track/Heart Rate", FALSE); 
+    menu_enable(toplevel, "Heart Rate", FALSE); 
 
   /* ... incl. heart rate data */
   if(gconf_get_bool(TRACK_HR_ENABLED, FALSE)) 
-    menu_check_set_active(toplevel, "Track/Heart Rate", TRUE);
+    menu_check_set_active(toplevel, "Heart Rate", TRUE);
 }
 
 void track_save(GtkWidget *map) {

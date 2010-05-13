@@ -385,6 +385,9 @@ static GtkWidget *map_new(GtkWidget *window) {
   g_signal_connect(G_OBJECT(window), "focus-out-event", 
 		   G_CALLBACK(on_focus_change), widget);
   
+
+  osm_gps_map_osd_draw_hr (OSM_GPS_MAP(widget), 299);
+
   return widget;
 }
 

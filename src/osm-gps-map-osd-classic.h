@@ -47,4 +47,12 @@ void osm_gps_map_osd_clear_nav (OsmGpsMap *map);
 void osm_gps_map_osd_draw_nav (OsmGpsMap *map, gboolean imperial, float latitude, float longitude, char *name);
 #endif
 
+#ifdef OSD_HEARTRATE
+void osm_gps_map_osd_draw_hr (OsmGpsMap *map, gint rate);
+#define OSD_HR_NONE    -2
+#define OSD_HR_ERROR   -1
+#define OSD_HR_INVALID  0
+
+#endif
+
 #endif

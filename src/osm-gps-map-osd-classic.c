@@ -104,6 +104,13 @@ typedef struct {
     } nav;
 #endif
 
+#ifdef OSD_HEARTRATE
+    struct {
+        cairo_surface_t *surface;
+        gint rate;
+    } hr;
+#endif
+
 #ifdef OSD_COORDINATES
     struct {
         cairo_surface_t *surface;
@@ -562,7 +569,7 @@ osd_shape(cairo_t *cr, GdkColor *bg, GdkColor *fg) {
 #else
 static void 
 osd_shape(cairo_t *cr) {
-    cairo_set_source_rgb (cr, OSD_COLOR_BG);
+    cairo_set_source_rgba (cr, OSD_COLOR_BG);
     cairo_fill_preserve (cr);
     cairo_set_source_rgb (cr, OSD_COLOR);
     cairo_set_line_width (cr, 1);
@@ -798,7 +805,7 @@ osd_source_content(osm_gps_map_osd_t *osd, cairo_t *cr, gint offset) {
                     GdkColor bg = osd->widget->style->bg[GTK_STATE_NORMAL];
                     gdk_cairo_set_source_color(cr, &bg);
 #else
-                    cairo_set_source_rgb (cr, OSD_COLOR_BG);
+                    cairo_set_source_rgba (cr, OSD_COLOR_BG);
 #endif
                 }
 
@@ -1057,8 +1064,6 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
 
 #if OSD_DPIX_EXTRA > 0
                 if(py >= num_map_sources) {
-                    /* xyz */
-
                     y -= num_map_sources * (priv->source_sel.max_h + 2*OSD_TEXT_SKIP ) +
                         OSD_TEXT_SKIP + OSD_DPIX_SKIP;
 
@@ -1543,6 +1548,130 @@ osm_gps_map_osd_draw_nav (OsmGpsMap *map, gboolean imperial,
 
 #endif // OSD_NAV
 
+#ifdef OSD_HEARTRATE
+#ifndef OSD_HR_FONT_SIZE
+#define OSD_HR_FONT_SIZE 60
+#endif
+#define OSD_HR_W  3*OSD_HR_FONT_SIZE
+#define OSD_HR_H  OSD_HR_FONT_SIZE
+
+#ifndef OSD_HR_Y
+#define OSD_HR_Y OSD_Y
+#endif
+
+static void
+osd_render_heart_shape(cairo_t *cr, gint x, gint y, gint s) {
+    cairo_move_to (cr, x-s, y-s/4);
+    cairo_curve_to (cr, x-s, y-s,     x,   y-s,     x,   y-s/4);
+    cairo_curve_to (cr, x,   y-s,     x+s, y-s,     x+s, y-s/4);
+    cairo_curve_to (cr, x+s, y+s/2,   x,   y+3*s/4, x,   y+s);
+    cairo_curve_to (cr, x,   y+3*s/4, x-s, y+s/2,   x-s, y-s/4);
+}
+
+static void 
+osd_render_heart(cairo_t *cr, gint x, gint y, gint s, gboolean ok) {
+    /* xyz */
+
+    cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND);
+
+    osd_render_heart_shape(cr, x, y, s);
+    cairo_set_source_rgba (cr, 1, 1, 1, 1.0);
+    cairo_set_line_width (cr, s/2);
+    cairo_stroke(cr);
+
+    osd_render_heart_shape(cr, x, y, s);
+    cairo_set_source_rgba (cr, 1, ok?0:1, ok?0:1, 1.0);
+    cairo_fill_preserve (cr);
+    cairo_set_line_width (cr, s/5);
+
+    cairo_stroke(cr);
+}
+
+static void
+osd_render_hr(osm_gps_map_osd_t *osd) 
+{
+    osd_priv_t *priv = (osd_priv_t*)osd->priv; 
+
+    if(!priv->hr.surface)
+        return;
+
+    /* first fill with transparency */
+    g_assert(priv->hr.surface);
+    cairo_t *cr = cairo_create(priv->hr.surface);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
+    cairo_paint(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+    cairo_select_font_face (cr, "Sans",
+                            CAIRO_FONT_SLANT_NORMAL,
+                            CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size (cr, OSD_HR_FONT_SIZE);
+
+    char str[5];
+    if(priv->hr.rate > 0) 
+        snprintf(str, 4, "%03u", priv->hr.rate);
+    else if(priv->hr.rate == OSD_HR_INVALID) 
+        strcpy(str, "---");
+    else if(priv->hr.rate == OSD_HR_ERROR) 
+        strcpy(str, "ERR");
+    else 
+        g_assert(priv->hr.rate != OSD_HR_NONE);
+
+    cairo_text_extents_t extents;
+    cairo_text_extents (cr, str, &extents);
+
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_set_line_width (cr, OSD_HR_FONT_SIZE/10);
+
+    cairo_move_to (cr, OSD_HR_W/2 - extents.width/2 + OSD_HR_FONT_SIZE/4, 
+                       OSD_HR_H/2 + extents.height/2);
+    cairo_text_path (cr, str);
+    cairo_stroke (cr);
+
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+    cairo_move_to (cr, OSD_HR_W/2 - extents.width/2 + OSD_HR_FONT_SIZE/4, 
+                       OSD_HR_H/2 + extents.height/2);
+    cairo_show_text (cr, str);
+
+    osd_render_heart(cr, OSD_HR_W/2 - extents.width/2 - OSD_HR_FONT_SIZE/8, 
+                     OSD_HR_H/2, OSD_HR_FONT_SIZE/5, priv->hr.rate > 0);
+    
+
+    cairo_destroy(cr);
+}
+
+void 
+osm_gps_map_osd_draw_hr (OsmGpsMap *map, gint rate) {
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+
+    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
+    g_return_if_fail (osd);
+
+    osd_priv_t *priv = (osd_priv_t*)osd->priv; 
+    g_return_if_fail (priv);
+
+    /* allocate heart rate surface */
+    if(rate != OSD_HR_NONE && !priv->hr.surface)
+        priv->hr.surface = 
+            cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
+                                       OSD_HR_W, OSD_HR_H);
+
+    if(rate == OSD_HR_NONE && priv->hr.surface) {
+        cairo_surface_destroy(priv->hr.surface);
+        priv->hr.surface = NULL;
+    }
+
+    if(priv->hr.rate != rate) {
+        priv->hr.rate = rate;
+        osd_render_hr(osd);
+    }
+    
+    osm_gps_map_redraw(map);
+}
+ 
+#endif // OSD_HEARTRATE
+ 
 static osd_button_t
 osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x, gint y) {
     osd_button_t but = OSD_NONE;
@@ -2039,6 +2168,17 @@ osd_draw(osm_gps_map_osd_t *osd, GdkDrawable *drawable)
 
     cairo_set_source_surface(cr, priv->coordinates.surface, x, y);
     cairo_paint(cr);
+#endif
+
+#ifdef OSD_HEARTRATE
+    if(priv->hr.surface) {
+        x = (osd->widget->allocation.width - OSD_HR_W)/2;
+        y = OSD_HR_Y;
+        if(y < 0) y += osd->widget->allocation.height - OSD_COORDINATES_H;
+        
+        cairo_set_source_surface(cr, priv->hr.surface, x, y);
+        cairo_paint(cr);
+    }
 #endif
 
 #ifdef OSD_BALLOON
