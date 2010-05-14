@@ -108,6 +108,7 @@ typedef struct {
     struct {
         cairo_surface_t *surface;
         gint rate;
+        gboolean ok;
     } hr;
 #endif
 
@@ -1613,9 +1614,9 @@ osd_render_hr(osm_gps_map_osd_t *osd)
     if(priv->hr.rate > 0) 
         snprintf(str, 4, "%03u", priv->hr.rate);
     else if(priv->hr.rate == OSD_HR_INVALID) 
-        strcpy(str, "---");
+        strcpy(str, "?");
     else if(priv->hr.rate == OSD_HR_ERROR) 
-        strcpy(str, "ERR");
+        strcpy(str, "Err");
     else 
         g_assert(priv->hr.rate != OSD_HR_NONE);
 
@@ -1636,14 +1637,14 @@ osd_render_hr(osm_gps_map_osd_t *osd)
     cairo_show_text (cr, str);
 
     osd_render_heart(cr, OSD_HR_W/2 - extents.width/2 - OSD_HR_FONT_SIZE/8, 
-                     OSD_HR_H/2, OSD_HR_FONT_SIZE/5, priv->hr.rate > 0);
+                     OSD_HR_H/2, OSD_HR_FONT_SIZE/5, priv->hr.ok);
     
 
     cairo_destroy(cr);
 }
 
 void 
-osm_gps_map_osd_draw_hr (OsmGpsMap *map, gint rate) {
+osm_gps_map_osd_draw_hr (OsmGpsMap *map, gboolean ok, gint rate) {
     g_return_if_fail (OSM_IS_GPS_MAP (map));
 
     osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
@@ -1663,8 +1664,9 @@ osm_gps_map_osd_draw_hr (OsmGpsMap *map, gint rate) {
         priv->hr.surface = NULL;
     }
 
-    if(priv->hr.rate != rate) {
+    if(priv->hr.rate != rate || priv->hr.ok != ok) {
         priv->hr.rate = rate;
+        priv->hr.ok = ok;
         osd_render_hr(osd);
     }
     
@@ -2278,6 +2280,11 @@ osd_free(osm_gps_map_osd_t *osd)
          cairo_surface_destroy(priv->balloon.surface);
 #endif
 
+#ifdef OSD_HEARTRATE
+    if (priv->hr.surface) 
+         cairo_surface_destroy(priv->hr.surface);
+#endif
+
     g_free(priv);
     osd->priv = NULL;
 }
@@ -2328,6 +2335,10 @@ osm_gps_map_osd_classic_init(OsmGpsMap *map)
 #ifdef OSD_BALLOON
     priv->balloon.lat = OSM_GPS_MAP_INVALID;
     priv->balloon.lon = OSM_GPS_MAP_INVALID;
+#endif
+
+#ifdef OSD_HEARTRATE
+    priv->hr.rate = OSD_HR_NONE;
 #endif
 
     osm_gps_map_register_osd(map, &osd_classic);

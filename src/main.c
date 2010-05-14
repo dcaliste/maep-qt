@@ -357,7 +357,6 @@ static GtkWidget *map_new(GtkWidget *window) {
   g_signal_connect(G_OBJECT(window), "focus-out-event", 
 		   G_CALLBACK(on_focus_change), widget);
   
-
   return widget;
 }
 
@@ -397,7 +396,7 @@ static void hxm_callback(hxm_t *hxm, void *data) {
 
   switch(hxm->state) {
   case HXM_STATE_CONNECTED:
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), hxm->hr);
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), TRUE, hxm->hr);
     break;
   case HXM_STATE_FAILED:
 #ifdef USE_MAEMO
@@ -407,10 +406,10 @@ static void hxm_callback(hxm_t *hxm, void *data) {
 		   _("Connection to heart rate monitor failed!"));
     }
 #endif
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), OSD_HR_ERROR);
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_ERROR);
     break;
   default:
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), OSD_HR_INVALID);
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_INVALID);
     break;
   }
 }
@@ -440,6 +439,9 @@ void hxm_enable(GtkWidget *map, gboolean enable) {
 
     g_object_set_data(G_OBJECT(map), "hxm", NULL);
     hxm_release(hxm);
+
+    /* undraw gui */
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_NONE);
   }
 }
 
@@ -552,13 +554,13 @@ int main(int argc, char *argv[]) {
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), map);
 
+  track_restore(map);
+  geonames_wikipedia_restore(map);
+
   /* heart rate data */
   if(gconf_get_bool(HXM_ENABLED, FALSE)) 
     menu_check_set_active(window, "Heart Rate", TRUE);
   
-  track_restore(map);
-  geonames_wikipedia_restore(map);
-
   /* connect a key handler to forward global shortcuts (function keys) */
   /* to the ap widget */
   g_signal_connect(G_OBJECT(window), "key_press_event",
