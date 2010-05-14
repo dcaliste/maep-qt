@@ -1575,12 +1575,13 @@ osd_render_heart(cairo_t *cr, gint x, gint y, gint s, gboolean ok) {
     cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND);
 
     osd_render_heart_shape(cr, x, y, s);
-    cairo_set_source_rgba (cr, 1, 1, 1, 1.0);
+    cairo_set_source_rgb (cr, 1, 1, 1);
     cairo_set_line_width (cr, s/2);
     cairo_stroke(cr);
 
     osd_render_heart_shape(cr, x, y, s);
-    cairo_set_source_rgba (cr, 1, ok?0:1, ok?0:1, 1.0);
+    if(ok) cairo_set_source_rgb (cr, 1, 0, 0);
+    else   cairo_set_source_rgb (cr, 0.8, 0.8, 0.8);
     cairo_fill_preserve (cr);
     cairo_set_line_width (cr, s/5);
 
@@ -1625,13 +1626,13 @@ osd_render_hr(osm_gps_map_osd_t *osd)
     cairo_set_line_width (cr, OSD_HR_FONT_SIZE/10);
 
     cairo_move_to (cr, OSD_HR_W/2 - extents.width/2 + OSD_HR_FONT_SIZE/4, 
-                       OSD_HR_H/2 + extents.height/2);
+                       OSD_HR_H/2 - extents.y_bearing/2);
     cairo_text_path (cr, str);
     cairo_stroke (cr);
 
     cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
     cairo_move_to (cr, OSD_HR_W/2 - extents.width/2 + OSD_HR_FONT_SIZE/4, 
-                       OSD_HR_H/2 + extents.height/2);
+                       OSD_HR_H/2 - extents.y_bearing/2);
     cairo_show_text (cr, str);
 
     osd_render_heart(cr, OSD_HR_W/2 - extents.width/2 - OSD_HR_FONT_SIZE/8, 

@@ -19,6 +19,7 @@
 
 #ifdef USE_MAEMO
 #include <libosso.h>
+#include <hildon/hildon-banner.h>
 #endif
 
 #include "config.h"
@@ -357,7 +358,6 @@ static GtkWidget *map_new(GtkWidget *window) {
 		   G_CALLBACK(on_focus_change), widget);
   
 
-  osm_gps_map_osd_draw_hr (OSM_GPS_MAP(widget), 299);
   return widget;
 }
 
@@ -393,7 +393,26 @@ static void on_window_destroy (GtkWidget *widget, gpointer data) {
 }
 
 static void hxm_callback(hxm_t *hxm, void *data) {
-  printf("callback with %u!!!\n", hxm->hr);
+  GtkWidget *map = GTK_WIDGET(data);
+
+  switch(hxm->state) {
+  case HXM_STATE_CONNECTED:
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), hxm->hr);
+    break;
+  case HXM_STATE_FAILED:
+#ifdef USE_MAEMO
+    {
+      GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
+      hildon_banner_show_information(toplevel, NULL, 
+		   _("Connection to heart rate monitor failed!"));
+    }
+#endif
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), OSD_HR_ERROR);
+    break;
+  default:
+    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), OSD_HR_INVALID);
+    break;
+  }
 }
 
 void hxm_enable(GtkWidget *map, gboolean enable) {
