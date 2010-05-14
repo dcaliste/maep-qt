@@ -76,9 +76,6 @@ cb_menu_wikipedia(GtkWidget *item, gpointer data) {
 
 static void 
 cb_menu_hr(GtkWidget *item, gpointer data) {
-  if(!menu_get_active(item))
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(data), OSD_HR_NONE);
-
   hxm_enable(GTK_WIDGET(data), menu_get_active(item)); 
 }
 
