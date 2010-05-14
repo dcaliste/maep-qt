@@ -248,7 +248,8 @@ GtkWidget *authors_page_new(GtkWidget *parent) {
   /* -------------------------------------------- */
   ivbox = gtk_vbox_new(FALSE, 0);
   author_add(ivbox, _("Patches/bug fixes by:"));
-  author_add(ivbox, _("Roman Kapusta"));
+  author_add(ivbox, "Roman Kapusta");
+  author_add(ivbox, "Charles Clément");
   gtk_box_pack_start(GTK_BOX(vbox), ivbox, TRUE, FALSE, 0);
 
   /* -------------------------------------------- */
