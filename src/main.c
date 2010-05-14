@@ -465,8 +465,28 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
   map_save_state(widget);
 }
 
-int main(int argc, char *argv[]) {
+static gboolean 
+on_window_key_press(GtkWidget *window, GdkEventKey *event, GtkWidget *map) 
+{
+#ifdef USE_MAEMO
+  if((event->keyval == HILDON_HARDKEY_FULLSCREEN) || 
+     (event->keyval == HILDON_HARDKEY_INCREASE) || 
+     (event->keyval == HILDON_HARDKEY_DECREASE)) 
+#else
+  if(event->keyval == GDK_F11) 
+#endif
+  {
+    gboolean return_val;
+    g_signal_emit_by_name(GTK_OBJECT(map), "key_press_event", 
+			  event, &return_val);
+    return return_val;
+  }
+  
+  return FALSE;
+}
 
+int main(int argc, char *argv[]) {
+  
 #if 0
   setlocale(LC_ALL, "");
   bindtextdomain(PACKAGE, LOCALEDIR);
@@ -538,6 +558,12 @@ int main(int argc, char *argv[]) {
   
   track_restore(map);
   geonames_wikipedia_restore(map);
+
+  /* connect a key handler to forward global shortcuts (function keys) */
+  /* to the ap widget */
+  g_signal_connect(G_OBJECT(window), "key_press_event",
+		   G_CALLBACK(on_window_key_press), map);
+
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();
