@@ -2,4 +2,5 @@ Things to be implemented/fixed next:
 
 - track merge
 - investigate http://pagesperso-orange.fr/universimmedia/geo/loc.htm
-- make gps.c cope with sats (for gpxview)
++ make gps.c cope with sats (for gpxview)
+- refresh tiles with certain age

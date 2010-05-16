@@ -980,12 +980,28 @@ osm_gps_map_render_missing_tile (OsmGpsMap *map, int zoom, int x, int y)
     return osm_gps_map_render_missing_tile_upscaled (map, zoom, x, y);
 }
 
+/* default tile lifetime is one week */
+#ifndef OSD_GPS_MAP_TILE_TTL 
+#define  OSD_GPS_MAP_TILE_TTL  (60*60*24*7)   
+#endif
+
+static gboolean
+osm_gps_map_tile_age_exceeded(char *filename) 
+{
+    struct stat buf;
+    
+    if(!g_stat(filename, &buf)) 
+        return(time(NULL) - buf.st_mtime > OSD_GPS_MAP_TILE_TTL);
+
+    return FALSE;
+}
+
 static void
 osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int offset_y)
 {
     OsmGpsMapPrivate *priv = map->priv;
     gchar *filename;
-    GdkPixbuf *pixbuf;
+    GdkPixbuf *pixbuf = NULL;
 
     g_debug("Load tile %d,%d (%d,%d) z:%d", x, y, offset_x, offset_y, zoom);
 
@@ -1001,9 +1017,14 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
                 y,
                 priv->image_format);
 
-    /* try to get file from internal cache first */
-    if(!(pixbuf = osm_gps_map_load_cached_tile(map, zoom, x, y)))
-        pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
+    gboolean needs_refresh = FALSE;
+    if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+        /* try to get file from internal cache first */
+        if(!(pixbuf = osm_gps_map_load_cached_tile(map, zoom, x, y)))
+            pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
+
+         needs_refresh = osm_gps_map_tile_age_exceeded(filename);
+    }
 
     if(pixbuf)
     {
@@ -1011,25 +1032,29 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
         osm_gps_map_blit_tile(map, pixbuf, offset_x,offset_y);
         g_object_unref (pixbuf);
     }
-    else
+
+
+    if(!pixbuf || needs_refresh)
     {
         if (priv->map_auto_download)
             osm_gps_map_download_tile(map, zoom, x, y, TRUE);
 
-        /* try to render the tile by scaling cached tiles from other zoom
-         * levels */
-        pixbuf = osm_gps_map_render_missing_tile (map, zoom, x, y);
-        if (pixbuf)
-        {
-            osm_gps_map_blit_tile (map, pixbuf, offset_x,offset_y);
-            g_object_unref (pixbuf);
-        }
-        else
-        {
-            //prevent some artifacts when drawing not yet loaded areas.
-            gdk_draw_rectangle (priv->pixmap,
-                                GTK_WIDGET(map)->style->white_gc,
-                                TRUE, offset_x, offset_y, TILESIZE, TILESIZE);
+        if(!needs_refresh) {
+            /* try to render the tile by scaling cached tiles from other zoom
+             * levels */
+            pixbuf = osm_gps_map_render_missing_tile (map, zoom, x, y);
+            if (pixbuf)
+            {
+                osm_gps_map_blit_tile (map, pixbuf, offset_x,offset_y);
+                g_object_unref (pixbuf);
+            }
+            else
+            {
+                //prevent some artifacts when drawing not yet loaded areas.
+                gdk_draw_rectangle (priv->pixmap,
+                                    GTK_WIDGET(map)->style->white_gc,
+                                    TRUE, offset_x, offset_y, TILESIZE, TILESIZE);
+            }
         }
     }
     g_free(filename);
@@ -2644,11 +2669,14 @@ osm_gps_map_download_maps (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_
                                     i, G_DIR_SEPARATOR,
                                     j,
                                     priv->image_format);
-                    if (!g_file_test(filename, G_FILE_TEST_EXISTS))
+
+                    if ((!g_file_test(filename, G_FILE_TEST_EXISTS)) ||
+                        osm_gps_map_tile_age_exceeded(filename))
                     {
                         osm_gps_map_download_tile(map, zoom, i, j, FALSE);
                         num_tiles++;
-                    }
+                    } 
+
                     g_free(filename);
                 }
             }
