@@ -9,6 +9,7 @@ maep (1.3.4) unstable; urgency=low
   * Applied [#5329] This patch adds new "Double Pixel" functionality ...
   * Added Double-Pixel GUI to OSD
   * Fixed [#5101] Hardware +/- do not zoom when search bar is open
+  * Implemented solution for [#5674] Updating the map storage in the device.
 
  -- Till Harbaum <till@harbaum.org>  Thu, 25 Mar 2010 21:27:49 +0100
 
