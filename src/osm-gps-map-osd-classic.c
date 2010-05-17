@@ -1069,8 +1069,6 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
                         OSD_TEXT_SKIP + OSD_DPIX_SKIP;
 
                     if(y >= 0) {
-                        printf("TOGGLE DOUBLE\n");
-
                         gboolean dpix = 0;
                         g_object_get(osd->widget, "double-pixel", &dpix, NULL);
                         g_object_set(osd->widget, "double-pixel", !dpix, NULL);

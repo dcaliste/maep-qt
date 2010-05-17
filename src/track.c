@@ -85,6 +85,14 @@ static void track_free(track_t *trk) {
 }
 
 static void track_state_free(track_state_t *track_state) {
+
+  /* stop running timeout timer if present */
+  if(track_state->timer_handler) {
+    printf("TRACK: removing timeout\n");
+    gtk_timeout_remove(track_state->timer_handler);
+    track_state->timer_handler = 0;
+  }
+
   track_t *track = track_state->track;
   while(track) {
     track_t *next = track->next;
@@ -341,7 +349,19 @@ static track_state_t *track_parse_doc(xmlDocPtr doc) {
   return track_state;
 }
 
-static track_state_t *track_read(char *filename) {
+static void track_state_save(track_state_t *track_state);
+
+static gboolean track_autosave(gpointer data) {
+  track_state_t *track_state = (track_state_t *)data;
+
+  printf("TRACK: autosave\n");
+
+  track_state_save(track_state);
+
+  return FALSE;
+}
+
+static track_state_t *track_read(char *filename, gboolean is_restore) {
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
@@ -360,8 +380,14 @@ static track_state_t *track_read(char *filename) {
     return NULL;
   }
 
-  track_state->dirty = TRUE;
-  
+  if(!track_state->dirty) { // && !is_restore) { // xyz
+    printf("TRACK: adding timeout\n");
+
+    g_assert(!track_state->timer_handler);
+    track_state->timer_handler = gtk_timeout_add(5*1000, track_autosave, track_state);
+    track_state->dirty = TRUE;
+  }
+
   return track_state;
 }
 
@@ -428,7 +454,7 @@ void track_import(GtkWidget *map) {
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
     /* load a track */
-    track_state = track_read(filename);
+    track_state = track_read(filename, FALSE);
     if(track_state) 
       gconf_set_string("track_path", filename);
 
@@ -464,12 +490,16 @@ static void track_point_new(GtkWidget *map, track_point_t *new_point) {
       menu_enable(toplevel, "Track/Clear", TRUE);
       menu_enable(toplevel, "Track/Export", TRUE);
       
-      printf("gps: creating new track\n");
+      printf("track: creating new track\n");
       track_state = g_new0(track_state_t, 1);
       g_object_set_data(G_OBJECT(map), "track_state", track_state);
     }
     
-    track_state->dirty = TRUE;
+    if(!track_state->dirty) {
+      g_assert(!track_state->timer_handler);
+      track_state->timer_handler = gtk_timeout_add(60*5*1000, track_autosave, track_state);
+      track_state->dirty = TRUE;
+    }
     
     printf("track: now active segment, starting new one\n");
 
@@ -555,7 +585,8 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
 
   /* save point as we may need it later to (re-)enable caturing */
-  if(set & FIX_LATLON_SET) {
+  if((set & FIX_LATLON_SET) && (fix->eph < 100)) {
+
     /* create storage if not present yet */
     if(!last) last = g_new0(track_point_t, 1);
     
@@ -734,6 +765,11 @@ void track_write(char *name, track_state_t *track_state) {
   xmlCleanupParser();
 
   track_state->dirty = FALSE;
+
+  if(track_state->timer_handler) {
+    gtk_timeout_remove(track_state->timer_handler);
+    track_state->timer_handler = 0;
+  }
 }
 
 void track_export(GtkWidget *map) {
@@ -811,7 +847,7 @@ void track_restore(GtkWidget *map) {
   char *path = build_path();
 
   if(g_file_test(path, G_FILE_TEST_IS_REGULAR)) {
-    track_state_t *track_state = track_read(path);
+    track_state_t *track_state = track_read(path, TRUE);
 
     if(track_state) 
       track_draw(map, track_state);
@@ -842,28 +878,11 @@ void track_restore(GtkWidget *map) {
   }
 }
 
-void track_save(GtkWidget *map) {
-  gboolean cur_state = 
-    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED);
-
-  /* save state of capture engine */
-  gconf_set_bool(TRACK_CAPTURE_ENABLED, cur_state);
-
-  /* unregister callback if present */
-  if(cur_state) {
-    gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
-    gps_unregister_callback(gps_state, gps_callback);
-  }
-
-  /* free "last" coordinate if present */
-  track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
-  if(last) {
-    g_free(last);
-    g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, NULL);
-  }
-
+static void 
+track_state_save(track_state_t *track_state) {
   char *path = build_path();
-  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
+
+  /* if there's no track state, remove any file already present */
   if(!track_state) {
     remove(path);
     g_free(path);
@@ -885,6 +904,30 @@ void track_save(GtkWidget *map) {
   track_write(path, track_state);
   
   g_free(path);
+}
+
+void track_save(GtkWidget *map) {
+  gboolean cur_state = 
+    (gboolean)g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_ENABLED);
+
+  /* save state of capture engine */
+  gconf_set_bool(TRACK_CAPTURE_ENABLED, cur_state);
+
+  /* unregister callback if present */
+  if(cur_state) {
+    gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
+    gps_unregister_callback(gps_state, gps_callback);
+  }
+
+  /* free "last" coordinate if present */
+  track_point_t *last = g_object_get_data(G_OBJECT(map), TRACK_CAPTURE_LAST);
+  if(last) {
+    g_free(last);
+    g_object_set_data(G_OBJECT(map), TRACK_CAPTURE_LAST, NULL);
+  }
+
+  track_state_t *track_state = g_object_get_data(G_OBJECT(map), "track_state");
+  track_state_save(track_state);
 }
 
 void track_graph(GtkWidget *map) {

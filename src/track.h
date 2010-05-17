@@ -56,6 +56,7 @@ typedef struct track_s {
 typedef struct {
   track_t *track;
   gboolean dirty;
+  guint timer_handler;
 } track_state_t;
 
 void track_import(GtkWidget *map);

@@ -109,7 +109,7 @@ static const menu_entry_t track_menu[] = {
   { MENU_ENTRY,       "Clear",      { .cb = cb_menu_track_clear } } ,
   { MENU_ENTRY,       "Import",     { .cb = cb_menu_track_import } },
   { MENU_ENTRY,       "Export",     { .cb = cb_menu_track_export } },
-  { MENU_ENTRY,       "Graph",      { .cb = cb_menu_track_graph } },
+  //  { MENU_ENTRY,       "Graph",      { .cb = cb_menu_track_graph } },
 
   { MENU_END,         NULL,        { NULL } }
 };
@@ -372,9 +372,11 @@ static void menu_item_do(GtkWidget *window, const char *id, gboolean enable,
       id = slash+1;
     } else {
       GtkWidget *item = g_object_get_data(G_OBJECT(menu), id);
-      g_assert(item);
-      
-      cb(item, enable);
+
+      if(item)
+	cb(item, enable);
+      else 
+	g_warning("Menu: item %s does not exist", id);
     }
   } while(slash);
 }

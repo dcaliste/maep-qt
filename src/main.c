@@ -194,47 +194,48 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   }
 
 #ifdef USE_MAEMO
+  puts("1");
+
   if((set & FIX_LATLON_SET) && toplevel) {
+    puts("2");
 
-    /* check if toplevel has focus */
-    if(GTK_WIDGET_HAS_FOCUS(toplevel)) {
-
-      /* check gps position every 10 seconds and trigger */
-      /* screen saver if useful */
-      time_t last = (time_t)g_object_get_data(G_OBJECT(map), "gps_timer"); 
-      time_t now = time(NULL);
-      if(now-last > 10) {
-	/* get last saved position */
-	coord_t *last_pos = g_object_get_data(G_OBJECT(map), "gps_pos"); 
-	coord_t cur = { .rlat = deg2rad(fix->latitude),
-			.rlon = deg2rad(fix->longitude) };
+    /* check gps position every 10 seconds and trigger */
+    /* screen saver if useful */
+    time_t last = (time_t)g_object_get_data(G_OBJECT(map), "gps_timer"); 
+    time_t now = time(NULL);
+    if(now-last > 10) {
+      /* get last saved position */
+      coord_t *last_pos = g_object_get_data(G_OBJECT(map), "gps_pos"); 
+      coord_t cur = { .rlat = deg2rad(fix->latitude),
+		      .rlon = deg2rad(fix->longitude) };
+      
+      if(last_pos) {
+	/* consider everything under 3 kph (~2 mph) to be static and */
+	/* disable (trigger) screensaver only above this. 3.6kph = 10m/10sec */
 	
-	if(last_pos) {
-	  /* consider everything under 3 kph (~2 mph) to be static and */
-	  /* disable (trigger) screensaver only above this. 3kph = ~8m/10sec */
+	/* compare with reported position */
+	if(get_distance(last_pos, &cur) > (now-last)) {
+	  printf("SCREENSAVER: trigger after %d ...\n", (int)(now-last));
 	  
-	  /* compare with reported position */
-	  if(get_distance(last_pos, &cur) > 8) {
-	    printf("trigger screen saver after %d ...\n", (int)(now-last));
-	    
-	    osso_context_t *osso_context =  
-	      g_object_get_data(G_OBJECT(toplevel), "osso-context");
-	    g_assert(osso_context);
-	    
-	    osso_display_blanking_pause(osso_context);
-	    
-	  } else
-	    printf("too slow, no trigger\n");
+	  osso_context_t *osso_context =  
+	    g_object_get_data(G_OBJECT(toplevel), "osso-context");
+	  g_assert(osso_context);
+	  
+	  osso_display_blanking_pause(osso_context);
+	  
 	} else
-	  last_pos = g_new0(coord_t, 1);
-	
-	/* make current position the old one */
-	last_pos->rlat = cur.rlat;
-	last_pos->rlon = cur.rlon;
-	
-	g_object_set_data(G_OBJECT(map), "gps_timer", (gpointer)now); 
-	g_object_set_data(G_OBJECT(map), "gps_pos", last_pos); 
+	  printf("SCREENSAVER: too slow, no trigger\n");
+      } else {
+	printf("SCREENSAVER:no last pos\n");
+	last_pos = g_new0(coord_t, 1);
       }
+      
+      /* make current position the old one */
+      last_pos->rlat = cur.rlat;
+      last_pos->rlon = cur.rlon;
+      
+      g_object_set_data(G_OBJECT(map), "gps_timer", (gpointer)now); 
+      g_object_set_data(G_OBJECT(map), "gps_pos", last_pos); 
     }
   }
 #endif
