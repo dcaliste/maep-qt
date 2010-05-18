@@ -194,11 +194,7 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   }
 
 #ifdef USE_MAEMO
-  puts("1");
-
   if((set & FIX_LATLON_SET) && toplevel) {
-    puts("2");
-
     /* check gps position every 10 seconds and trigger */
     /* screen saver if useful */
     time_t last = (time_t)g_object_get_data(G_OBJECT(map), "gps_timer"); 
@@ -226,7 +222,7 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
 	} else
 	  printf("SCREENSAVER: too slow, no trigger\n");
       } else {
-	printf("SCREENSAVER:no last pos\n");
+	printf("SCREENSAVER: no last pos\n");
 	last_pos = g_new0(coord_t, 1);
       }
       
