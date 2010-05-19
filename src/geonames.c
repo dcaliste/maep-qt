@@ -49,6 +49,10 @@
 #endif
 #endif
 
+#ifdef USE_MAEMO
+#include <hildon/hildon-banner.h>
+#endif
+
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
 #endif
@@ -390,6 +394,13 @@ geonames_cb(net_result_t *result, gpointer data) {
       geonames_geoname_list_free(list);
     }
   }
+#ifdef USE_MAEMO
+  else {
+    /* result code is != 0 -> error */
+    hildon_banner_show_information(toplevel, NULL, 
+	   _("Geonames download failed!"));
+  }
+#endif
 
   /* re-enable ui */
   gtk_widget_set_sensitive(button, TRUE);
@@ -475,7 +486,7 @@ static void on_search_close_clicked(GtkButton *close_but, gpointer user) {
     menu_enable(toplevel, "Search", TRUE); 
     g_object_set_data(G_OBJECT(toplevel), GEONAMES_SEARCH, NULL);
     gtk_widget_destroy(hbox);
-    
+
     /* give entry keyboard focus back to map */
     gtk_widget_grab_focus(map);
   }

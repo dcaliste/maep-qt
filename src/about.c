@@ -26,6 +26,7 @@
 #define LINK_COLOR "blue"
 #else
 #include <hildon/hildon-pannable-area.h>
+#include <hildon/hildon-text-view.h>
 #define LINK_COLOR "lightblue"
 #endif
 
@@ -93,13 +94,14 @@ static GtkWidget *label_xbig(char *str) {
   return label;
 }
 
+#if 0
 static void  
 on_label_realize(GtkWidget *widget, gpointer user_data)  {
   /* get parent size (which is a container) */
   gtk_widget_set_size_request(widget, widget->parent->allocation.width, -1);
 }
 
-static GtkWidget *label_wrap(char *str) {
+static GtkWidget *text_wrap(char *str) {
   GtkWidget *label = gtk_label_new(str);
 
   gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
@@ -111,10 +113,47 @@ static GtkWidget *label_wrap(char *str) {
   return label;
 }
 
+static void text_set(GtkWidget *label, char *str) {
+  gtk_label_set_text(GTK_LABEL(label), str);
+}
+
+#else
+static GtkWidget *text_wrap(char *str) {
+  GtkTextBuffer *buffer = gtk_text_buffer_new(NULL);
+
+#ifndef MAEMO5
+  GtkWidget *view = gtk_text_view_new_with_buffer(buffer);
+#else
+  GtkWidget *view = hildon_text_view_new();
+  hildon_text_view_set_buffer(HILDON_TEXT_VIEW(view), buffer);
+#endif
+
+  gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD);
+  gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
+  gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(view), FALSE);
+
+  /* copy label style */
+  GtkWidget *label = gtk_label_new("");
+  GtkStyle *style = gtk_widget_get_style(label);
+  gtk_widget_set_style(view, style);
+  gtk_widget_destroy(label);
+
+  gtk_text_buffer_set_text(buffer, str, -1);
+  
+  return view;
+}
+
+static void text_set(GtkWidget *view, char *str) {
+  GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+  gtk_text_buffer_set_text(buffer, str, -1);
+}
+#endif
+
+
 GtkWidget *license_page_new(GtkWidget *parent) {
   char *name = find_file("COPYING");
 
-  GtkWidget *label = label_wrap("");
+  GtkWidget *label = text_wrap("");
 
   /* load license into buffer */
   FILE *file = fopen(name, "r");
@@ -127,30 +166,32 @@ GtkWidget *license_page_new(GtkWidget *parent) {
 
     char *buffer = g_malloc(flen+1);
     if(fread(buffer, 1, flen, file) != flen)
-      gtk_label_set_text(GTK_LABEL(label), _("Load error"));
+      text_set(label, _("Load error"));
     else {
       buffer[flen]=0;
-      gtk_label_set_text(GTK_LABEL(label), buffer);
+      text_set(label, buffer);
     }
 
     fclose(file);
     g_free(buffer);
   } else
-    gtk_label_set_text(GTK_LABEL(label), _("Open error"));
+    text_set(label, _("Open error"));
 
 #ifndef MAEMO5
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
   				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), 
-					label);
+  //  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), 
+  //					label);
+  gtk_container_add(GTK_CONTAINER(scrolled_window), label);
   gtk_scrolled_window_set_shadow_type( GTK_SCROLLED_WINDOW(scrolled_window),
 				       GTK_SHADOW_IN);
   return scrolled_window;
 #else
   GtkWidget *pannable_area = hildon_pannable_area_new();
-  hildon_pannable_area_add_with_viewport(HILDON_PANNABLE_AREA(pannable_area), 
-					label);
+  gtk_container_add(GTK_CONTAINER(pannable_area), label);
+  //  hildon_pannable_area_add_with_viewport(HILDON_PANNABLE_AREA(pannable_area), 
+  //					 label);
   return pannable_area;
 #endif
 }
@@ -279,7 +320,7 @@ GtkWidget *donate_page_new(GtkWidget *parent) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("If you like Mæp and want to support its future development "
+      text_wrap(_("If you like Mæp and want to support its future development "
 		   "please consider donating to the developer. You can either "
 		   "donate via paypal to")));
   
@@ -288,7 +329,7 @@ GtkWidget *donate_page_new(GtkWidget *parent) {
   
 #ifdef ENABLE_BROWSER_INTERFACE
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("or you can just click the button below which will open "
+      text_wrap(_("or you can just click the button below which will open "
 		   "the appropriate web page in your browser.")));
 
   GtkWidget *ihbox = gtk_hbox_new(FALSE, 0);
@@ -315,7 +356,7 @@ GtkWidget *bugs_page_new(GtkWidget *parent) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("Please report bugs or feature requests via the Mæp "
+      text_wrap(_("Please report bugs or feature requests via the Mæp "
 		   "bug tracker. This bug tracker can directly be reached via "
 		   "the following link:")));
 
@@ -323,14 +364,14 @@ GtkWidget *bugs_page_new(GtkWidget *parent) {
       link_new(parent, "http://garage.maemo.org/tracker/?group_id=1155"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("You might also be interested in joining the mailing lists "
+      text_wrap(_("You might also be interested in joining the mailing lists "
 		   "or the forum:")));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       link_new(parent, "http://garage.maemo.org/projects/maep/"));
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
-      label_wrap(_("Thank you for contributing!")));
+      text_wrap(_("Thank you for contributing!")));
 
   return vbox;
 }  
@@ -341,7 +382,13 @@ void about_box(GtkWidget *parent) {
           GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
 
 #ifdef USE_MAEMO
+#ifndef MAEMO5
   gtk_window_set_default_size(GTK_WINDOW(dialog), 640, 480);
+#else
+  gboolean portrait = g_object_get_data(G_OBJECT(parent), "portrait-mode");
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 640, portrait?800:480);
+  hildon_gtk_window_set_portrait_flags(GTK_WINDOW(dialog), 0);
+#endif
 #else
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 #endif

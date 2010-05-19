@@ -1,3 +1,9 @@
+maep (1.3.5) unstable; urgency=low
+
+  * portrait mode / auto rotation
+
+ -- Till Harbaum <till@harbaum.org>  Wed, 19 May 2010 19:17:56 +0200
+
 maep (1.3.4) unstable; urgency=low
 
   * Started work on track graph (not yet finished/enabled)

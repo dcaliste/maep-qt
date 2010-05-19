@@ -28,12 +28,13 @@
 #include "geonames.h"
 #include "hxm.h"
 
-#ifdef MAEMO5
-#include <gdk/gdkx.h>
-#include <X11/Xatom.h>
-#endif
-
 #include <locale.h>
+
+#ifdef MAEMO5
+#include <hildon/hildon-gtk.h>
+#include <mce/dbus-names.h>
+#include <mce/mode-names.h>
+#endif
 
 /* any defined key enables key support */
 #if (defined(MAP_KEY_FULLSCREEN) || \
@@ -45,7 +46,6 @@
      defined(MAP_KEY_RIGHT))
 #include <gdk/gdkkeysyms.h>
 #endif
-
 #include <locale.h>
 #include <libintl.h>
 
@@ -357,25 +357,6 @@ static GtkWidget *map_new(GtkWidget *window) {
   return widget;
 }
 
-#if defined(MAEMO5) && !defined(__i386__)
-/* get access to zoom buttons */
-static void
-on_window_realize(GtkWidget *widget, gpointer data) {
-  if (widget->window) {
-    unsigned char value = 1;
-    Atom hildon_zoom_key_atom = 
-      gdk_x11_get_xatom_by_name("_HILDON_ZOOM_KEY_ATOM"),
-      integer_atom = gdk_x11_get_xatom_by_name("INTEGER");
-    Display *dpy = 
-      GDK_DISPLAY_XDISPLAY(gdk_drawable_get_display(widget->window));
-    Window w = GDK_WINDOW_XID(widget->window);
-
-    XChangeProperty(dpy, w, hildon_zoom_key_atom, 
-		    integer_atom, 8, PropModeReplace, &value, 1);
-  }
-}
-#endif
-
 static void on_window_destroy (GtkWidget *widget, gpointer data) {
 #ifdef USE_MAEMO
   osso_context_t *osso_context =  g_object_get_data(G_OBJECT(widget), "osso-context");
@@ -484,6 +465,95 @@ on_window_key_press(GtkWidget *window, GdkEventKey *event, GtkWidget *map)
   return FALSE;
 }
 
+#ifdef MAEMO5
+static gboolean
+device_is_portrait_mode(osso_context_t* ctx) {
+  osso_rpc_t ret;
+  gboolean result = FALSE;
+  
+  if (osso_rpc_run_system(ctx, MCE_SERVICE, MCE_REQUEST_PATH,
+			  MCE_REQUEST_IF, MCE_DEVICE_ORIENTATION_GET, 
+			  &ret, DBUS_TYPE_INVALID) == OSSO_OK) {
+    g_printerr("INFO: DBus said orientation is: %s\n", ret.value.s);
+    
+    if (strcmp(ret.value.s, MCE_ORIENTATION_PORTRAIT) == 0) {
+      result = TRUE;
+    }
+    
+    osso_rpc_free_val(&ret);
+    
+  } else {
+    g_printerr("ERROR: Call do DBus failed\n");
+  }
+  
+  return result;
+}
+
+static void
+set_orientation(GtkWidget *window, const gchar *mode) {
+  HildonPortraitFlags flags = HILDON_PORTRAIT_MODE_SUPPORT;
+  
+  if (strcmp(mode, "portrait") == 0)
+    flags += HILDON_PORTRAIT_MODE_REQUEST;
+  hildon_gtk_window_set_portrait_flags(GTK_WINDOW(window), flags);
+
+  g_object_set_data(G_OBJECT(window), "portrait-mode", 
+		    !strcmp(mode, "portrait"));
+}
+
+#define MCE_MATCH_RULE "type='signal',interface='" MCE_SIGNAL_IF "',member='" MCE_DEVICE_ORIENTATION_SIG "'"
+
+static DBusHandlerResult
+dbus_handle_mce_message(DBusConnection *conn, DBusMessage *msg, gpointer data)
+{
+  GtkWidget *window = GTK_WIDGET(data);
+
+  DBusMessageIter iter;
+  const gchar *mode = NULL;
+  
+  if (dbus_message_is_signal(msg, MCE_SIGNAL_IF,
+			     MCE_DEVICE_ORIENTATION_SIG)) {
+    if (dbus_message_iter_init(msg, &iter)) {
+      dbus_message_iter_get_basic(&iter, &mode);
+      set_orientation(window, mode);
+    }
+  }
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void
+rotation_enable(GtkWidget *window, osso_context_t *osso_context) {
+  DBusError error;
+  char *mode;
+  DBusMessage *message, *reply;
+  
+  /* Get the system DBus connection */
+  DBusConnection *conn = osso_get_sys_dbus_connection(osso_context);
+  
+  /* Add the callback, which should be called, once the device is rotated */
+  dbus_bus_add_match(conn, MCE_MATCH_RULE, NULL);
+  dbus_connection_add_filter(conn, dbus_handle_mce_message, window, NULL);
+  
+  /* Get the current orientation */
+  message = dbus_message_new_method_call(MCE_SERVICE,
+					 MCE_REQUEST_PATH,
+					 MCE_REQUEST_IF,
+					 MCE_ACCELEROMETER_ENABLE_REQ);
+  
+  dbus_error_init(&error);
+  reply = dbus_connection_send_with_reply_and_block(conn, message,
+						    -1, &error);
+  dbus_message_unref(message); 
+  
+  if (dbus_message_get_args(reply, NULL,
+			    DBUS_TYPE_STRING, &mode,
+			    DBUS_TYPE_INVALID)) {
+    set_orientation(window, mode);
+  }
+  dbus_message_unref(reply); 
+}
+#endif
+
 int main(int argc, char *argv[]) {
   
 #if 0
@@ -513,16 +583,15 @@ int main(int argc, char *argv[]) {
 
   hildon_program_add_window(program, HILDON_WINDOW(window));
 
-  g_object_set_data(G_OBJECT(window), "osso-context",
-	    osso_initialize("org.harbaum."APP, VERSION, TRUE, NULL));
+  osso_context_t *osso_context = 
+    osso_initialize("org.harbaum."APP, VERSION, TRUE, NULL);
 
-#if MAEMO_VERSION_MAJOR >= 5
+  g_object_set_data(G_OBJECT(window), "osso-context", osso_context);
+	    
+#ifdef MAEMO5
   gtk_window_set_title(GTK_WINDOW(window), "Mæp");
-#ifndef __i386__
-  g_signal_connect(G_OBJECT(window), "realize", 
-		   G_CALLBACK(on_window_realize), NULL);
-
-#endif
+  hildon_gtk_window_enable_zoom_keys(GTK_WINDOW(window), TRUE);
+  rotation_enable(window, osso_context);
 #endif // MAEMO_VERSION
 
 #else
