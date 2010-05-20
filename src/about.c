@@ -94,30 +94,6 @@ static GtkWidget *label_xbig(char *str) {
   return label;
 }
 
-#if 0
-static void  
-on_label_realize(GtkWidget *widget, gpointer user_data)  {
-  /* get parent size (which is a container) */
-  gtk_widget_set_size_request(widget, widget->parent->allocation.width, -1);
-}
-
-static GtkWidget *text_wrap(char *str) {
-  GtkWidget *label = gtk_label_new(str);
-
-  gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
-  gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-
-  g_signal_connect(G_OBJECT(label), "realize",
-		   G_CALLBACK(on_label_realize), NULL);
-
-  return label;
-}
-
-static void text_set(GtkWidget *label, char *str) {
-  gtk_label_set_text(GTK_LABEL(label), str);
-}
-
-#else
 static GtkWidget *text_wrap(char *str) {
   GtkTextBuffer *buffer = gtk_text_buffer_new(NULL);
 
@@ -131,15 +107,22 @@ static GtkWidget *text_wrap(char *str) {
   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD);
   gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
   gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(view), FALSE);
-
-  /* copy label style */
-  GtkWidget *label = gtk_label_new("");
-  GtkStyle *style = gtk_widget_get_style(label);
-  gtk_widget_set_style(view, style);
-  gtk_widget_destroy(label);
+  gtk_text_view_set_justification(GTK_TEXT_VIEW(view), GTK_JUSTIFY_LEFT); 
 
   gtk_text_buffer_set_text(buffer, str, -1);
-  
+
+#ifdef MAEMO5
+  /* in fremantle this is really tricky and we need to inherit the */
+  /* style from the topmost window in the stack */
+  HildonWindowStack *stack = hildon_window_stack_get_default();
+  GList *list = hildon_window_stack_get_windows(stack);
+  gtk_widget_set_style(view, GTK_WIDGET(list->data)->style);
+  g_list_free(list);
+#else
+  GtkStyle *style = gtk_widget_get_style(view);
+  gtk_widget_modify_base(view, GTK_STATE_NORMAL, &style->bg[GTK_STATE_NORMAL]);
+#endif 
+
   return view;
 }
 
@@ -147,7 +130,6 @@ static void text_set(GtkWidget *view, char *str) {
   GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
   gtk_text_buffer_set_text(buffer, str, -1);
 }
-#endif
 
 
 GtkWidget *license_page_new(GtkWidget *parent) {
@@ -181,8 +163,6 @@ GtkWidget *license_page_new(GtkWidget *parent) {
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
   				 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-  //  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled_window), 
-  //					label);
   gtk_container_add(GTK_CONTAINER(scrolled_window), label);
   gtk_scrolled_window_set_shadow_type( GTK_SCROLLED_WINDOW(scrolled_window),
 				       GTK_SHADOW_IN);
@@ -190,8 +170,6 @@ GtkWidget *license_page_new(GtkWidget *parent) {
 #else
   GtkWidget *pannable_area = hildon_pannable_area_new();
   gtk_container_add(GTK_CONTAINER(pannable_area), label);
-  //  hildon_pannable_area_add_with_viewport(HILDON_PANNABLE_AREA(pannable_area), 
-  //					 label);
   return pannable_area;
 #endif
 }
@@ -321,8 +299,8 @@ GtkWidget *donate_page_new(GtkWidget *parent) {
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
       text_wrap(_("If you like Mæp and want to support its future development "
-		   "please consider donating to the developer. You can either "
-		   "donate via paypal to")));
+	        "please consider donating to the developer. You can either "
+	        "donate via paypal to")));
   
   gtk_box_pack_start_defaults(GTK_BOX(vbox), 
 		      link_new(parent, "till@harbaum.org"));

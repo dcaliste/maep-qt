@@ -257,7 +257,7 @@ static gboolean on_focus_change(GtkWidget *widget, GdkEventFocus *event,
   } else
     gps_unregister_callback(gps, gps_callback);
 
-  return TRUE;
+  return FALSE;
 }
 
 static GtkWidget *map_new(GtkWidget *window) {
@@ -353,7 +353,7 @@ static GtkWidget *map_new(GtkWidget *window) {
   
   g_signal_connect(G_OBJECT(window), "focus-out-event", 
 		   G_CALLBACK(on_focus_change), widget);
-  
+
   return widget;
 }
 
@@ -626,12 +626,11 @@ int main(int argc, char *argv[]) {
   /* heart rate data */
   if(gconf_get_bool(HXM_ENABLED, FALSE)) 
     menu_check_set_active(window, "Heart Rate", TRUE);
-  
+
   /* connect a key handler to forward global shortcuts (function keys) */
   /* to the ap widget */
   g_signal_connect(G_OBJECT(window), "key_press_event",
 		   G_CALLBACK(on_window_key_press), map);
-
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();

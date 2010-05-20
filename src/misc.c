@@ -191,6 +191,27 @@ char *find_file(char *name) {
   return NULL;
 }
 
+#ifdef MAEMO5               
+static gboolean is_portrait() {
+  GdkScreen *screen = gdk_screen_get_default();
+  int width = gdk_screen_get_width(screen);
+  int height = gdk_screen_get_height(screen);
+  if (width > height) {
+    return FALSE;
+  } else {
+    return TRUE;
+  }
+}
+ 
+static
+void on_orientation_changed(GdkScreen *screen, gpointer userdata) {
+  if(is_portrait()) 
+    printf("now it's portrait\n");
+  else
+    printf("now it's landscape\n");
+}
+#endif
+
 GtkWidget *notebook_new(void) {
 #ifdef MAEMO5               
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
@@ -212,6 +233,10 @@ GtkWidget *notebook_new(void) {
   GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
   gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
   g_object_set_data(G_OBJECT(vbox), "hbox", (gpointer)hbox);
+
+  /* this box needs to be re-arranged for portrait mode */
+  GdkScreen *screen = gdk_screen_get_default(); 
+  g_signal_connect(screen, "size-changed", G_CALLBACK(on_orientation_changed), hbox);
 
   return vbox;
 #else         

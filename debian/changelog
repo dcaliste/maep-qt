@@ -1,6 +1,7 @@
 maep (1.3.5) unstable; urgency=low
 
   * portrait mode / auto rotation
+  * Fixed search entry focus bug
 
  -- Till Harbaum <till@harbaum.org>  Wed, 19 May 2010 19:17:56 +0200
 
