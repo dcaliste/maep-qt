@@ -27,6 +27,8 @@
 #else
 #include <hildon/hildon-pannable-area.h>
 #include <hildon/hildon-text-view.h>
+#include <hildon/hildon-window-stack.h>
+#include <hildon/hildon-gtk.h>
 #define LINK_COLOR "lightblue"
 #endif
 
@@ -363,9 +365,7 @@ void about_box(GtkWidget *parent) {
 #ifndef MAEMO5
   gtk_window_set_default_size(GTK_WINDOW(dialog), 640, 480);
 #else
-  gboolean portrait = g_object_get_data(G_OBJECT(parent), "portrait-mode");
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 640, portrait?800:480);
-  hildon_gtk_window_set_portrait_flags(GTK_WINDOW(dialog), 0);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 800);
 #endif
 #else
   gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);

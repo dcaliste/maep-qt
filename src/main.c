@@ -466,29 +466,6 @@ on_window_key_press(GtkWidget *window, GdkEventKey *event, GtkWidget *map)
 }
 
 #ifdef MAEMO5
-static gboolean
-device_is_portrait_mode(osso_context_t* ctx) {
-  osso_rpc_t ret;
-  gboolean result = FALSE;
-  
-  if (osso_rpc_run_system(ctx, MCE_SERVICE, MCE_REQUEST_PATH,
-			  MCE_REQUEST_IF, MCE_DEVICE_ORIENTATION_GET, 
-			  &ret, DBUS_TYPE_INVALID) == OSSO_OK) {
-    g_printerr("INFO: DBus said orientation is: %s\n", ret.value.s);
-    
-    if (strcmp(ret.value.s, MCE_ORIENTATION_PORTRAIT) == 0) {
-      result = TRUE;
-    }
-    
-    osso_rpc_free_val(&ret);
-    
-  } else {
-    g_printerr("ERROR: Call do DBus failed\n");
-  }
-  
-  return result;
-}
-
 static void
 set_orientation(GtkWidget *window, const gchar *mode) {
   HildonPortraitFlags flags = HILDON_PORTRAIT_MODE_SUPPORT;
@@ -496,9 +473,6 @@ set_orientation(GtkWidget *window, const gchar *mode) {
   if (strcmp(mode, "portrait") == 0)
     flags += HILDON_PORTRAIT_MODE_REQUEST;
   hildon_gtk_window_set_portrait_flags(GTK_WINDOW(window), flags);
-
-  g_object_set_data(G_OBJECT(window), "portrait-mode", 
-		    !strcmp(mode, "portrait"));
 }
 
 #define MCE_MATCH_RULE "type='signal',interface='" MCE_SIGNAL_IF "',member='" MCE_DEVICE_ORIENTATION_SIG "'"

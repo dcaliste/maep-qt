@@ -194,21 +194,36 @@ char *find_file(char *name) {
 #ifdef MAEMO5               
 static gboolean is_portrait() {
   GdkScreen *screen = gdk_screen_get_default();
-  int width = gdk_screen_get_width(screen);
-  int height = gdk_screen_get_height(screen);
-  if (width > height) {
-    return FALSE;
-  } else {
-    return TRUE;
-  }
+  return (gdk_screen_get_width(screen) < gdk_screen_get_height(screen));
 }
  
 static
 void on_orientation_changed(GdkScreen *screen, gpointer userdata) {
-  if(is_portrait()) 
-    printf("now it's portrait\n");
-  else
-    printf("now it's landscape\n");
+  GtkWidget *vbox = GTK_WIDGET(userdata);
+  GtkWidget *hbox0 = g_object_get_data(G_OBJECT(vbox), "hbox0");
+  GtkWidget *hbox1 = g_object_get_data(G_OBJECT(vbox), "hbox1");
+
+  GSList *xbut = g_object_get_data(G_OBJECT(vbox), "xbut");
+  if(!xbut) return;
+
+  int i;
+  for(i=0;i<g_slist_length(xbut);i++) {
+    GtkWidget *but = g_slist_nth_data(xbut, i);
+    g_object_ref(G_OBJECT(but));
+
+    if(is_portrait()) {
+      /* move button from hbox0 to hbox1 */
+      gtk_container_remove(GTK_CONTAINER(hbox0), but);
+      gtk_box_pack_start_defaults(GTK_BOX(hbox1), but);
+    } else {
+      /* move button from hbox1 to hbox0 */
+      gtk_container_remove(GTK_CONTAINER(hbox1), but);
+      gtk_box_pack_start_defaults(GTK_BOX(hbox0), but);
+    }
+    g_object_unref(G_OBJECT(but));
+  }
+  
+  gtk_window_resize(GTK_WINDOW(gtk_widget_get_toplevel(vbox)), 800, 800);
 }
 #endif
 
@@ -229,14 +244,17 @@ GtkWidget *notebook_new(void) {
   /* store a reference to the notebook in the vbox */
   g_object_set_data(G_OBJECT(vbox), "notebook", (gpointer)notebook);
 
-  /* create a hbox for the buttons */
-  GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
-  g_object_set_data(G_OBJECT(vbox), "hbox", (gpointer)hbox);
+  /* create hboxes for the buttons (second hbox for portrait mode) */
+  GtkWidget *hbox0 = gtk_hbox_new(TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox0, FALSE, FALSE, 0);
+  g_object_set_data(G_OBJECT(vbox), "hbox0", (gpointer)hbox0);
+  GtkWidget *hbox1 = gtk_hbox_new(TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox1, FALSE, FALSE, 0);
+  g_object_set_data(G_OBJECT(vbox), "hbox1", (gpointer)hbox1);
 
   /* this box needs to be re-arranged for portrait mode */
   GdkScreen *screen = gdk_screen_get_default(); 
-  g_signal_connect(screen, "size-changed", G_CALLBACK(on_orientation_changed), hbox);
+  g_signal_connect(screen, "size-changed", G_CALLBACK(on_orientation_changed), vbox);
 
   return vbox;
 #else         
@@ -292,8 +310,15 @@ void notebook_append_page(GtkWidget *notebook,
            (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH));
 
   gtk_box_pack_start_defaults(
-              GTK_BOX(g_object_get_data(G_OBJECT(notebook), "hbox")),
-              button);                                               
+	GTK_BOX(g_object_get_data(G_OBJECT(notebook),   
+	  (!is_portrait() || page_num < 3)?"hbox0":"hbox1")), button);
+
+  /* update list of "buttons that need to be moved when switching orientation" */
+  if(page_num >= 3) {
+    GSList *xbut = g_object_get_data(G_OBJECT(notebook), "xbut");
+    xbut = g_slist_append(xbut, button);
+    g_object_set_data(G_OBJECT(notebook), "xbut", xbut);
+  }
 
 #else
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(label));

@@ -380,7 +380,7 @@ static track_state_t *track_read(char *filename, gboolean is_restore) {
     return NULL;
   }
 
-  if(!track_state->dirty) { // && !is_restore) { // xyz
+  if(!track_state->dirty && !is_restore) { 
     printf("TRACK: adding timeout\n");
 
     g_assert(!track_state->timer_handler);
@@ -854,6 +854,12 @@ void track_restore(GtkWidget *map) {
 
     /* the track comes fresh from the disk */
     track_state->dirty = FALSE;
+    
+    if(track_state->timer_handler) {
+      gtk_timeout_remove(track_state->timer_handler);
+      track_state->timer_handler = 0;
+    }
+
   } else {
     GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_enable(toplevel, "Track/Clear", FALSE);

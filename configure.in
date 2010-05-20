@@ -21,7 +21,7 @@
 # along with GPXView.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.61)
-AC_INIT([Maep],[1.3.5],[till@harbaum.org])
+AC_INIT([Maep],[1.3.6],[till@harbaum.org])
 AC_CONFIG_SRCDIR([src/main.c])
 
 PACKAGE="maep"

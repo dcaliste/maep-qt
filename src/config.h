@@ -86,7 +86,7 @@
 #define OSD_COLOR_BG         0, 0, 0, 0.5    // transparent dark background
 /* fremantle has controls at botton (for fringer friendlyness) */
 #define OSD_Y  -10
-#define OSD_HR_Y 10    // HR is always at screens top
+#define OSD_HR_Y 60    // HR is always at screens top
 #endif
 
 #define OSD_DOUBLE_BUFFER    // render osd/map together offscreen
