@@ -312,10 +312,14 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
     cairo_destroy(cr);
 }
 
+#define OSD_STATE_DOWN  0
+#define OSD_STATE_UP    1
+#define OSD_STATE_CHECK 2
+
 /* return true if balloon is being displayed and if */
 /* the given coordinate is within this balloon */
 static gboolean 
-osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x, gint y) 
+osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y) 
 {
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
 
@@ -339,7 +343,7 @@ osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x,
 
         /* handle the fact that the balloon may have been created by the */
         /* button down event */
-        if(!is_in && !down && !priv->balloon.just_created) {
+        if(!is_in && state == OSD_STATE_UP && !priv->balloon.just_created) {
             /* the user actually clicked outside the balloon */
             
             /* close the balloon! */
@@ -361,7 +365,7 @@ osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x,
             event.type = OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK;
             event.data.click.x = x - xs;
             event.data.click.y = y - ys;
-            event.data.click.down = down;
+            event.data.click.down = (state == OSD_STATE_DOWN);
             
             priv->balloon.cb(&event, priv->balloon.data);
         }
@@ -1005,7 +1009,7 @@ osd_source_toggle(osm_gps_map_osd_t *osd)
 
 /* check if the user clicked inside the source selection area */
 static osd_button_t
-osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
+osd_source_check(osm_gps_map_osd_t *osd, gint state, gint x, gint y) {
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
 
     if(!priv->source_sel.expanded)
@@ -1023,7 +1027,7 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
         /* really within puller shape? */
         if(x > Z_RAD || osm_gps_map_in_circle(x, y, Z_RAD, Z_RAD, Z_RAD)) {
             /* expand source selector */
-            if(down)
+            if(state == OSD_STATE_DOWN)
                 osd_source_toggle(osd);
 
             /* tell upper layers that user clicked some background element */
@@ -1049,7 +1053,7 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
             y -= OSD_TEXT_BORDER - OSD_TEXT_SKIP;
             int py = y / step;
 
-            if(down) {
+            if(state == OSD_STATE_DOWN) {
                 gint old = 0;
                 g_object_get(osd->widget, "map-source", &old, NULL);
 
@@ -1067,12 +1071,10 @@ osd_source_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
                 if(py >= num_map_sources) {
                     y -= num_map_sources * (priv->source_sel.max_h + 2*OSD_TEXT_SKIP ) +
                         OSD_TEXT_SKIP + OSD_DPIX_SKIP;
-
                     if(y >= 0) {
                         gboolean dpix = 0;
                         g_object_get(osd->widget, "double-pixel", &dpix, NULL);
                         g_object_set(osd->widget, "double-pixel", !dpix, NULL);
-                    
                         osd_render_source_sel(osd, TRUE);
                         osm_gps_map_repaint(OSM_GPS_MAP(osd->widget));
                         osm_gps_map_redraw(OSM_GPS_MAP(osd->widget));
@@ -1473,10 +1475,10 @@ osd_render_nav(osm_gps_map_osd_t *osd)
 
 /* check if the user clicked inside the source selection area */
 static osd_button_t
-osd_nav_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
+osd_nav_check(osm_gps_map_osd_t *osd, gint state, gint x, gint y) {
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
     
-    if(!priv->nav.surface || down) 
+    if(!priv->nav.surface || state == OSD_STATE_DOWN) 
         return OSD_NONE;
 
     x -= OSD_X;
@@ -1674,11 +1676,11 @@ osm_gps_map_osd_draw_hr (OsmGpsMap *map, gboolean ok, gint rate) {
 #endif // OSD_HEARTRATE
  
 static osd_button_t
-osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x, gint y) {
+osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y) {
     osd_button_t but = OSD_NONE;
 
 #ifdef OSD_BALLOON
-    if(down) {
+    if(state == OSD_STATE_DOWN) {
         /* needed to handle balloons that are created at click */
         osd_priv_t *priv = (osd_priv_t*)osd->priv; 
         priv->balloon.just_created = FALSE;
@@ -1687,13 +1689,13 @@ osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x, gin
 
 #ifdef OSD_SOURCE_SEL
     /* the source selection area is handles internally */
-    but = osd_source_check(osd, down, x, y);
+    but = osd_source_check(osd, state, x, y);
 #endif
 
 #ifdef OSD_NAV
     if(but == OSD_NONE) {
         /* the source selection area is handles internally */
-        but = osd_nav_check(osd, down, x, y);
+        but = osd_nav_check(osd, state, x, y);
     }
 #endif
         
@@ -1722,7 +1724,7 @@ osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gboolean down, gint x, gin
 #ifdef OSD_BALLOON
     if(but == OSD_NONE) {
         /* check if user clicked into balloon */
-        if(osd_balloon_check(osd, click, down, x, y)) 
+        if(osd_balloon_check(osd, click, state, x, y)) 
             but = OSD_BG;
     }
 #endif
@@ -2300,7 +2302,7 @@ osd_busy(osm_gps_map_osd_t *osd)
 
 static osd_button_t
 osd_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
-    return osd_check_int(osd, TRUE, down, x, y);
+    return osd_check_int(osd, TRUE, down?OSD_STATE_DOWN:OSD_STATE_UP, x, y);
 }
 
 static osm_gps_map_osd_t osd_classic = {
@@ -2366,5 +2368,5 @@ osm_gps_map_osd_check(OsmGpsMap *map, gint x, gint y) {
     osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
     g_return_val_if_fail (osd, OSD_NONE);
     
-    return osd_check_int(osd, FALSE, TRUE, x, y);
+    return osd_check_int(osd, FALSE, OSD_STATE_CHECK, x, y);
 }
