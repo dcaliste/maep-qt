@@ -55,4 +55,12 @@ void scrolled_window_add(GtkWidget *win, GtkWidget *child);
 
 void browser_url(GtkWidget *root, char *url);
 
+#ifdef MAEMO5
+#define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
+
+gboolean is_portrait(void);
+void rotation_enable(GtkWidget *window);
+void rotation_disable(GtkWidget *window);
+#endif
+
 #endif // MISC_H

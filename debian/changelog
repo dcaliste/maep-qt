@@ -2,6 +2,8 @@ maep (1.3.6) unstable; urgency=low
 
   * Fixed track state restore bug
   * Fixed some portrait issue in about dialog
+  * Screen rotation menu option
+  * Swap zoom hard keys in portrait mode
 
  -- Till Harbaum <till@harbaum.org>  Thu, 20 May 2010 20:36:36 +0200
 

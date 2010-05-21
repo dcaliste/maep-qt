@@ -83,7 +83,9 @@
 #define OSD_COLOR_DISABLED   0.8, 0.8, 0.8   // light grey disabled controls
 #define OSD_SHADOW_ENABLE
 #else
+#define OSD_COLOR            1, 1, 1         // white
 #define OSD_COLOR_BG         0, 0, 0, 0.5    // transparent dark background
+#define OSD_COLOR_DISABLED   0.5, 0.5, 0.5   // grey disabled controls
 /* fremantle has controls at botton (for fringer friendlyness) */
 #define OSD_Y  -10
 #define OSD_HR_Y 60    // HR is always at screens top

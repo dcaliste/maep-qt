@@ -27,6 +27,7 @@
 #include "about.h"
 #include "track.h"
 #include "geonames.h"
+#include "misc.h"
 #include "osm-gps-map-osd-classic.h"
 
 extern void hxm_enable(GtkWidget *map, gboolean enable);
@@ -79,6 +80,19 @@ cb_menu_hr(GtkWidget *item, gpointer data) {
   hxm_enable(GTK_WIDGET(data), menu_get_active(item)); 
 }
 
+#ifdef MAEMO5
+static void 
+cb_menu_rotation(GtkWidget *item, gpointer data) {
+  GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(data));
+
+  g_object_set_data(G_OBJECT(data), GCONF_KEY_SCREEN_ROTATE, 
+		    (gpointer)menu_get_active(item));
+
+  if(menu_get_active(item))  rotation_enable(toplevel);
+  else                       rotation_disable(toplevel);
+}
+#endif
+
 static void 
 cb_menu_track_import(GtkWidget *item, gpointer data) {
   track_import(GTK_WIDGET(data));
@@ -122,7 +136,9 @@ static const menu_entry_t main_menu[] = {
   { MENU_ENTRY,       "Search",    { .cb = cb_menu_search } },
   { MENU_CHECK_ENTRY, "Wikipedia", { .cb = cb_menu_wikipedia } },
   { MENU_CHECK_ENTRY, "Heart Rate",{ .cb = cb_menu_hr } },
-
+#ifdef MAEMO5
+  { MENU_CHECK_ENTRY, "Screen Rotation",  { .cb = cb_menu_rotation } },
+#endif
   { MENU_END,         NULL,        { NULL } }
 };
 

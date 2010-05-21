@@ -32,8 +32,6 @@
 
 #ifdef MAEMO5
 #include <hildon/hildon-gtk.h>
-#include <mce/dbus-names.h>
-#include <mce/mode-names.h>
 #endif
 
 /* any defined key enables key support */
@@ -442,6 +440,11 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
   gconf_set_bool(HXM_ENABLED, 
     (gboolean)g_object_get_data(G_OBJECT(widget), HXM_ENABLED));
 
+#ifdef MAEMO5
+  gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, 
+    (gboolean)g_object_get_data(G_OBJECT(widget), GCONF_KEY_SCREEN_ROTATE));
+#endif
+
   map_save_state(widget);
 }
 
@@ -456,6 +459,16 @@ on_window_key_press(GtkWidget *window, GdkEventKey *event, GtkWidget *map)
   if(event->keyval == GDK_F11) 
 #endif
   {
+#ifdef MAEMO5
+    /* in portrait mode zoom in/out are exchanged */
+    if(is_portrait()) {
+      if(event->keyval == HILDON_HARDKEY_INCREASE)
+	event->keyval = HILDON_HARDKEY_DECREASE;
+      else if(event->keyval == HILDON_HARDKEY_DECREASE)
+	event->keyval = HILDON_HARDKEY_INCREASE;
+    }
+#endif
+
     gboolean return_val;
     g_signal_emit_by_name(GTK_OBJECT(map), "key_press_event", 
 			  event, &return_val);
@@ -464,69 +477,6 @@ on_window_key_press(GtkWidget *window, GdkEventKey *event, GtkWidget *map)
   
   return FALSE;
 }
-
-#ifdef MAEMO5
-static void
-set_orientation(GtkWidget *window, const gchar *mode) {
-  HildonPortraitFlags flags = HILDON_PORTRAIT_MODE_SUPPORT;
-  
-  if (strcmp(mode, "portrait") == 0)
-    flags += HILDON_PORTRAIT_MODE_REQUEST;
-  hildon_gtk_window_set_portrait_flags(GTK_WINDOW(window), flags);
-}
-
-#define MCE_MATCH_RULE "type='signal',interface='" MCE_SIGNAL_IF "',member='" MCE_DEVICE_ORIENTATION_SIG "'"
-
-static DBusHandlerResult
-dbus_handle_mce_message(DBusConnection *conn, DBusMessage *msg, gpointer data)
-{
-  GtkWidget *window = GTK_WIDGET(data);
-
-  DBusMessageIter iter;
-  const gchar *mode = NULL;
-  
-  if (dbus_message_is_signal(msg, MCE_SIGNAL_IF,
-			     MCE_DEVICE_ORIENTATION_SIG)) {
-    if (dbus_message_iter_init(msg, &iter)) {
-      dbus_message_iter_get_basic(&iter, &mode);
-      set_orientation(window, mode);
-    }
-  }
-  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-}
-
-static void
-rotation_enable(GtkWidget *window, osso_context_t *osso_context) {
-  DBusError error;
-  char *mode;
-  DBusMessage *message, *reply;
-  
-  /* Get the system DBus connection */
-  DBusConnection *conn = osso_get_sys_dbus_connection(osso_context);
-  
-  /* Add the callback, which should be called, once the device is rotated */
-  dbus_bus_add_match(conn, MCE_MATCH_RULE, NULL);
-  dbus_connection_add_filter(conn, dbus_handle_mce_message, window, NULL);
-  
-  /* Get the current orientation */
-  message = dbus_message_new_method_call(MCE_SERVICE,
-					 MCE_REQUEST_PATH,
-					 MCE_REQUEST_IF,
-					 MCE_ACCELEROMETER_ENABLE_REQ);
-  
-  dbus_error_init(&error);
-  reply = dbus_connection_send_with_reply_and_block(conn, message,
-						    -1, &error);
-  dbus_message_unref(message); 
-  
-  if (dbus_message_get_args(reply, NULL,
-			    DBUS_TYPE_STRING, &mode,
-			    DBUS_TYPE_INVALID)) {
-    set_orientation(window, mode);
-  }
-  dbus_message_unref(reply); 
-}
-#endif
 
 int main(int argc, char *argv[]) {
   
@@ -551,21 +501,19 @@ int main(int argc, char *argv[]) {
   /* Create HildonWindow and set it to HildonProgram */
 #ifdef MAEMO5
   GtkWidget *window = hildon_stackable_window_new();
+  gtk_window_set_default_size(GTK_WINDOW(window), 800, 800);
 #else
   GtkWidget *window = hildon_window_new();
 #endif
 
   hildon_program_add_window(program, HILDON_WINDOW(window));
 
-  osso_context_t *osso_context = 
-    osso_initialize("org.harbaum."APP, VERSION, TRUE, NULL);
-
-  g_object_set_data(G_OBJECT(window), "osso-context", osso_context);
+  g_object_set_data(G_OBJECT(window), "osso-context", 
+		    osso_initialize("org.harbaum."APP, VERSION, TRUE, NULL));
 	    
 #ifdef MAEMO5
   gtk_window_set_title(GTK_WINDOW(window), "Mæp");
   hildon_gtk_window_enable_zoom_keys(GTK_WINDOW(window), TRUE);
-  rotation_enable(window, osso_context);
 #endif // MAEMO_VERSION
 
 #else
@@ -597,9 +545,15 @@ int main(int argc, char *argv[]) {
   track_restore(map);
   geonames_wikipedia_restore(map);
 
-  /* heart rate data */
+  /* heart rate data, disable by default */
   if(gconf_get_bool(HXM_ENABLED, FALSE)) 
     menu_check_set_active(window, "Heart Rate", TRUE);
+
+#ifdef MAEMO5
+  /* restore portrait mode settings, enable by default */
+  if(gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE))
+    menu_check_set_active(window, "Screen Rotation", TRUE);
+#endif
 
   /* connect a key handler to forward global shortcuts (function keys) */
   /* to the ap widget */

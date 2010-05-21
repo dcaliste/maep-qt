@@ -34,6 +34,8 @@
 #include <hildon/hildon-note.h>
 #include <hildon/hildon-entry.h>
 #include <hildon/hildon-pannable-area.h>
+#include <mce/dbus-names.h>
+#include <mce/mode-names.h>
 #endif
 
 #ifdef ENABLE_BROWSER_INTERFACE
@@ -192,7 +194,7 @@ char *find_file(char *name) {
 }
 
 #ifdef MAEMO5               
-static gboolean is_portrait() {
+gboolean is_portrait() {
   GdkScreen *screen = gdk_screen_get_default();
   return (gdk_screen_get_width(screen) < gdk_screen_get_height(screen));
 }
@@ -513,4 +515,93 @@ void scrolled_window_add_with_viewport(GtkWidget *win, GtkWidget *child) {
 void scrolled_window_add(GtkWidget *win, GtkWidget *child) {
   gtk_container_add(GTK_CONTAINER(win), child);
 }
+
+#ifdef MAEMO5
+static void
+set_orientation(GtkWidget *window, const gchar *mode) {
+  HildonPortraitFlags flags = HILDON_PORTRAIT_MODE_SUPPORT;
+  
+  if (strcmp(mode, "portrait") == 0)
+    flags += HILDON_PORTRAIT_MODE_REQUEST;
+  hildon_gtk_window_set_portrait_flags(GTK_WINDOW(window), flags);
+}
+
+#define MCE_MATCH_RULE "type='signal',interface='" MCE_SIGNAL_IF "',member='" MCE_DEVICE_ORIENTATION_SIG "'"
+
+static DBusHandlerResult
+dbus_handle_mce_message(DBusConnection *conn, DBusMessage *msg, gpointer data) {
+  GtkWidget *window = GTK_WIDGET(data);
+
+  DBusMessageIter iter;
+  const gchar *mode = NULL;
+  
+  if (dbus_message_is_signal(msg, MCE_SIGNAL_IF,
+			     MCE_DEVICE_ORIENTATION_SIG)) {
+    if (dbus_message_iter_init(msg, &iter)) {
+      dbus_message_iter_get_basic(&iter, &mode);
+      set_orientation(window, mode);
+    }
+  }
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+void rotation_enable(GtkWidget *window) {
+  DBusError error;
+  char *mode;
+  DBusMessage *message, *reply;
+
+  osso_context_t *osso_context = 
+    g_object_get_data(G_OBJECT(window), "osso-context");
+
+  g_assert(osso_context);
+  
+  /* Get the system DBus connection */
+  DBusConnection *conn = osso_get_sys_dbus_connection(osso_context);
+  
+  /* Add the callback, which should be called, once the device is rotated */
+  dbus_bus_add_match(conn, MCE_MATCH_RULE, NULL);
+  dbus_connection_add_filter(conn, dbus_handle_mce_message, window, NULL);
+  
+  /* Get the current orientation */
+  message = dbus_message_new_method_call(MCE_SERVICE,
+					 MCE_REQUEST_PATH,
+					 MCE_REQUEST_IF,
+					 MCE_ACCELEROMETER_ENABLE_REQ);
+  
+  dbus_error_init(&error);
+  reply = dbus_connection_send_with_reply_and_block(conn, message,
+						    -1, &error);
+  dbus_message_unref(message); 
+  
+  if (dbus_message_get_args(reply, NULL,
+			    DBUS_TYPE_STRING, &mode,
+			    DBUS_TYPE_INVALID)) {
+    set_orientation(window, mode);
+  }
+  dbus_message_unref(reply); 
+}
+
+void rotation_disable(GtkWidget *window) {
+  osso_context_t *osso_context = 
+    g_object_get_data(G_OBJECT(window), "osso-context");
+
+  g_assert(osso_context);
+
+  DBusConnection *conn = osso_get_sys_dbus_connection(osso_context);
+  DBusMessage *message;
+  
+  dbus_bus_remove_match(conn, MCE_MATCH_RULE, NULL);
+  dbus_connection_remove_filter(conn, dbus_handle_mce_message, NULL);
+  
+  message = dbus_message_new_method_call(MCE_SERVICE,
+					 MCE_REQUEST_PATH,
+					 MCE_REQUEST_IF,
+					 MCE_ACCELEROMETER_DISABLE_REQ);
+  dbus_message_set_no_reply(message, TRUE);
+  
+  dbus_connection_send(conn, message, NULL);
+  dbus_message_unref(message); 
+}
+
+#endif
 
