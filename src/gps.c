@@ -43,7 +43,6 @@
 #endif
 
 #include "gps.h"
-#include "track.h"
 
 static void gps_unregister_all(gps_state_t *gps_state);
 
