@@ -29,6 +29,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <locale.h>
 
 #ifdef USE_MAEMO
 #ifdef ENABLE_GPSBT
