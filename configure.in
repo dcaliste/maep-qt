@@ -70,14 +70,18 @@ PKG_CHECK_MODULES([libxml2], [libxml-2.0], [], [AC_MSG_ERROR([libxml-2.0 missing
 CFLAGS="$CFLAGS $libxml2_CFLAGS"
 LIBS="$LIBS $libxml2_LIBS"
 
+# osm-gps-map support
+OSM_GPS_MAP_OBJS="osm-gps-map/osm-gps-map.o osm-gps-map/osm-gps-map-osd-classic.o"
+CFLAGS="$CFLAGS -I osm-gps-map"
+
 # check for libsoup
 PKG_CHECK_MODULES([libsoup24], [libsoup-2.4], [
-  EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
+  EXTRA_OBJS="$EXTRA_OBJS $OSM_GPS_MAP_OBJS"
   CFLAGS="$CFLAGS $libsoup24_CFLAGS"
   LIBS="$LIBS $libsoup24_LIBS"
 ], [
   PKG_CHECK_MODULES([libsoup22], [libsoup-2.2], [
-    EXTRA_OBJS="$EXTRA_OBJS converter.o osm-gps-map.o osm-gps-map-osd-classic.o"
+    EXTRA_OBJS="$EXTRA_OBJS $OSM_GPS_MAP_OBJS"
     CFLAGS="$CFLAGS $libsoup22_CFLAGS -DUSE_LIBSOUP22=1"
     LIBS="$LIBS $libsoup22_LIBS"
   ], [
@@ -188,7 +192,7 @@ XB-Maemo-Icon-26:
   LIBS="$LIBS $gnome2_LIBS"
 
   # check for libgps
-  PKG_CHECK_MODULES([gps], [libgps], [
+  PKG_CHECK_MODULES([gps], [libgps-broken], [
     CFLAGS="$CFLAGS $gps_CFLAGS -DUSE_LIBGPS"
     LIBS="$LIBS $gps_LIBS"
   ], [AC_MSG_NOTICE([No libgps found, using direct GPSD])])

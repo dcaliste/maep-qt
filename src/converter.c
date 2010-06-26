@@ -22,9 +22,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "osm-gps-map-types.h"
 #include "converter.h"
 
+#define TILESIZE 256
 
 float
 deg2rad(float deg)

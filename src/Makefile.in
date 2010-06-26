@@ -26,11 +26,12 @@ VERSION = $${VERSION_PREFIX}@PACKAGE_VERSION@$${VERSION_SUFFIX}
 MAEMO_VERSION_MAJOR = @MAEMO_VERSION_MAJOR@
 
 bindir = @bindir@
+srcdir = @srcdir@
 
-OBJS = main.o menu.o gps.o misc.o icon.o about.o track.o net_io.o geonames.o graph.o hxm.o $(EXTRA_OBJS) 
+OBJS = main.o menu.o gps.o misc.o icon.o about.o track.o net_io.o geonames.o graph.o hxm.o converter.o $(EXTRA_OBJS) 
 
 DEFS = -DVERSION=\"$(VERSION)\" -DPREFIX=\"$(prefix)\" -DDATADIR=\"$(datadir)/$(APP)/\" -DAPP=\"$(APP)\"
-CFLAGS = -Wall -O2 $(DEFS) @CFLAGS@
+CFLAGS = -Wall -O2 $(DEFS) -I $(srcdir) @CFLAGS@ 
 LDFLAGS = @LIBS@ 
 
 all: $(APP)
@@ -63,13 +64,12 @@ dep:
 # DO NOT DELETE
 
 about.o: config.h misc.h icon.h about.h
-converter.o: osm-gps-map-types.h osm-gps-map.h config.h converter.h
-gps.o: gps.h track.h osm-gps-map.h config.h
+converter.o: config.h converter.h
+gps.o: gps.h track.h osm-gps-map/osm-gps-map.h config.h
 icon.o: icon.h misc.h
-main.o: config.h menu.h track.h osm-gps-map.h osm-gps-map-osd-classic.h gps.h
-menu.o: config.h about.h track.h osm-gps-map.h
+main.o: config.h menu.h track.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-osd-classic.h gps.h
+menu.o: config.h about.h track.h osm-gps-map/osm-gps-map.h
 misc.o: config.h misc.h
-osm-gps-map.o: config.h converter.h osm-gps-map-types.h osm-gps-map.h
-osm-gps-map-osd-classic.o: config.h osm-gps-map.h converter.h
-osm-gps-map-osd-classic.o: osm-gps-map-osd-classic.h
-track.o: config.h track.h osm-gps-map.h converter.h misc.h
+osm-gps-map/osm-gps-map.o: config.h converter.h osm-gps-map/osm-gps-map-types.h osm-gps-map/osm-gps-map.h
+osm-gps-map/osm-gps-map-osd-classic.o: config.h osm-gps-map/osm-gps-map.h converter.h osm-gps-map/osm-gps-map-osd-classic.h
+track.o: config.h track.h osm-gps-map/osm-gps-map.h converter.h misc.h
