@@ -3140,7 +3140,7 @@ CFLAGS="$CFLAGS $libxml2_CFLAGS"
 LIBS="$LIBS $libxml2_LIBS"
 
 # osm-gps-map support
-OSM_GPS_MAP_OBJS="osm-gps-map/osm-gps-map.o osm-gps-map/osm-gps-map-osd-classic.o"
+OSM_GPS_MAP_OBJS="osm-gps-map/osm-gps-map.o osm-gps-map/osm-gps-map-layer.o osm-gps-map/osm-gps-map-osd-classic.o"
 CFLAGS="$CFLAGS -I osm-gps-map"
 
 # check for libsoup
