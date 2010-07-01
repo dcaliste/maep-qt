@@ -42,13 +42,10 @@
 #include "osm-gps-map-types.h"
 #include "osm-gps-map.h"
 
-#define ENABLE_DEBUG 0
-
-#define EXTRA_BORDER (TILESIZE / 2)
-
-#define OSM_GPS_MAP_SCROLL_STEP 10
-
-#define USER_AGENT "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11"
+#define ENABLE_DEBUG                (0)
+#define EXTRA_BORDER                (TILESIZE / 2)
+#define OSM_GPS_MAP_SCROLL_STEP     (10)
+#define USER_AGENT                  "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11"
 
 struct _OsmGpsMapPrivate
 {
@@ -118,6 +115,9 @@ struct _OsmGpsMapPrivate
 
     //The tile painted when one cannot be found
     GdkPixbuf *null_tile;
+
+    //A list of OsmGpsMapLayer* layers, such as the OSD
+    GSList *layers;
 
     //For tracking click and drag
     int drag_counter;
@@ -506,6 +506,17 @@ osm_gps_map_free_images (OsmGpsMap *map)
         }
         g_slist_free(priv->images);
         priv->images = NULL;
+    }
+}
+
+static void
+osm_gps_map_free_layers(OsmGpsMap *map)
+{
+    OsmGpsMapPrivate *priv = map->priv;
+    if (priv->layers) {
+        g_slist_foreach(priv->layers, (GFunc) g_object_unref, NULL);
+        g_slist_free(priv->layers);
+        priv->layers = NULL;
     }
 }
 
@@ -1268,10 +1279,18 @@ osm_gps_map_map_redraw (OsmGpsMap *map)
 
     priv->idle_map_redraw = 0;
 
-#ifdef ENABLE_OSD
     /* don't redraw the entire map while the OSD is doing */
     /* some animation or the like. This is to keep the animation */
     /* fluid */
+    if (priv->layers) {
+        GSList *list;
+        for(list = priv->layers; list != NULL; list = list->next) {
+            OsmGpsMapLayer *layer = list->data;
+            if (osm_gps_map_layer_busy(layer))
+                return FALSE;
+        }
+    }
+#ifdef ENABLE_OSD
     if (priv->osd->busy(priv->osd))
         return FALSE;
 #endif
@@ -1306,6 +1325,14 @@ osm_gps_map_map_redraw (OsmGpsMap *map)
     osm_gps_map_print_tracks(map);
     osm_gps_map_draw_gps_point(map);
     osm_gps_map_print_images(map);
+
+    if (priv->layers) {
+        GSList *list;
+        for(list = priv->layers; list != NULL; list = list->next) {
+            OsmGpsMapLayer *layer = list->data;
+            osm_gps_map_layer_render (layer, map);
+        }
+    }
 
 #ifdef ENABLE_OSD
     /* OSD may contain a coordinate/scale, so we may have to re-render it */
@@ -1438,6 +1465,7 @@ osm_gps_map_init (OsmGpsMap *object)
 #endif
     priv->tracks = NULL;
     priv->images = NULL;
+    priv->layers = NULL;
 
     priv->drag_counter = 0;
     priv->drag_mouse_dx = 0;
@@ -1599,6 +1627,7 @@ osm_gps_map_dispose (GObject *object)
 
     /* images and layers contain GObjects which need unreffing, so free here */
     osm_gps_map_free_images(map);
+    osm_gps_map_free_layers(map);
 
     if(priv->pixmap)
         g_object_unref (priv->pixmap);

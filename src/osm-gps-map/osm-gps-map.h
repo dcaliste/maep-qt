@@ -45,6 +45,8 @@ typedef struct _OsmGpsMapClass OsmGpsMapClass;
 typedef struct _OsmGpsMap OsmGpsMap;
 typedef struct _OsmGpsMapPrivate OsmGpsMapPrivate;
 
+#include "osm-gps-map-layer.h"
+
 struct _OsmGpsMapClass
 {
     GtkDrawingAreaClass parent_class;
@@ -195,6 +197,7 @@ void        osm_gps_map_geographic_to_screen        (OsmGpsMap *map, gfloat lati
 void        osm_gps_map_scroll                      (OsmGpsMap *map, gint dx, gint dy);
 float       osm_gps_map_get_scale                   (OsmGpsMap *map);
 void        osm_gps_map_set_keyboard_shortcut       (OsmGpsMap *map, OsmGpsMapKey_t key, guint keyval);
+void        osm_gps_map_add_layer                   (OsmGpsMap *map, OsmGpsMapLayer *layer);
 
 #ifdef ENABLE_OSD
 void osm_gps_map_register_osd(OsmGpsMap *map, osm_gps_map_osd_t *osd);
