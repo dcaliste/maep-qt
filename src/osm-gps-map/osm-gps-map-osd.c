@@ -458,10 +458,9 @@ osm_gps_map_osd_render (OsmGpsMapLayer *osd,
 
 static void
 osm_gps_map_osd_draw (OsmGpsMapLayer *osd,
-                              OsmGpsMap *map,
-                              GdkDrawable *drawable)
+                      OsmGpsMap *map,
+                      cairo_t *cr)
 {
-    cairo_t *cr;
     OsmGpsMapOsd *self;
     OsmGpsMapOsdPrivate *priv;
     GtkAllocation *allocation;
@@ -472,8 +471,6 @@ osm_gps_map_osd_draw (OsmGpsMapLayer *osd,
     priv = self->priv;
     allocation = &(GTK_WIDGET(map)->allocation);
 
-    cr = gdk_cairo_create(drawable);
-
     if (priv->show_scale)
         scale_draw(self, allocation, cr);
     if (priv->show_coordinates)
@@ -482,8 +479,6 @@ osm_gps_map_osd_draw (OsmGpsMapLayer *osd,
         crosshair_draw(self, allocation, cr);
     if (priv->show_zoom || priv->show_dpad)
         controls_draw(self, allocation, cr);
-
-    cairo_destroy(cr);
 }
 
 static gboolean

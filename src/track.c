@@ -89,7 +89,7 @@ static void track_state_free(track_state_t *track_state) {
   /* stop running timeout timer if present */
   if(track_state->timer_handler) {
     printf("TRACK: removing timeout\n");
-    gtk_timeout_remove(track_state->timer_handler);
+    g_source_remove(track_state->timer_handler);
     track_state->timer_handler = 0;
   }
 
@@ -384,14 +384,14 @@ static track_state_t *track_read(char *filename, gboolean is_restore) {
     printf("TRACK: adding timeout\n");
 
     g_assert(!track_state->timer_handler);
-    track_state->timer_handler = gtk_timeout_add(5*1000, track_autosave, track_state);
+    track_state->timer_handler = g_timeout_add(5*1000, track_autosave, track_state);
     track_state->dirty = TRUE;
   }
 
   return track_state;
 }
 
-void track_draw(GtkWidget *map, track_state_t *track_state) {
+void track_draw(OsmGpsMap *map, track_state_t *track_state) {
   /* erase any previous track */
   track_clear(map);
 
@@ -411,7 +411,7 @@ void track_draw(GtkWidget *map, track_state_t *track_state) {
 	points = g_slist_append(points, new_point);
 	point = point->next;
       }
-      osm_gps_map_add_track(OSM_GPS_MAP(map), points);
+      osm_gps_map_add_track(map, points);
 
       seg = seg->next;    
     }
@@ -421,10 +421,11 @@ void track_draw(GtkWidget *map, track_state_t *track_state) {
   /* save track reference in map */
   g_object_set_data(G_OBJECT(map), "track_state", track_state);
 
-  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
-  menu_enable(toplevel, "Track/Clear", TRUE);
-  menu_enable(toplevel, "Track/Export", TRUE);
-  menu_enable(toplevel, "Track/Graph", TRUE);
+  g_error("update here");
+  /* GtkWidget *toplevel = gtk_widget_get_toplevel(map); */
+  /* menu_enable(toplevel, "Track/Clear", TRUE); */
+  /* menu_enable(toplevel, "Track/Export", TRUE); */
+  /* menu_enable(toplevel, "Track/Graph", TRUE); */
 }
 
 /* this imports a track and adds it to the set of existing tracks */

@@ -154,11 +154,11 @@ osd_shape_shadow(cairo_t *cr) {
     cairo_stroke (cr);
 }
 
-void
-osd_shape(cairo_t *cr, GdkColor *bg, GdkColor *fg) {
-    gdk_cairo_set_source_color(cr, bg);
+static void
+osd_shape(cairo_t *cr, double bg[4], double fg[4]) {
+    cairo_set_source_rgba(cr, bg[0], bg[1], bg[2], bg[3]);
     cairo_fill_preserve (cr);
-    gdk_cairo_set_source_color(cr, fg);
+    cairo_set_source_rgba(cr, fg[0], fg[1], fg[2], fg[3]);
     cairo_set_line_width (cr, 1);
     cairo_stroke (cr);
 }

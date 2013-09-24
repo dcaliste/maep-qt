@@ -29,8 +29,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <gtk/gtk.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <cairo.h>
 
 G_BEGIN_DECLS
 
@@ -49,12 +48,12 @@ typedef struct _OsmGpsMapPrivate OsmGpsMapPrivate;
 
 struct _OsmGpsMapClass
 {
-    GtkDrawingAreaClass parent_class;
+    GObjectClass parent_class;
 };
 
 struct _OsmGpsMap
 {
-    GtkDrawingArea parent_instance;
+    GObject parent_instance;
     OsmGpsMapPrivate *priv;
 };
 
@@ -85,21 +84,13 @@ typedef enum {
     OSM_GPS_MAP_SOURCE_LAST
 } OsmGpsMapSource_t;
 
-typedef enum {
-    OSM_GPS_MAP_KEY_FULLSCREEN,
-    OSM_GPS_MAP_KEY_ZOOMIN,
-    OSM_GPS_MAP_KEY_ZOOMOUT,
-    OSM_GPS_MAP_KEY_UP,
-    OSM_GPS_MAP_KEY_DOWN,
-    OSM_GPS_MAP_KEY_LEFT,
-    OSM_GPS_MAP_KEY_RIGHT,
-    OSM_GPS_MAP_KEY_MAX
-} OsmGpsMapKey_t;
-
 #define OSM_GPS_MAP_INVALID         (0.0/0.0)
 #define OSM_GPS_MAP_CACHE_DISABLED  "none://"
 #define OSM_GPS_MAP_CACHE_AUTO      "auto://"
 #define OSM_GPS_MAP_CACHE_FRIENDLY  "friendly://"
+
+#define TILESIZE 256
+#define EXTRA_BORDER                (TILESIZE / 2)
 
 typedef struct {
     gint x, y, w, h;
@@ -123,10 +114,16 @@ typedef void (*OsmGpsMapOsdCallback)(osd_button_t but, gpointer data);
 /* the osd structure mainly contains various callbacks */
 /* required to draw and update the OSD */
 typedef struct osm_gps_map_osd_s {
-    GtkWidget *widget;   // the main map widget (to get its stlye info)
+    /* To specify color. */
+    double fg[3];
+    double disabled[3];
+    double bg[3];
+
+    /* OSM renderer it is associated to. */
+    OsmGpsMap *map;
 
     void(*render)(struct osm_gps_map_osd_s *);
-    void(*draw)(struct osm_gps_map_osd_s *, GdkDrawable *);
+    void(*draw)(struct osm_gps_map_osd_s *, cairo_t *);
     osd_button_t(*check)(struct osm_gps_map_osd_s *,gboolean,gint, gint);       /* check if x/y lies within OSD */
     gboolean(*busy)(struct osm_gps_map_osd_s *);
     void(*free)(struct osm_gps_map_osd_s *);
@@ -164,7 +161,7 @@ typedef void (*OsmGpsMapBalloonCallback)(osm_gps_map_balloon_event_t *event, gpo
 
 GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
 
-GtkWidget*  osm_gps_map_new                         (void);
+OsmGpsMap*  osm_gps_map_new                         (void);
 
 char*       osm_gps_map_get_default_cache_directory (void);
 
@@ -185,9 +182,9 @@ int         osm_gps_map_zoom_out                    (OsmGpsMap *map);
 void        osm_gps_map_add_track                   (OsmGpsMap *map, GSList *track);
 void        osm_gps_map_replace_track               (OsmGpsMap *map, GSList *old_track, GSList *new_track);
 void        osm_gps_map_clear_tracks                (OsmGpsMap *map);
-void        osm_gps_map_add_image                   (OsmGpsMap *map, float latitude, float longitude, GdkPixbuf *image);
-void        osm_gps_map_add_image_with_alignment    (OsmGpsMap *map, float latitude, float longitude, GdkPixbuf *image, float xalign, float yalign);
-gboolean    osm_gps_map_remove_image                (OsmGpsMap *map, GdkPixbuf *image);
+void        osm_gps_map_add_image                   (OsmGpsMap *map, float latitude, float longitude, cairo_surface_t *image);
+void        osm_gps_map_add_image_with_alignment    (OsmGpsMap *map, float latitude, float longitude, cairo_surface_t *image, float xalign, float yalign);
+gboolean    osm_gps_map_remove_image                (OsmGpsMap *map, cairo_surface_t *image);
 void        osm_gps_map_clear_images                (OsmGpsMap *map);
 void        osm_gps_map_draw_gps                    (OsmGpsMap *map, float latitude, float longitude, float heading);
 void        osm_gps_map_clear_gps                   (OsmGpsMap *map);
@@ -196,14 +193,14 @@ void        osm_gps_map_screen_to_geographic        (OsmGpsMap *map, gint pixel_
 void        osm_gps_map_geographic_to_screen        (OsmGpsMap *map, gfloat latitude, gfloat longitude, gint *pixel_x, gint *pixel_y);
 void        osm_gps_map_scroll                      (OsmGpsMap *map, gint dx, gint dy);
 float       osm_gps_map_get_scale                   (OsmGpsMap *map);
-void        osm_gps_map_set_keyboard_shortcut       (OsmGpsMap *map, OsmGpsMapKey_t key, guint keyval);
 void        osm_gps_map_add_layer                   (OsmGpsMap *map, OsmGpsMapLayer *layer);
+cairo_surface_t* osm_gps_map_get_surface            (OsmGpsMap *map);
+void        osm_gps_map_set_viewport                (OsmGpsMap *map, guint width, guint height);
+gboolean    osm_gps_map_redraw                      (OsmGpsMap *map);
 
 #ifdef ENABLE_OSD
 void osm_gps_map_register_osd(OsmGpsMap *map, osm_gps_map_osd_t *osd);
-void osm_gps_map_redraw (OsmGpsMap *map);
 osm_gps_map_osd_t *osm_gps_map_osd_get(OsmGpsMap *map);
-void osm_gps_map_repaint (OsmGpsMap *map);
 coord_t *osm_gps_map_get_gps (OsmGpsMap *map);
 #endif
 

@@ -20,6 +20,8 @@
 #ifndef MENU_H
 #define MENU_H
 
+#include <gtk/gtk.h>
+
 void menu_create(GtkWidget *vbox, GtkWidget *map);
 void menu_enable(GtkWidget *window, const char *id, gboolean enable); 
 void menu_check_set_active(GtkWidget *window, const char *id, gboolean active);

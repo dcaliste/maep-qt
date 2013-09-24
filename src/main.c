@@ -50,7 +50,7 @@
 #include <gconf/gconf.h>
 #include <gconf/gconf-client.h>
 
-#include "osm-gps-map.h"
+#include "osm-gps-map-gtkwidget.h"
 #include "osm-gps-map-osd-classic.h"
 #include "converter.h"
 #include "misc.h"
@@ -112,13 +112,13 @@ static const char *get_proxy_uri(void) {
 
 /* save the entire map state into gconf to be able */
 /* to restore the state at the next startup */
-void map_save_state(GtkWidget *widget) {
+void map_save_state(OsmGpsMap *map) {
   gint zoom, source;
   gfloat lat, lon;
   gboolean dpix;
 
   /* get state information from map ... */
-  g_object_get(OSM_GPS_MAP(widget), 
+  g_object_get(map, 
 	       "zoom", &zoom, 
 	       "map-source", &source, 
 	       "latitude", &lat, "longitude", &lon,
@@ -166,14 +166,14 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
 #endif
 
   gps_mask_t gps_set = 
-    (gps_mask_t)g_object_get_data(G_OBJECT(map), "gps_set"); 
+    (gps_mask_t)GPOINTER_TO_INT(g_object_get_data(G_OBJECT(map), "gps_set")); 
 
   /* ... and enable "goto" button if it's valid */
   if((set & FIX_LATLON_SET) != (gps_set & FIX_LATLON_SET)) {
     osm_gps_map_osd_enable_gps(map,  
        OSM_GPS_MAP_OSD_CALLBACK((set&FIX_LATLON_SET)?cb_map_gps:NULL), map);
 
-    g_object_set_data(G_OBJECT(map), "gps_set", (gpointer)set); 
+    g_object_set_data(G_OBJECT(map), "gps_set", GINT_TO_POINTER(set)); 
   }
 
   if(set & FIX_LATLON_SET) {
@@ -258,7 +258,7 @@ static gboolean on_focus_change(GtkWidget *widget, GdkEventFocus *event,
   return FALSE;
 }
 
-static GtkWidget *map_new(GtkWidget *window) {
+static GtkWidget *map_new(GtkWidget *window, OsmGpsMap **map_) {
   /* It is recommanded that all applications share these same */
   /* map path, so data is only cached once. The path should be: */
   /* ~/.osm-gps-map on standard PC     (users home) */
@@ -295,7 +295,7 @@ static GtkWidget *map_new(GtkWidget *window) {
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
   gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
     
-  GtkWidget *widget = g_object_new(OSM_TYPE_GPS_MAP,
+  OsmGpsMap *map = g_object_new(OSM_TYPE_GPS_MAP,
 		 "map-source",               source,
 		 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
 		 "tile-cache-base",          path,
@@ -304,39 +304,39 @@ static GtkWidget *map_new(GtkWidget *window) {
 		 "show-trip-history",        FALSE, 
 		 "gps-track-point-radius",   10,
 		 proxy?"proxy-uri":NULL,     proxy,
-		 "drag-limit",               MAP_DRAG_LIMIT,
 		 "double-pixel",             dpix,
 		 NULL);
 
   g_free(path);
 
-  OsmGpsMap *map = OSM_GPS_MAP(widget);
+  GtkWidget *widget = osm_gps_map_gtkwidget_new(map);
+  g_object_set(G_OBJECT(widget), "drag-limit", MAP_DRAG_LIMIT, NULL);
 
 #ifdef MAP_KEY_FULLSCREEN
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_FULLSCREEN, MAP_KEY_FULLSCREEN);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_FULLSCREEN, MAP_KEY_FULLSCREEN);
 #endif
 #ifdef MAP_KEY_ZOOMIN
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_ZOOMIN, MAP_KEY_ZOOMIN);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMIN, MAP_KEY_ZOOMIN);
 #endif
 #ifdef MAP_KEY_ZOOMOUT
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_ZOOMOUT, MAP_KEY_ZOOMOUT);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMOUT, MAP_KEY_ZOOMOUT);
 #endif
 #ifdef MAP_KEY_UP
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_UP, MAP_KEY_UP);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_UP, MAP_KEY_UP);
 #endif
 #ifdef MAP_KEY_DOWN
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_DOWN, MAP_KEY_DOWN);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_DOWN, MAP_KEY_DOWN);
 #endif
 #ifdef MAP_KEY_LEFT
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_LEFT, MAP_KEY_LEFT);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_LEFT, MAP_KEY_LEFT);
 #endif
 #ifdef MAP_KEY_RIGHT
-  osm_gps_map_set_keyboard_shortcut(map, OSM_GPS_MAP_KEY_RIGHT, MAP_KEY_RIGHT);
+  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_RIGHT, MAP_KEY_RIGHT);
 #endif
 
-  osm_gps_map_set_mapcenter(OSM_GPS_MAP(widget), lat, lon, zoom);
+  osm_gps_map_set_mapcenter(map, lat, lon, zoom);
 
-  osm_gps_map_osd_classic_init(OSM_GPS_MAP(widget));
+  osm_gps_map_osd_classic_init(map);
 
   /* connect to GPS */
   gps_state_t *gps = gps_init();
@@ -351,7 +351,7 @@ static GtkWidget *map_new(GtkWidget *window) {
   
   g_signal_connect(G_OBJECT(window), "focus-out-event", 
 		   G_CALLBACK(on_focus_change), widget);
-
+  *map_ = map;
   return widget;
 }
 
@@ -395,12 +395,12 @@ void hxm_enable(GtkWidget *map, gboolean enable) {
 
   /* verify that tracking isn't already in the requested state */
   gboolean cur_state = 
-    (gboolean)g_object_get_data(G_OBJECT(map), HXM_ENABLED);
+    (gboolean)GPOINTER_TO_INT(g_object_get_data(G_OBJECT(map), HXM_ENABLED));
 
   g_assert(cur_state != enable);
 
   /* save new tracking state */
-  g_object_set_data(G_OBJECT(map), HXM_ENABLED, (gpointer)enable);
+  g_object_set_data(G_OBJECT(map), HXM_ENABLED, GINT_TO_POINTER(enable));
 
   hxm_t *hxm = g_object_get_data(G_OBJECT(map), "hxm");
 
@@ -438,14 +438,14 @@ static void on_map_destroy (GtkWidget *widget, gpointer data) {
   }
 
   gconf_set_bool(HXM_ENABLED, 
-    (gboolean)g_object_get_data(G_OBJECT(widget), HXM_ENABLED));
+                 (gboolean)GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), HXM_ENABLED)));
 
 #ifdef MAEMO5
   gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, 
-    (gboolean)g_object_get_data(G_OBJECT(widget), GCONF_KEY_SCREEN_ROTATE));
+                 (gboolean)GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), GCONF_KEY_SCREEN_ROTATE)));
 #endif
 
-  map_save_state(widget);
+  map_save_state(OSM_GPS_MAP(data));
 }
 
 static gboolean 
@@ -532,18 +532,19 @@ int main(int argc, char *argv[]) {
   gtk_container_add(GTK_CONTAINER(window), vbox);
 
   /* create map widget */
-  GtkWidget *map = map_new(window);
+  OsmGpsMap *surf;
+  GtkWidget *map = map_new(window, &surf);
 
   /* attach menu to main window */
   menu_create(vbox, map);
 
   g_signal_connect(G_OBJECT(map), "destroy", 
-		   G_CALLBACK(on_map_destroy), NULL);
+		   G_CALLBACK(on_map_destroy), (gpointer)surf);
 
   gtk_box_pack_start_defaults(GTK_BOX(vbox), map);
 
-  track_restore(map);
-  geonames_wikipedia_restore(map);
+  /* track_restore(map); */
+  /* geonames_wikipedia_restore(map); */
 
   /* heart rate data, disable by default */
   if(gconf_get_bool(HXM_ENABLED, FALSE)) 

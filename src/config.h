@@ -20,7 +20,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <gtk/gtk.h>
+/*#include <gtk/gtk.h>*/
 
 #include <locale.h>
 #include <libintl.h>
@@ -91,7 +91,7 @@
 #define OSD_HR_Y 60    // HR is always at screens top
 #endif
 
-#define OSD_DOUBLE_BUFFER    // render osd/map together offscreen
+/* #define OSD_DOUBLE_BUFFER */    // render osd/map together offscreen
 #define OSD_GPS_BUTTON       // display a GPS button
 #define OSD_NO_DPAD          // no direction arrows (map is panned)
 #define OSD_SOURCE_SEL       // display source selection tab

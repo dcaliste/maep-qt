@@ -26,13 +26,13 @@
 
 #include "config.h"
 
-#include <gdk/gdk.h>
+/* #include <gdk/gdk.h> */
+#include <cairo.h>
 #if USE_LIBSOUP22
 #include <libsoup/soup.h>
 #endif
 #include "osm-gps-map.h"
 
-#define TILESIZE 256
 #define MAX_ZOOM 20
 #define MIN_ZOOM 0
 
@@ -92,7 +92,7 @@ typedef struct {
 
 typedef struct {
     coord_t pt;
-    GdkPixbuf *image;
+    cairo_surface_t *image;
     int w;
     int h;
     int xoffset;

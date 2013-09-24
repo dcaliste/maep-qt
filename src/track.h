@@ -21,6 +21,7 @@
 #define TRACK_H
 
 #include "osm-gps-map.h"
+#include <gtk/gtk.h>
 
 /* parts of a track */
 #define TRACK_SPEED    (1<<0)

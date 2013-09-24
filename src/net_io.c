@@ -24,7 +24,7 @@
 #include "net_io.h"
 
 #include <curl/curl.h>
-#include <curl/types.h> /* new for v7 */
+/*#include <curl/types.h>*/ /* new for v7 */
 #include <curl/easy.h>  /* new for v7 */
 #include <unistd.h>
 #include <string.h>
