@@ -1,0 +1,29 @@
+APP = @PACKAGE@
+MAEMO_VERSION_MAJOR = @MAEMO_VERSION_MAJOR@
+prefix = @prefix@
+datarootdir = @datarootdir@
+datadir = @datarootdir@
+
+all:
+
+clean:
+
+install-debian:
+	echo "No debian specific installs"
+
+install-maemo:
+	install -d $(DESTDIR)$(prefix)/share/applications/hildon
+	install $(APP).desktop $(DESTDIR)$(prefix)/share/applications/hildon
+	for s in 40 26; do \
+	  install -d $(DESTDIR)$(prefix)/share/icons/hicolor/$${s}x$${s}/hildon ;\
+	  install -m 644 $(APP).$$s.png $(DESTDIR)$(prefix)/share/icons/hicolor/$${s}x$${s}/hildon/$(APP).png ;\
+	done
+	install -d $(DESTDIR)$(prefix)/share/icons/hicolor/scalable/hildon
+	install -m 644 $(APP).64.png $(DESTDIR)$(prefix)/share/icons/hicolor/scalable/hildon/$(APP).png
+	install -d $(DESTDIR)$(datadir)/$(APP)
+	install diskcache_check.sh $(DESTDIR)$(datadir)/$(APP)
+
+install: @INSTALL_PLATTFORM@
+	install -d $(DESTDIR)$(datadir)/$(APP)
+	install -m 644 COPYING *.png $(DESTDIR)$(datadir)/$(APP)
+

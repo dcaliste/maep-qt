@@ -1,0 +1,123 @@
+maep (1.3.6) unstable; urgency=low
+
+  * Fixed track state restore bug
+  * Fixed some portrait issue in about dialog
+  * Screen rotation menu option
+  * Swap zoom hard keys in portrait mode
+
+ -- Till Harbaum <till@harbaum.org>  Thu, 20 May 2010 20:36:36 +0200
+
+maep (1.3.5) unstable; urgency=low
+
+  * portrait mode / auto rotation
+  * Fixed search entry focus bug
+
+ -- Till Harbaum <till@harbaum.org>  Wed, 19 May 2010 19:17:56 +0200
+
+maep (1.3.4) unstable; urgency=low
+
+  * Started work on track graph (not yet finished/enabled)
+  * Applied patch [#5562] Memory leak
+  * HXM heart rate monitor support
+  * Extended altitude and heart rate/cadence support for tracks
+  * Fixed [#5604] Support for loading gpx files with multiple tracks
+  * Fixed [#5515] Maep drains battery & slows down device by ...
+  * Applied [#5329] This patch adds new "Double Pixel" functionality ...
+  * Added Double-Pixel GUI to OSD
+  * Fixed [#5101] Hardware +/- do not zoom when search bar is open
+  * Implemented solution for [#5674] Updating the map storage in the device.
+  * Fixed [#5608] Track loss after device shutdown
+  * Only include positions < 100m accuracy into tracks
+  * Fixed [#5703] Screensaver kicks in when driving
+
+ -- Till Harbaum <till@harbaum.org>  Thu, 25 Mar 2010 21:27:49 +0100
+
+maep (1.3.3) unstable; urgency=low
+
+  * Release gps auto center when api is being used to change map center
+
+ -- Till Harbaum <till@harbaum.org>  Fri, 29 Jan 2010 20:42:48 +0100
+
+maep (1.3.2) unstable; urgency=low
+
+  * Fixed crash when wikipedia was disabled while balloon was visible
+  * Fixed bug tracker link
+  * Screensaver disabled only when map has focus
+  * GPS framework simplified and reduced power consumption
+  * Reduced "drag" threshold
+
+ -- Till Harbaum <till@harbaum.org>  Wed, 27 Jan 2010 09:09:13 +0100
+
+maep (1.3.1) unstable; urgency=low
+
+  * Inclusion of altitude from GPS into track
+  * Closed icon memory leak
+  * Allow cancellation of search
+
+ -- Till Harbaum <till@harbaum.org>  Sun, 24 Jan 2010 20:47:58 +0100
+
+maep (1.3) unstable; urgency=low
+
+  * Display wikipedia links
+  * Major internal changes in osm-gps-map
+  * Small usability updates on search
+
+ -- Till Harbaum <till@harbaum.org>  Wed, 13 Jan 2010 18:47:21 +0100
+
+maep (1.2) unstable; urgency=low
+
+  * Places search
+
+ -- Till Harbaum <till@harbaum.org>  Mon, 11 Jan 2010 21:47:30 +0100
+
+maep (1.1.3) unstable; urgency=low
+
+  * Fixed /opt symlink
+
+ -- Till Harbaum <till@harbaum.org>  Sun, 10 Jan 2010 08:56:10 +0100
+
+maep (1.1.2) unstable; urgency=low
+
+  * Fixed /opt binary location
+
+ -- Till Harbaum <till@harbaum.org>  Sun, 10 Jan 2010 08:07:44 +0100
+
+maep (1.1.1) unstable; urgency=low
+
+  * Fixed missing browser dependency
+  * manually optified executable
+
+ -- Till Harbaum <till@harbaum.org>  Sat, 09 Jan 2010 20:27:44 +0100
+
+maep (1.1) unstable; urgency=low
+
+  * Added application menu
+  * Added about box
+  * Added /opt-ified icon processing
+  * Added browser interface
+  * Added track import/export/capture
+  * Enabled auto /opt-ification for binary/app icons/...
+  * Disable screen saver over ~3kph
+  * Moved tile cache to /home/user/MyDocs/.maps on fremantle
+
+ -- Till Harbaum <till@harbaum.org>  Mon, 28 Dec 2009 10:34:22 +0100
+
+maep (1.0.2) unstable; urgency=low
+
+  * Fixed GPS disable on diablo/chinook
+  * Optimized map center handling
+
+ -- Till Harbaum <till@harbaum.org>  Thu, 24 Dec 2009 20:38:43 +0100
+
+maep (1.0.1) unstable; urgency=low
+
+  * Keep map centered on configure, no need for app to catch event anymore
+  * Added Public Transport map from öpnvkarte.de
+
+ -- Till Harbaum <till@harbaum.org>  Fri, 11 Dec 2009 11:05:37 +0100
+
+maep (1.0) unstable; urgency=low
+
+  * Initial release based on gpxview 0.9.0
+
+ -- Till Harbaum <till@harbaum.org>  Mon, 07 Dec 2009 18:25:10 +0100

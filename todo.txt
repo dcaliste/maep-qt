@@ -1,0 +1,10 @@
+Things to be implemented/fixed next:
+
+- track merge
+- investigate http://pagesperso-orange.fr/universimmedia/geo/loc.htm
++ make gps.c cope with sats (for gpxview)
++ refresh tiles with certain age
+- check screensaver disable
+- only include precise position into track
+- autosave track
+- sun/moon compass

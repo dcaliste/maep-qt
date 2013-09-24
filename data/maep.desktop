@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.1
+Name=Mæp
+Exec=/usr/bin/maep
+Type=Application
+Icon=maep

@@ -1,0 +1,18 @@
+Source: maep
+Section: user/navigation
+Priority: extra
+Maintainer: Till Harbaum <Till@Harbaum.org>
+Build-Depends: debhelper (>= 5), sharutils, maemo-version-dev, libgconf2-dev, mce-dev, libgtk2.0-dev, libhildon1-dev, libhildonfm2-dev, libosso-dev, libosso-gnomevfs2-dev, liblocation-dev|libgpsmgr-dev, libsoup2.4-dev|libsoup2.2-dev, libcurl4-openssl-dev | libcurl3-openssl-dev, tablet-browser-interface-dev, libbluetooth2-dev | libbluetooth3-dev
+Standards-Version: 3.7.2
+
+Package: maep
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Simple tile map
+ Maep is a tile based map utility for services like openstreetmap, google maps
+ and virtual earth. This is the same map renderer that's also being used by
+ GPXView and OSM2Go. Maep is meant to easily be included into other programs
+ and to become a universal map widget for the Maemo5 platform.
+XSBC-Bugtracker: https://garage.maemo.org/tracker/?group_id=1155
+XB-Maemo-Display-Name: Maep
+#@ICON@
