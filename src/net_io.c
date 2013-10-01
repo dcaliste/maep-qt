@@ -182,7 +182,7 @@ void net_io_set_proxy(CURL *curl) {
   /* ------------- get proxy settings -------------------- */
   if(gconf_client_get_bool(gconf_client, 
 		   PROXY_KEY "use_http_proxy", NULL)) {
-
+    g_message("thread: using proxy.");
     /* get basic settings */
     char *host = 
       gconf_client_get_string(gconf_client, PROXY_KEY "host", NULL);
@@ -239,12 +239,13 @@ static gboolean net_io_idle_cb(gpointer data) {
 static void *worker_thread(void *ptr) {
   net_io_request_t *request = (net_io_request_t*)ptr;
   
-  printf("thread: running\n");
+  g_message("thread: running");
 
   //  sleep(2);  // useful for debugging
 
   CURL *curl = curl_easy_init();
   if(curl) {
+    g_message("thread: prepare curl");
     /* prepare target memory */
     request->result.data.ptr = NULL;
     request->result.data.len = 0;
@@ -254,9 +255,11 @@ static void *worker_thread(void *ptr) {
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &request->result.data);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mem_write);
 
-    net_io_set_proxy(curl);
+    /* g_message("thread: set proxy"); */
+    /* net_io_set_proxy(curl); */
 
     /* set user name and password for the authentication */
+    g_message("thread: set username if any");
     if(request->user)
       curl_easy_setopt(curl, CURLOPT_USERPWD, request->user);
     
@@ -272,24 +275,25 @@ static void *worker_thread(void *ptr) {
     /* play nice and report some user agent */
     curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE "-libcurl/" VERSION); 
     
+    g_message("thread: perform request");
     request->res = curl_easy_perform(curl);
-    printf("thread: curl perform returned with %d\n", request->res);
+    g_message("thread: curl perform returned with %d\n", request->res);
     
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &request->response);
 
     /* always cleanup */
     curl_easy_cleanup(curl);
   } else
-    printf("thread: unable to init curl\n");
+    g_message("thread: unable to init curl");
   
-  printf("thread: io done\n");
+  g_message("thread: io done");
 
   if(request->cb)
     g_idle_add(net_io_idle_cb, request);
 
   request_free(request);
   
-  printf("thread: terminating\n");
+  g_message("thread: terminating");
   return NULL;
 }
 

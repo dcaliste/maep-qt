@@ -28,6 +28,7 @@
 #include "track.h"
 #include "geonames.h"
 #include "misc.h"
+#include "osm-gps-map-gtk.h"
 #include "osm-gps-map-osd-classic.h"
 
 extern void hxm_enable(GtkWidget *map, gboolean enable);
@@ -72,7 +73,7 @@ cb_menu_search(GtkWidget *item, gpointer data) {
 
 static void 
 cb_menu_wikipedia(GtkWidget *item, gpointer data) {
-  geonames_enable_wikipedia(GTK_WIDGET(data), menu_get_active(item)); 
+  geonames_enable_wikipedia(GTK_WIDGET(data), osm_gps_map_gtk_get_map(OSM_GPS_MAP_GTK(data)), menu_get_active(item)); 
 }
 
 static void 
