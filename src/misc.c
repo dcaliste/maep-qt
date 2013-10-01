@@ -27,6 +27,7 @@
 #include <ctype.h>
 
 #include "config.h"
+#undef WITH_GTK
 #include "misc.h"
 
 #ifdef MAEMO5
@@ -36,31 +37,6 @@
 #include <hildon/hildon-pannable-area.h>
 #include <mce/dbus-names.h>
 #include <mce/mode-names.h>
-#endif
-
-#ifdef ENABLE_BROWSER_INTERFACE
-#include <strings.h>
-#ifndef USE_MAEMO
-#include <libgnome/gnome-url.h>
-#else
-#include <tablet-browser-interface.h>
-#endif
-
-void browser_url(GtkWidget *root, char *url) {
-#ifndef USE_MAEMO
-  /* taken from gnome-open, part of libgnome */
-  GError *err = NULL;
-  gnome_url_show(url, &err);
-#else
-  osso_context_t *osso_context = 
-    (osso_context_t*)g_object_get_data(G_OBJECT(root), "osso-context");
-
-  osso_rpc_run_with_defaults(osso_context, "osso_browser",
-			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,
-			     DBUS_TYPE_STRING, url,
-			     DBUS_TYPE_BOOLEAN, FALSE, DBUS_TYPE_INVALID);
-#endif
-}
 #endif
 
 #define GCONF_PATH         "/apps/" APP "/%s"
@@ -94,14 +70,14 @@ char *gconf_get_string(const char *m_key) {
   return ret;
 }
 
-void gconf_set_bool(char *m_key, gboolean value) {
+void gconf_set_bool(const char *m_key, gboolean value) {
   GConfClient *client = gconf_client_get_default();
   char *key = g_strdup_printf(GCONF_PATH, m_key);
   gconf_client_set_bool(client, key, value, NULL);
   g_free(key);
 }
 
-gboolean gconf_get_bool(char *m_key, gboolean default_value) {
+gboolean gconf_get_bool(const char *m_key, gboolean default_value) {
   GConfClient *client = gconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
@@ -116,14 +92,14 @@ gboolean gconf_get_bool(char *m_key, gboolean default_value) {
   return ret;
 }
 
-void gconf_set_int(char *m_key, gint value) {
+void gconf_set_int(const char *m_key, gint value) {
   GConfClient *client = gconf_client_get_default();
   char *key = g_strdup_printf(GCONF_PATH, m_key);
   gconf_client_set_int(client, key, value, NULL);
   g_free(key);
 }
 
-gint gconf_get_int(char *m_key, gint def_value) {
+gint gconf_get_int(const char *m_key, gint def_value) {
   GConfClient *client = gconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
@@ -138,14 +114,14 @@ gint gconf_get_int(char *m_key, gint def_value) {
   return ret;
 }
 
-void gconf_set_float(char *m_key, gfloat value) {
+void gconf_set_float(const char *m_key, gfloat value) {
   GConfClient *client = gconf_client_get_default();
   char *key = g_strdup_printf(GCONF_PATH, m_key);
   gconf_client_set_float(client, key, value, NULL);
   g_free(key);
 }
 
-gfloat gconf_get_float(char *m_key, gfloat def_value) {
+gfloat gconf_get_float(const char *m_key, gfloat def_value) {
   GConfClient *client = gconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
@@ -192,6 +168,33 @@ char *find_file(char *name) {
 
   return NULL;
 }
+
+#ifdef WITH_GTK
+
+#ifdef ENABLE_BROWSER_INTERFACE
+#include <strings.h>
+#ifndef USE_MAEMO
+#include <libgnome/gnome-url.h>
+#else
+#include <tablet-browser-interface.h>
+#endif
+
+void browser_url(GtkWidget *root, char *url) {
+#ifndef USE_MAEMO
+  /* taken from gnome-open, part of libgnome */
+  GError *err = NULL;
+  gnome_url_show(url, &err);
+#else
+  osso_context_t *osso_context = 
+    (osso_context_t*)g_object_get_data(G_OBJECT(root), "osso-context");
+
+  osso_rpc_run_with_defaults(osso_context, "osso_browser",
+			     OSSO_BROWSER_OPEN_NEW_WINDOW_REQ, NULL,
+			     DBUS_TYPE_STRING, url,
+			     DBUS_TYPE_BOOLEAN, FALSE, DBUS_TYPE_INVALID);
+#endif
+}
+#endif
 
 #ifdef MAEMO5               
 gboolean is_portrait() {
@@ -605,3 +608,4 @@ void rotation_disable(GtkWidget *window) {
 
 #endif
 
+#endif

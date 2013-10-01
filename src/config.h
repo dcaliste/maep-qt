@@ -46,6 +46,9 @@
 #define OSD_COORDINATES
 #undef OSD_NAV
 
+#define WITH_GTK
+#undef  WITH_QT
+
 #ifdef USE_MAEMO
 #define MAP_DRAG_LIMIT            (32)
 

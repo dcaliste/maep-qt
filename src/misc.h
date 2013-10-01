@@ -20,27 +20,29 @@
 #ifndef MISC_H
 #define MISC_H
 
-#include <gtk/gtk.h>
+G_BEGIN_DECLS
 
 char *find_file(char *name);
 
+void gconf_set_string(const char *key, const char *str);
+char *gconf_get_string(const char *key);
+void gconf_set_bool(const char *key, gboolean value);
+gboolean gconf_get_bool(const char *key, gboolean default_value);
+void gconf_set_int(const char *key, gint value);
+gint gconf_get_int(const char *key, gint default_value);
+void gconf_set_float(const char *key, gfloat value);
+gfloat gconf_get_float(const char *key, gfloat default_value);
+
+char *url_encode(char *str);
+
+#ifdef WITH_GTK
+#include <gtk/gtk.h>
 GtkWidget *notebook_new(void);
 void notebook_append_page(GtkWidget *notebook, GtkWidget *page, char *label);
 GtkWidget *notebook_get_gtk_notebook(GtkWidget *notebook);
 
-void gconf_set_string(const char *key, const char *str);
-char *gconf_get_string(const char *key);
-void gconf_set_bool(char *key, gboolean value);
-gboolean gconf_get_bool(char *key, gboolean default_value);
-void gconf_set_int(char *key, gint value);
-gint gconf_get_int(char *key, gint default_value);
-void gconf_set_float(char *key, gfloat value);
-gfloat gconf_get_float(char *key, gfloat default_value);
-
 gboolean yes_no_f(GtkWidget *parent, char *title, const char *fmt, ...);
 void errorf(GtkWidget *parent, const char *fmt, ...);
-
-char *url_encode(char *str);
 
 GtkWidget *button_new(void);
 GtkWidget *button_new_with_label(char *label);
@@ -62,5 +64,8 @@ gboolean is_portrait(void);
 void rotation_enable(GtkWidget *window);
 void rotation_disable(GtkWidget *window);
 #endif
+#endif
+
+G_END_DECLS
 
 #endif // MISC_H

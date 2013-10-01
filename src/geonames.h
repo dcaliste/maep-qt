@@ -20,8 +20,10 @@
 #ifndef GEONAMES_H
 #define GEONAMES_H
 
-void geonames_enable_search(GtkWidget *map);
-void geonames_enable_wikipedia(GtkWidget *map, gboolean enable);
-void geonames_wikipedia_restore(GtkWidget *map);
+#include <gtk/gtk.h>
+#include "osm-gps-map/osm-gps-map.h"
+
+void geonames_enable_search(GtkWidget *widget);
+void geonames_enable_wikipedia(GtkWidget *widget, OsmGpsMap *map, gboolean enable);
 
 #endif // GEONAMES_H

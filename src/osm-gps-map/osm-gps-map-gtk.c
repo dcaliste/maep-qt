@@ -41,16 +41,16 @@
 
 /* #include "converter.h" */
 /* #include "osm-gps-map-types.h" */
-#include "osm-gps-map-gtkwidget.h"
+#include "osm-gps-map-gtk.h"
 
 #define OSM_GPS_MAP_SCROLL_STEP     (10)
 
-struct _OsmGpsMapGtkwidgetPrivate
+struct _OsmGpsMapGtkPrivate
 {
   OsmGpsMap *map;
 
     //For storing keybindings
-    guint keybindings[OSM_GPS_MAP_GTKWIDGET_KEY_MAX];
+    guint keybindings[OSM_GPS_MAP_GTK_KEY_MAX];
 
     //For tracking click and drag
     int drag_counter;
@@ -70,7 +70,7 @@ struct _OsmGpsMapGtkwidgetPrivate
     guint button_down : 1;
 };
 
-#define OSM_GPS_MAP_GTKWIDGET_PRIVATE(o)  (OSM_GPS_MAP_GTKWIDGET (o)->priv)
+#define OSM_GPS_MAP_GTK_PRIVATE(o)  (OSM_GPS_MAP_GTK (o)->priv)
 
 enum
 {
@@ -79,7 +79,7 @@ enum
     PROP_DRAG_LIMIT,
 };
 
-G_DEFINE_TYPE (OsmGpsMapGtkwidget, osm_gps_map_gtkwidget, GTK_TYPE_DRAWING_AREA);
+G_DEFINE_TYPE (OsmGpsMapGtk, osm_gps_map_gtk, GTK_TYPE_DRAWING_AREA);
 
 static gboolean 
 on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) 
@@ -87,8 +87,8 @@ on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
     int i;
     int step;
     gboolean handled;
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
     //if no keybindings are set, let the app handle them...
     if (!priv->keybindings_enabled)
@@ -98,13 +98,13 @@ on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
     step = widget->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
 
     //the map handles some keys on its own
-    for (i = 0; i < OSM_GPS_MAP_GTKWIDGET_KEY_MAX; i++) {
+    for (i = 0; i < OSM_GPS_MAP_GTK_KEY_MAX; i++) {
         //not the key we have a binding for
         if (priv->keybindings[i] != event->keyval)
             continue;
 
         switch(i) {
-            case OSM_GPS_MAP_GTKWIDGET_KEY_FULLSCREEN: {
+            case OSM_GPS_MAP_GTK_KEY_FULLSCREEN: {
                 GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(widget));
                 if(!priv->fullscreen)
                     gtk_window_fullscreen(GTK_WINDOW(toplevel));
@@ -114,36 +114,36 @@ on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
                 priv->fullscreen = !priv->fullscreen;
                 handled = TRUE;
                 } break;
-            case OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMIN:
+            case OSM_GPS_MAP_GTK_KEY_ZOOMIN:
                 osm_gps_map_zoom_in(priv->map);
                 handled = TRUE;
                 break;
-            case OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMOUT:
+            case OSM_GPS_MAP_GTK_KEY_ZOOMOUT:
                 osm_gps_map_zoom_out(priv->map);
                 handled = TRUE;
                 break;
-            case OSM_GPS_MAP_GTKWIDGET_KEY_UP:
+            case OSM_GPS_MAP_GTK_KEY_UP:
                 osm_gps_map_scroll(priv->map, 0, -step);
                 /* priv->map_y -= step; */
                 /* center_coord_update(map); */
                 /* osm_gps_map_map_redraw_idle(map); */
                 handled = TRUE;
                 break;
-            case OSM_GPS_MAP_GTKWIDGET_KEY_DOWN:
+            case OSM_GPS_MAP_GTK_KEY_DOWN:
                 osm_gps_map_scroll(priv->map, 0, +step);
                 /* priv->map_y += step; */
                 /* center_coord_update(map); */
                 /* osm_gps_map_map_redraw_idle(map); */
                 handled = TRUE;
                 break;
-              case OSM_GPS_MAP_GTKWIDGET_KEY_LEFT:
+              case OSM_GPS_MAP_GTK_KEY_LEFT:
                   osm_gps_map_scroll(priv->map, -step, 0);
                 /* priv->map_x -= step; */
                 /* center_coord_update(map); */
                 /* osm_gps_map_map_redraw_idle(map); */
                 handled = TRUE;
                 break;
-            case OSM_GPS_MAP_GTKWIDGET_KEY_RIGHT:
+            case OSM_GPS_MAP_GTK_KEY_RIGHT:
                 osm_gps_map_scroll(priv->map, +step, 0);
                 /* priv->map_x += step; */
                 /* center_coord_update(map); */
@@ -159,13 +159,13 @@ on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 }
 
 static void
-osm_gps_map_gtkwidget_init (OsmGpsMapGtkwidget *object)
+osm_gps_map_gtk_init (OsmGpsMapGtk *object)
 {
     int i;
-    OsmGpsMapGtkwidgetPrivate *priv;
+    OsmGpsMapGtkPrivate *priv;
 
-    priv = G_TYPE_INSTANCE_GET_PRIVATE (object, OSM_TYPE_GPS_MAP_GTKWIDGET,
-                                        OsmGpsMapGtkwidgetPrivate);
+    priv = G_TYPE_INSTANCE_GET_PRIVATE (object, OSM_TYPE_GPS_MAP_GTK,
+                                        OsmGpsMapGtkPrivate);
     object->priv = priv;
 
     priv->map = NULL;
@@ -177,7 +177,7 @@ osm_gps_map_gtkwidget_init (OsmGpsMapGtkwidget *object)
     priv->drag_mouse_dy = 0;
 
     priv->keybindings_enabled = FALSE;
-    for (i = 0; i < OSM_GPS_MAP_GTKWIDGET_KEY_MAX; i++)
+    for (i = 0; i < OSM_GPS_MAP_GTK_KEY_MAX; i++)
         priv->keybindings[i] = 0;
 
     gtk_widget_add_events (GTK_WIDGET (object),
@@ -192,10 +192,10 @@ osm_gps_map_gtkwidget_init (OsmGpsMapGtkwidget *object)
 }
 
 static void
-osm_gps_map_gtkwidget_dispose (GObject *object)
+osm_gps_map_gtk_dispose (GObject *object)
 {
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(object);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
     if (priv->is_disposed)
         return;
@@ -209,24 +209,24 @@ osm_gps_map_gtkwidget_dispose (GObject *object)
     if (priv->drag_expose != 0)
         g_source_remove (priv->drag_expose);
 
-    G_OBJECT_CLASS (osm_gps_map_gtkwidget_parent_class)->dispose (object);
+    G_OBJECT_CLASS (osm_gps_map_gtk_parent_class)->dispose (object);
 }
 
 static void
-osm_gps_map_gtkwidget_finalize (GObject *object)
+osm_gps_map_gtk_finalize (GObject *object)
 {
-    /* OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(object); */
-    /* OsmGpsMapGtkwidgetPrivate *priv = map->priv; */
+    /* OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object); */
+    /* OsmGpsMapGtkPrivate *priv = map->priv; */
 
-    G_OBJECT_CLASS (osm_gps_map_gtkwidget_parent_class)->finalize (object);
+    G_OBJECT_CLASS (osm_gps_map_gtk_parent_class)->finalize (object);
 }
 
 static void
-osm_gps_map_gtkwidget_set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
+osm_gps_map_gtk_set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
-    g_return_if_fail (OSM_IS_GPS_MAP_GTKWIDGET (object));
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(object);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    g_return_if_fail (OSM_IS_GPS_MAP_GTK (object));
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
     switch (prop_id)
     {
@@ -240,11 +240,11 @@ osm_gps_map_gtkwidget_set_property (GObject *object, guint prop_id, const GValue
 }
 
 static void
-osm_gps_map_gtkwidget_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
+osm_gps_map_gtk_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
-    g_return_if_fail (OSM_IS_GPS_MAP_GTKWIDGET (object));
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(object);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    g_return_if_fail (OSM_IS_GPS_MAP_GTK (object));
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
     switch (prop_id)
     {
@@ -258,9 +258,9 @@ osm_gps_map_gtkwidget_get_property (GObject *object, guint prop_id, GValue *valu
 }
 
 static gboolean
-osm_gps_map_gtkwidget_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
+osm_gps_map_gtk_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
 {
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
 
     if (event->direction == GDK_SCROLL_UP)
         osm_gps_map_zoom_in(map->priv->map);
@@ -271,10 +271,10 @@ osm_gps_map_gtkwidget_scroll_event (GtkWidget *widget, GdkEventScroll  *event)
 }
 
 static gboolean
-osm_gps_map_gtkwidget_button_press (GtkWidget *widget, GdkEventButton *event)
+osm_gps_map_gtk_button_press (GtkWidget *widget, GdkEventButton *event)
 {
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
 #ifdef ENABLE_OSD
     osm_gps_map_osd_t *osd;
@@ -345,10 +345,10 @@ osm_gps_map_gtkwidget_button_press (GtkWidget *widget, GdkEventButton *event)
 }
 
 static gboolean
-osm_gps_map_gtkwidget_button_release (GtkWidget *widget, GdkEventButton *event)
+osm_gps_map_gtk_button_release (GtkWidget *widget, GdkEventButton *event)
 {
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 #ifdef ENABLE_OSD
     osm_gps_map_osd_t *osd;
 #endif
@@ -382,25 +382,25 @@ osm_gps_map_gtkwidget_button_release (GtkWidget *widget, GdkEventButton *event)
 }
 
 static gboolean
-osm_gps_map_gtkwidget_expose (GtkWidget *widget, GdkEventExpose  *event);
+osm_gps_map_gtk_expose (GtkWidget *widget, GdkEventExpose  *event);
 
 static gboolean
-osm_gps_map_gtkwidget_idle_expose (GtkWidget *widget)
+osm_gps_map_gtk_idle_expose (GtkWidget *widget)
 {
-    OsmGpsMapGtkwidgetPrivate *priv = OSM_GPS_MAP_GTKWIDGET(widget)->priv;
+    OsmGpsMapGtkPrivate *priv = OSM_GPS_MAP_GTK(widget)->priv;
 
     priv->drag_expose = 0;
-    osm_gps_map_gtkwidget_expose (widget, NULL);
+    osm_gps_map_gtk_expose (widget, NULL);
     return FALSE;
 }
 
 static gboolean
-osm_gps_map_gtkwidget_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
+osm_gps_map_gtk_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
 {
     int x, y;
     GdkModifierType state;
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 
     if(!priv->button_down)
         return FALSE;
@@ -440,26 +440,26 @@ osm_gps_map_gtkwidget_motion_notify (GtkWidget *widget, GdkEventMotion  *event)
     /* instead of redrawing directly just add an idle function */
     if (!priv->drag_expose)
         priv->drag_expose = 
-            g_idle_add ((GSourceFunc)osm_gps_map_gtkwidget_idle_expose, widget);
+            g_idle_add ((GSourceFunc)osm_gps_map_gtk_idle_expose, widget);
 
     return FALSE;
 }
 
 static gboolean
-osm_gps_map_gtkwidget_configure (GtkWidget *widget, GdkEventConfigure *event)
+osm_gps_map_gtk_configure (GtkWidget *widget, GdkEventConfigure *event)
 {
     /* Set viewport. */
-    osm_gps_map_set_viewport(OSM_GPS_MAP_GTKWIDGET_PRIVATE(widget)->map,
+    osm_gps_map_set_viewport(OSM_GPS_MAP_GTK_PRIVATE(widget)->map,
                              widget->allocation.width, widget->allocation.height);
 
     return FALSE;
 }
 
 static gboolean
-osm_gps_map_gtkwidget_expose (GtkWidget *widget, GdkEventExpose  *event)
+osm_gps_map_gtk_expose (GtkWidget *widget, GdkEventExpose  *event)
 {
-    OsmGpsMapGtkwidget *map = OSM_GPS_MAP_GTKWIDGET(widget);
-    OsmGpsMapGtkwidgetPrivate *priv = map->priv;
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
+    OsmGpsMapGtkPrivate *priv = map->priv;
 #ifdef ENABLE_OSD
     osm_gps_map_osd_t *osd;
 #endif
@@ -496,7 +496,6 @@ osm_gps_map_gtkwidget_expose (GtkWidget *widget, GdkEventExpose  *event)
                priv->drag_mouse_dx - EXTRA_BORDER,
                priv->drag_mouse_dy - EXTRA_BORDER);
 #endif
-
         cairo_set_source_surface(cr, source,
                                  priv->drag_mouse_dx - EXTRA_BORDER,
                                  priv->drag_mouse_dy - EXTRA_BORDER);
@@ -547,33 +546,33 @@ osm_gps_map_gtkwidget_expose (GtkWidget *widget, GdkEventExpose  *event)
     return FALSE;
 }
 
-static void osm_gps_map_gtkwidget_repaint(OsmGpsMapGtkwidget *widget, OsmGpsMap *map)
+static void osm_gps_map_gtk_repaint(OsmGpsMapGtk *widget, OsmGpsMap *map)
 {
-    OsmGpsMapGtkwidgetPrivate *priv = widget->priv;
+    OsmGpsMapGtkPrivate *priv = widget->priv;
 
     if (!priv->drag_expose)
-        priv->drag_expose = g_idle_add((GSourceFunc)osm_gps_map_gtkwidget_idle_expose, widget);
+        priv->drag_expose = g_idle_add((GSourceFunc)osm_gps_map_gtk_idle_expose, widget);
 }
 
 static void
-osm_gps_map_gtkwidget_class_init (OsmGpsMapGtkwidgetClass *klass)
+osm_gps_map_gtk_class_init (OsmGpsMapGtkClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
-    g_type_class_add_private (klass, sizeof (OsmGpsMapGtkwidgetPrivate));
+    g_type_class_add_private (klass, sizeof (OsmGpsMapGtkPrivate));
 
-    object_class->dispose = osm_gps_map_gtkwidget_dispose;
-    object_class->finalize = osm_gps_map_gtkwidget_finalize;
-    object_class->set_property = osm_gps_map_gtkwidget_set_property;
-    object_class->get_property = osm_gps_map_gtkwidget_get_property;
+    object_class->dispose = osm_gps_map_gtk_dispose;
+    object_class->finalize = osm_gps_map_gtk_finalize;
+    object_class->set_property = osm_gps_map_gtk_set_property;
+    object_class->get_property = osm_gps_map_gtk_get_property;
 
-    widget_class->expose_event = osm_gps_map_gtkwidget_expose;
-    widget_class->configure_event = osm_gps_map_gtkwidget_configure;
-    widget_class->button_press_event = osm_gps_map_gtkwidget_button_press;
-    widget_class->button_release_event = osm_gps_map_gtkwidget_button_release;
-    widget_class->motion_notify_event = osm_gps_map_gtkwidget_motion_notify;
-    widget_class->scroll_event = osm_gps_map_gtkwidget_scroll_event;
+    widget_class->expose_event = osm_gps_map_gtk_expose;
+    widget_class->configure_event = osm_gps_map_gtk_configure;
+    widget_class->button_press_event = osm_gps_map_gtk_button_press;
+    widget_class->button_release_event = osm_gps_map_gtk_button_release;
+    widget_class->motion_notify_event = osm_gps_map_gtk_motion_notify;
+    widget_class->scroll_event = osm_gps_map_gtk_scroll_event;
 
     g_object_class_install_property (object_class,
                                      PROP_DRAG_LIMIT,
@@ -587,25 +586,32 @@ osm_gps_map_gtkwidget_class_init (OsmGpsMapGtkwidgetClass *klass)
 }
 
 GtkWidget *
-osm_gps_map_gtkwidget_new (OsmGpsMap *map)
+osm_gps_map_gtk_new (OsmGpsMap *map)
 {
     GObject *obj;
 
-    obj = g_object_new (OSM_TYPE_GPS_MAP_GTKWIDGET, NULL);
-    OSM_GPS_MAP_GTKWIDGET_PRIVATE(obj)->map = map;
+    obj = g_object_new (OSM_TYPE_GPS_MAP_GTK, NULL);
+    OSM_GPS_MAP_GTK_PRIVATE(obj)->map = map;
     g_object_ref(map);
     g_signal_connect_swapped(G_OBJECT(map), "dirty",
-                             G_CALLBACK(osm_gps_map_gtkwidget_repaint), obj);
+                             G_CALLBACK(osm_gps_map_gtk_repaint), obj);
 
     return GTK_WIDGET(obj);
 }
 
-void osm_gps_map_gtkwidget_set_keyboard_shortcut(OsmGpsMapGtkwidget *map,
-                                                 OsmGpsMapGtkwidgetKey_t key, guint keyval)
+void osm_gps_map_gtk_set_keyboard_shortcut (OsmGpsMapGtk *map,
+                                            OsmGpsMapGtkKey_t key, guint keyval)
 {
-    g_return_if_fail (OSM_IS_GPS_MAP_GTKWIDGET (map));
-    g_return_if_fail(key < OSM_GPS_MAP_GTKWIDGET_KEY_MAX);
+    g_return_if_fail (OSM_IS_GPS_MAP_GTK (map));
+    g_return_if_fail(key < OSM_GPS_MAP_GTK_KEY_MAX);
 
     map->priv->keybindings[key] = keyval;
     map->priv->keybindings_enabled = TRUE;
+}
+
+OsmGpsMap* osm_gps_map_gtk_get_map (OsmGpsMapGtk *widget)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP_GTK (widget), (OsmGpsMap*)0);
+    
+    return widget->priv->map;
 }

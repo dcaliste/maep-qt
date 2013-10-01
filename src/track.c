@@ -391,7 +391,7 @@ static track_state_t *track_read(char *filename, gboolean is_restore) {
   return track_state;
 }
 
-void track_draw(OsmGpsMap *map, track_state_t *track_state) {
+static void track_draw(OsmGpsMap *map, track_state_t *track_state) {
   /* erase any previous track */
   track_clear(map);
 
@@ -420,12 +420,6 @@ void track_draw(OsmGpsMap *map, track_state_t *track_state) {
 
   /* save track reference in map */
   g_object_set_data(G_OBJECT(map), "track_state", track_state);
-
-  g_error("update here");
-  /* GtkWidget *toplevel = gtk_widget_get_toplevel(map); */
-  /* menu_enable(toplevel, "Track/Clear", TRUE); */
-  /* menu_enable(toplevel, "Track/Export", TRUE); */
-  /* menu_enable(toplevel, "Track/Graph", TRUE); */
 }
 
 /* this imports a track and adds it to the set of existing tracks */
@@ -462,6 +456,10 @@ void track_import(GtkWidget *map) {
     g_free(filename);
 
     track_draw(map, track_state);
+
+    menu_enable(toplevel, "Track/Clear", TRUE);
+    menu_enable(toplevel, "Track/Export", TRUE);
+    menu_enable(toplevel, "Track/Graph", TRUE);
   }
 
   gtk_widget_destroy (dialog);
@@ -844,25 +842,29 @@ static char *build_path(void) {
   return g_strdup_printf("%s/track.trk", track_path);
 }
 
-void track_restore(GtkWidget *map) {
+void track_restore(GtkWidget *toplevel, OsmGpsMap *map) {
   char *path = build_path();
 
   if(g_file_test(path, G_FILE_TEST_IS_REGULAR)) {
     track_state_t *track_state = track_read(path, TRUE);
 
-    if(track_state) 
-      track_draw(map, track_state);
+    if(track_state)
+      {
+        track_draw(map, track_state);
+        menu_enable(toplevel, "Track/Clear", TRUE);
+        menu_enable(toplevel, "Track/Export", TRUE);
+        menu_enable(toplevel, "Track/Graph", TRUE);
+      }
 
     /* the track comes fresh from the disk */
     track_state->dirty = FALSE;
     
     if(track_state->timer_handler) {
-      gtk_timeout_remove(track_state->timer_handler);
+      g_source_remove(track_state->timer_handler);
       track_state->timer_handler = 0;
     }
 
   } else {
-    GtkWidget *toplevel = gtk_widget_get_toplevel(map);
     menu_enable(toplevel, "Track/Clear", FALSE);
     menu_enable(toplevel, "Track/Export", FALSE);
     menu_enable(toplevel, "Track/Graph", FALSE);
@@ -872,8 +874,6 @@ void track_restore(GtkWidget *map) {
 
   /* install callback for capturing */
   gps_state_t *gps_state = g_object_get_data(G_OBJECT(map), "gps_state");
-
-  GtkWidget *toplevel = gtk_widget_get_toplevel(map);
 
   /* we may also have to restore track capture ... */
   if(gconf_get_bool(TRACK_CAPTURE_ENABLED, FALSE)) {

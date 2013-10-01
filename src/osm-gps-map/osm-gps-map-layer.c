@@ -24,6 +24,13 @@ GType osm_gps_map_layer_get_type()
 			sizeof(OsmGpsMapLayerIface),
 			NULL,	/* base init */
 			NULL,	/* base finalize */
+                        NULL,
+                        NULL,
+                        NULL,
+                        0,
+                        0,
+                        NULL,
+                        NULL
 		};
 		object_type =
 		    g_type_register_static(G_TYPE_INTERFACE,

@@ -186,9 +186,9 @@ GtkWidget *copyright_page_new(GtkWidget *parent) {
   GtkWidget *ihbox = gtk_hbox_new(FALSE, 20);
   gtk_box_pack_start(GTK_BOX(ihbox), 
 #ifdef MAEMO5
-		     icon_get_widget(ihbox, "maep.64"),
+		     icon_get_widget(G_OBJECT(ihbox), "maep.64"),
 #else
-		     icon_get_widget(ihbox, "maep.32"),
+		     icon_get_widget(G_OBJECT(ihbox), "maep.32"),
 #endif
 		     FALSE, FALSE, 0);
 
@@ -316,9 +316,9 @@ GtkWidget *donate_page_new(GtkWidget *parent) {
   GtkWidget *button = gtk_button_new();
   gtk_button_set_image(GTK_BUTTON(button), 
 #ifdef MAEMO5
-		     icon_get_widget(ihbox, "paypal.64")
+                       icon_get_widget(G_OBJECT(ihbox), "paypal.64")
 #else
-		     icon_get_widget(ihbox, "paypal.32")
+                       icon_get_widget(G_OBJECT(ihbox), "paypal.32")
 #endif
 		       );
   gtk_button_set_relief(GTK_BUTTON(button), GTK_RELIEF_NONE);

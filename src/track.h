@@ -67,7 +67,7 @@ void track_capture_enable(GtkWidget *map, gboolean enable);
 void track_graph(GtkWidget *map);
 void track_hr_enable(GtkWidget *map, gboolean enable); 
 
-void track_restore(GtkWidget *map);
+void track_restore(GtkWidget *toplevel, OsmGpsMap *map);
 void track_save(GtkWidget *map);
 int track_length(track_state_t *);
 

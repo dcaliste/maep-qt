@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <gdk/gdk.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
@@ -290,7 +289,7 @@ replace_string(const gchar *src, const gchar *from, const gchar *to)
 }
 
 static void
-map_convert_coords_to_quadtree_string(OsmGpsMap *map, gint x, gint y, gint zoomlevel,
+map_convert_coords_to_quadtree_string(gint x, gint y, gint zoomlevel,
                                       gchar *buffer, const gchar initial,
                                       const gchar *const quadrant)
 {
@@ -388,13 +387,13 @@ replace_map_uri(OsmGpsMap *map, const gchar *uri, int zoom, int x, int y)
                 //g_debug("FOUND " URI_MARKER_S);
                 break;
             case URI_HAS_Q:
-                map_convert_coords_to_quadtree_string(map,x,y,zoom,location,'t',"qrts");
+                map_convert_coords_to_quadtree_string(x,y,zoom,location,'t',"qrts");
                 s = g_strdup_printf("%s", location);
                 url = replace_string(url, URI_MARKER_Q, s);
                 //g_debug("FOUND " URI_MARKER_Q);
                 break;
             case URI_HAS_Q0:
-                map_convert_coords_to_quadtree_string(map,x,y,zoom,location,'\0', "0123");
+                map_convert_coords_to_quadtree_string(x,y,zoom,location,'\0', "0123");
                 s = g_strdup_printf("%s", location);
                 url = replace_string(url, URI_MARKER_Q0, s);
                 //g_debug("FOUND " URI_MARKER_Q0);
@@ -544,6 +543,7 @@ osm_gps_map_print_images (OsmGpsMap *map)
     rect.y = min_y + EXTRA_BORDER;
     rect.width = max_x - min_x;
     rect.height = max_y - min_y;
+    g_message("dirty is %p", priv->dirty);
     cairo_region_union_rectangle(priv->dirty, &rect);
 }
 
@@ -719,7 +719,6 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
                 g_warning("Load from memory not implemented.");
             if (!priv->idle_map_redraw)
                 priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-            g_signal_emit_by_name(G_OBJECT(map), "dirty");
         }
         g_hash_table_remove(priv->tile_queue, dl->uri);
 
@@ -1003,7 +1002,7 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
                 g_message("blank.");
                 //prevent some artifacts when drawing not yet loaded areas.
                 cairo_rectangle(priv->cr, offset_x, offset_y, TILESIZE, TILESIZE);
-                cairo_set_source_rgb(priv->cr, 1., 0., 1.);
+                cairo_set_source_rgb(priv->cr, 1., 1., 1.);
                 cairo_fill(priv->cr);
             }
         }
@@ -1047,7 +1046,7 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
                 {
                     cairo_rectangle(priv->cr, offset_xn, offset_yn,
                                     TILESIZE*2, TILESIZE*2);
-                    cairo_set_source_rgb(priv->cr, 1., 0., 1.);
+                    cairo_set_source_rgb(priv->cr, 1., 1., 1.);
                     cairo_fill(priv->cr);
                 }
                 else
@@ -1087,7 +1086,7 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
                 {
                     cairo_rectangle(priv->cr, offset_xn, offset_yn,
                                     TILESIZE, TILESIZE);
-                    cairo_set_source_rgb(priv->cr, 1., 0., 0.);
+                    cairo_set_source_rgb(priv->cr, 1., 1., 1.);
                     cairo_fill(priv->cr);
                 }
                 else
@@ -1225,7 +1224,7 @@ osm_gps_map_redraw (OsmGpsMap *map)
         }
     }
 #ifdef ENABLE_OSD
-    if (priv->osd->busy(priv->osd))
+    if (priv->osd && priv->osd->busy(priv->osd))
         return FALSE;
 #endif
 
@@ -1237,6 +1236,7 @@ osm_gps_map_redraw (OsmGpsMap *map)
 
     osm_gps_map_fill_tiles_pixel(map);
 
+    g_message("dirty is %p.", (gpointer)priv->dirty);
     osm_gps_map_print_tracks(map);
     osm_gps_map_draw_gps_point(map);
     osm_gps_map_print_images(map);
@@ -1256,6 +1256,8 @@ osm_gps_map_redraw (OsmGpsMap *map)
 #endif
 
     osm_gps_map_purge_cache(map);
+
+    g_signal_emit_by_name(G_OBJECT(map), "dirty");
     cairo_region_destroy(priv->dirty);
     priv->dirty = cairo_region_create();
     
@@ -1370,7 +1372,7 @@ osm_gps_map_setup(OsmGpsMapPrivate *priv)
 
         priv->null_tile = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, TILESIZE, TILESIZE);
         cr = cairo_create(priv->null_tile);
-        cairo_set_source_rgb(cr, 0.5, 1., 1.);
+        cairo_set_source_rgb(cr, 1., 1., 1.);
         cairo_paint(cr);
         cairo_destroy(cr);
     }
@@ -1515,7 +1517,6 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             priv->double_pixel = g_value_get_boolean (value);
             if (!priv->idle_map_redraw)
                 priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, (gpointer)map);
-            g_signal_emit_by_name(G_OBJECT(map), "dirty");
             break;
         case PROP_RECORD_TRIP_HISTORY:
             priv->record_trip_history = g_value_get_boolean (value);
@@ -1604,7 +1605,6 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
 
                 if (!priv->idle_map_redraw)
                     priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-                g_signal_emit_by_name(G_OBJECT(map), "dirty");
 
                 /* adjust zoom if necessary */
                 if(priv->map_zoom > priv->max_zoom) 
@@ -1728,6 +1728,10 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
 
     g_return_if_fail(OSM_IS_GPS_MAP(map));
     priv = map->priv;
+
+    if (priv->viewport_width == width &&
+        priv->viewport_height == height)
+        return;
 
     /* Set viewport. */
     g_message("Set view port to %dx%d.", width, height);
@@ -2327,7 +2331,6 @@ osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
 #endif
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-        g_signal_emit_by_name(G_OBJECT(map), "dirty");
 
         g_signal_emit_by_name(map, "changed");
     }
@@ -2360,7 +2363,6 @@ osm_gps_map_add_track (OsmGpsMap *map, GSList *track)
         priv->tracks = g_slist_append(priv->tracks, track);
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-        g_signal_emit_by_name(G_OBJECT(map), "dirty");
     }
 }
 
@@ -2386,7 +2388,6 @@ osm_gps_map_replace_track (OsmGpsMap *map, GSList *old_track, GSList *new_track)
     old->data = new_track;
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 void
@@ -2397,7 +2398,6 @@ osm_gps_map_clear_tracks (OsmGpsMap *map)
     osm_gps_map_free_tracks(map);
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 void
@@ -2427,7 +2427,6 @@ osm_gps_map_add_image_with_alignment (OsmGpsMap *map, float latitude, float long
 
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-        g_signal_emit_by_name(G_OBJECT(map), "dirty");
     }
 }
 
@@ -2453,7 +2452,6 @@ osm_gps_map_remove_image (OsmGpsMap *map, cairo_surface_t *image)
 		        g_free(im);
                 if (!priv->idle_map_redraw)
                     priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-                g_signal_emit_by_name(G_OBJECT(map), "dirty");
 		        return TRUE;
 	        }
         }
@@ -2469,7 +2467,6 @@ osm_gps_map_clear_images (OsmGpsMap *map)
     osm_gps_map_free_images(map);
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 void
@@ -2524,7 +2521,6 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     // map center if it was changed
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 void
@@ -2535,7 +2531,6 @@ osm_gps_map_clear_gps (OsmGpsMap *map)
     osm_gps_map_free_trip(map);
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 coord_t
@@ -2575,18 +2570,15 @@ osm_gps_map_geographic_to_screen (OsmGpsMap *map,
                                   gfloat latitude, gfloat longitude,
                                   gint *pixel_x, gint *pixel_y)
 {
-    /* OsmGpsMapPrivate *priv; */
+    OsmGpsMapPrivate *priv;
 
     g_return_if_fail (OSM_IS_GPS_MAP (map));
-    /* priv = map->priv; */
+    priv = map->priv;
 
-    g_error("implement here.");
-    /* if (pixel_x) */
-    /*     *pixel_x = lon2pixel(priv->map_zoom, deg2rad(longitude)) - */
-    /*         priv->map_x + priv->drag_mouse_dx; */
-    /* if (pixel_y) */
-    /*     *pixel_y = lat2pixel(priv->map_zoom, deg2rad(latitude)) - */
-    /*         priv->map_y + priv->drag_mouse_dy; */
+    if (pixel_x)
+        *pixel_x = lon2pixel(priv->map_zoom, deg2rad(longitude)) - priv->map_x;
+    if (pixel_y)
+        *pixel_y = lat2pixel(priv->map_zoom, deg2rad(latitude)) - priv->map_y;
 }
 
 void
@@ -2610,7 +2602,6 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
 
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    g_signal_emit_by_name(G_OBJECT(map), "dirty");
 }
 
 float

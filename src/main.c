@@ -50,7 +50,7 @@
 #include <gconf/gconf.h>
 #include <gconf/gconf-client.h>
 
-#include "osm-gps-map-gtkwidget.h"
+#include "osm-gps-map-gtk.h"
 #include "osm-gps-map-osd-classic.h"
 #include "converter.h"
 #include "misc.h"
@@ -309,29 +309,29 @@ static GtkWidget *map_new(GtkWidget *window, OsmGpsMap **map_) {
 
   g_free(path);
 
-  GtkWidget *widget = osm_gps_map_gtkwidget_new(map);
+  GtkWidget *widget = osm_gps_map_gtk_new(map);
   g_object_set(G_OBJECT(widget), "drag-limit", MAP_DRAG_LIMIT, NULL);
 
 #ifdef MAP_KEY_FULLSCREEN
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_FULLSCREEN, MAP_KEY_FULLSCREEN);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_FULLSCREEN, MAP_KEY_FULLSCREEN);
 #endif
 #ifdef MAP_KEY_ZOOMIN
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMIN, MAP_KEY_ZOOMIN);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_ZOOMIN, MAP_KEY_ZOOMIN);
 #endif
 #ifdef MAP_KEY_ZOOMOUT
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_ZOOMOUT, MAP_KEY_ZOOMOUT);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_ZOOMOUT, MAP_KEY_ZOOMOUT);
 #endif
 #ifdef MAP_KEY_UP
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_UP, MAP_KEY_UP);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_UP, MAP_KEY_UP);
 #endif
 #ifdef MAP_KEY_DOWN
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_DOWN, MAP_KEY_DOWN);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_DOWN, MAP_KEY_DOWN);
 #endif
 #ifdef MAP_KEY_LEFT
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_LEFT, MAP_KEY_LEFT);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_LEFT, MAP_KEY_LEFT);
 #endif
 #ifdef MAP_KEY_RIGHT
-  osm_gps_map_gtkwidget_set_keyboard_shortcut(OSM_GPS_MAP_GTKWIDGET(widget), OSM_GPS_MAP_GTKWIDGET_KEY_RIGHT, MAP_KEY_RIGHT);
+  osm_gps_map_gtk_set_keyboard_shortcut(OSM_GPS_MAP_GTK(widget), OSM_GPS_MAP_GTK_KEY_RIGHT, MAP_KEY_RIGHT);
 #endif
 
   osm_gps_map_set_mapcenter(map, lat, lon, zoom);
@@ -544,7 +544,8 @@ int main(int argc, char *argv[]) {
   gtk_box_pack_start_defaults(GTK_BOX(vbox), map);
 
   /* track_restore(map); */
-  /* geonames_wikipedia_restore(map); */
+  if(gconf_get_bool("wikipedia", FALSE))
+    menu_check_set_active(window, "Wikipedia", TRUE);
 
   /* heart rate data, disable by default */
   if(gconf_get_bool(HXM_ENABLED, FALSE)) 

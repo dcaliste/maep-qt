@@ -20,9 +20,16 @@
 #ifndef ICON_H
 #define ICON_H
 
-GtkWidget *icon_get_widget(GtkWidget *parent, const char *name);
-GdkPixbuf *icon_get_pixbuf(GtkWidget *parent, const char *name);
-void icon_register_pixbuf(GtkWidget *parent, const char *name, GdkPixbuf *pix);
-GdkPixbuf *icon_register_check(GtkWidget *parent, const char *name);
+#include "config.h"
+
+#include <glib-object.h>
+#include <cairo.h>
+
+#ifdef WITH_GTK
+#include <gtk/gtk.h>
+GtkWidget *icon_get_widget(GObject *parent, const char *name);
+#endif
+
+cairo_surface_t *icon_get_surface(GObject *parent, const char *name);
 
 #endif // ICON_H
