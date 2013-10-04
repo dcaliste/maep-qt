@@ -29,30 +29,100 @@
 
 #include "osm-gps-map.h"
 
-void osm_gps_map_osd_classic_init(OsmGpsMap *map);
-osd_button_t osm_gps_map_osd_check(OsmGpsMap *map, gint x, gint y);
+G_BEGIN_DECLS
+
+typedef enum {
+    OSD_NONE = 0,
+    OSD_BG,
+    OSD_UP,
+    OSD_DOWN,
+    OSD_LEFT,
+    OSD_RIGHT,
+    OSD_IN,
+    OSD_OUT,
+    OSD_CUSTOM   // first custom buttom
+} osd_button_t;
+
+typedef void (*OsmGpsMapOsdCallback)(osd_button_t but, gpointer data);
+#define	OSM_GPS_MAP_OSD_CALLBACK(f) ((OsmGpsMapOsdCallback) (f))
+
+/* the osd structure mainly contains various callbacks */
+/* required to draw and update the OSD */
+typedef struct osm_gps_map_osd_s {
+    /* To specify color. */
+    double fg[3];
+    double disabled[3];
+    double bg[3];
+
+    /* OSM renderer it is associated to. */
+    OsmGpsMap *map;
+
+    void(*render)(struct osm_gps_map_osd_s *);
+    void(*draw)(struct osm_gps_map_osd_s *, cairo_t *);
+    osd_button_t(*check)(struct osm_gps_map_osd_s *,gboolean,gint, gint);       /* check if x/y lies within OSD */
+    gboolean(*busy)(struct osm_gps_map_osd_s *);
+    void(*free)(struct osm_gps_map_osd_s *);
+
+    OsmGpsMapOsdCallback cb;
+    gpointer data;
+
+    gpointer priv;
+} osm_gps_map_osd_t;
+
+typedef enum { 
+    OSM_GPS_MAP_BALLOON_EVENT_TYPE_DRAW,
+    OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK,
+    OSM_GPS_MAP_BALLOON_EVENT_TYPE_REMOVED,
+    OSM_GPS_MAP_BALLOON_EVENT_TYPE_SIZE_REQUEST,
+} osm_gps_map_balloon_event_type_t;
+
+typedef struct {
+    osm_gps_map_balloon_event_type_t type;
+    union {
+        struct { 
+            OsmGpsMapRect_t *rect;
+            cairo_t *cr;
+        } draw;
+
+        struct { 
+            int x, y; 
+            gboolean down; 
+        } click;
+    } data;
+} osm_gps_map_balloon_event_t;
+
+typedef void (*OsmGpsMapBalloonCallback)(osm_gps_map_balloon_event_t *event, gpointer data);
+#define	OSM_GPS_MAP_BALLOON_CALLBACK(f) ((OsmGpsMapBalloonCallback) (f))
+
+osm_gps_map_osd_t* osm_gps_map_osd_classic_init(OsmGpsMap *map);
+void osm_gps_map_osd_classic_free(osm_gps_map_osd_t *osd);
+osd_button_t osm_gps_map_osd_check(osm_gps_map_osd_t *osd, gint x, gint y);
 #ifdef OSD_GPS_BUTTON
-void osm_gps_map_osd_enable_gps (OsmGpsMap *map, OsmGpsMapOsdCallback cb, gpointer data);
+void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd,
+                                 OsmGpsMapOsdCallback cb, gpointer data);
 #endif
 
 #ifdef OSD_BALLOON
-void osm_gps_map_osd_draw_balloon (OsmGpsMap *map, 
+void osm_gps_map_osd_draw_balloon (osm_gps_map_osd_t *osd, 
                                    float latitude, float longitude, 
                                    OsmGpsMapBalloonCallback cb, gpointer data);
-void osm_gps_map_osd_clear_balloon (OsmGpsMap *map);
+void osm_gps_map_osd_clear_balloon (osm_gps_map_osd_t *osd);
 #endif
 
 #ifdef OSD_NAV
-void osm_gps_map_osd_clear_nav (OsmGpsMap *map);
-void osm_gps_map_osd_draw_nav (OsmGpsMap *map, gboolean imperial, float latitude, float longitude, char *name);
+void osm_gps_map_osd_clear_nav (osm_gps_map_osd_t *osd);
+void osm_gps_map_osd_draw_nav (osm_gps_map_osd_t *osd, gboolean imperial,
+                               float latitude, float longitude, char *name);
 #endif
 
 #ifdef OSD_HEARTRATE
-void osm_gps_map_osd_draw_hr (OsmGpsMap *map, gboolean ok, gint rate);
+void osm_gps_map_osd_draw_hr (osm_gps_map_osd_t *osd, gboolean ok, gint rate);
 #define OSD_HR_NONE    -2
 #define OSD_HR_ERROR   -1
 #define OSD_HR_INVALID  0
 
 #endif
+
+G_END_DECLS
 
 #endif

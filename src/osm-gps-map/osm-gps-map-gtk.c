@@ -47,7 +47,8 @@
 
 struct _OsmGpsMapGtkPrivate
 {
-  OsmGpsMap *map;
+    OsmGpsMap *map;
+    osm_gps_map_osd_t *osd;
 
     //For storing keybindings
     guint keybindings[OSM_GPS_MAP_GTK_KEY_MAX];
@@ -169,6 +170,7 @@ osm_gps_map_gtk_init (OsmGpsMapGtk *object)
     object->priv = priv;
 
     priv->map = NULL;
+    priv->osd = NULL;
 
     priv->drag_counter = 0;
     priv->drag_start_mouse_x = 0;
@@ -215,8 +217,10 @@ osm_gps_map_gtk_dispose (GObject *object)
 static void
 osm_gps_map_gtk_finalize (GObject *object)
 {
-    /* OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object); */
-    /* OsmGpsMapGtkPrivate *priv = map->priv; */
+    OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(object);
+    OsmGpsMapGtkPrivate *priv = map->priv;
+
+    osm_gps_map_osd_classic_free(priv->osd);
 
     G_OBJECT_CLASS (osm_gps_map_gtk_parent_class)->finalize (object);
 }
@@ -277,59 +281,55 @@ osm_gps_map_gtk_button_press (GtkWidget *widget, GdkEventButton *event)
     OsmGpsMapGtkPrivate *priv = map->priv;
 
 #ifdef ENABLE_OSD
-    osm_gps_map_osd_t *osd;
+    /* pressed inside OSD control? */
+    osd_button_t but = 
+        priv->osd->check(priv->osd, TRUE, event->x, event->y);
 
-    osd = osm_gps_map_osd_get(priv->map);
-    if(osd) {
-        /* pressed inside OSD control? */
-        osd_button_t but = 
-            osd->check(osd, TRUE, event->x, event->y);
-
-        if(but != OSD_NONE)
-            {
-                int step = 
-                    widget->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
-                priv->drag_counter = -1;
+    g_message("Button press %d (%d).", but, OSD_NONE);
+    if(but != OSD_NONE)
+        {
+            int step = 
+                widget->allocation.width/OSM_GPS_MAP_SCROLL_STEP;
+            priv->drag_counter = -1;
             
-                switch(but) {
-                case OSD_UP:
-                    osm_gps_map_scroll(priv->map, 0, -step);
-                    g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
-                    break;
+            switch(but) {
+            case OSD_UP:
+                osm_gps_map_scroll(priv->map, 0, -step);
+                g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
+                break;
 
-                case OSD_DOWN:
-                    osm_gps_map_scroll(priv->map, 0, +step);
-                    g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
-                    break;
+            case OSD_DOWN:
+                osm_gps_map_scroll(priv->map, 0, +step);
+                g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
+                break;
 
-                case OSD_LEFT:
-                    osm_gps_map_scroll(priv->map, -step, 0);
-                    g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
-                    break;
+            case OSD_LEFT:
+                osm_gps_map_scroll(priv->map, -step, 0);
+                g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
+                break;
                 
-                case OSD_RIGHT:
-                    osm_gps_map_scroll(priv->map, +step, 0);
-                    g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
-                    break;
+            case OSD_RIGHT:
+                osm_gps_map_scroll(priv->map, +step, 0);
+                g_object_set(G_OBJECT(priv->map), "auto-center", FALSE, NULL);
+                break;
                 
-                case OSD_IN:
-                    osm_gps_map_zoom_in(priv->map);
-                    break;
+            case OSD_IN:
+                osm_gps_map_zoom_in(priv->map);
+                break;
                 
-                case OSD_OUT:
-                    osm_gps_map_zoom_out(priv->map);
-                    break;
+            case OSD_OUT:
+                osm_gps_map_zoom_out(priv->map);
+                break;
                 
-                default:
-                    /* all custom buttons are forwarded to the application */
-                    if(osd->cb)
-                        osd->cb(but, osd->data);
-                    break;
-                }
-            
-                return FALSE;
+            default:
+                /* all custom buttons are forwarded to the application */
+                if(priv->osd->cb)
+                    priv->osd->cb(but, priv->osd->data);
+                break;
             }
-    }
+            
+            return FALSE;
+        }
 #endif
 
     priv->button_down = TRUE;
@@ -350,7 +350,7 @@ osm_gps_map_gtk_button_release (GtkWidget *widget, GdkEventButton *event)
     OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
     OsmGpsMapGtkPrivate *priv = map->priv;
 #ifdef ENABLE_OSD
-    osm_gps_map_osd_t *osd;
+    osd_button_t but = OSD_NONE;
 #endif
 
     if(!priv->button_down)
@@ -359,16 +359,14 @@ osm_gps_map_gtk_button_release (GtkWidget *widget, GdkEventButton *event)
     if (priv->dragging)
     {
         priv->dragging = FALSE;
-        priv->drag_mouse_dx = 0;
-        priv->drag_mouse_dy = 0;
-
         osm_gps_map_scroll(priv->map, priv->drag_start_mouse_x - (int) event->x,
                            priv->drag_start_mouse_y - (int) event->y);
+        priv->drag_mouse_dx = 0;
+        priv->drag_mouse_dy = 0;
     }
 #ifdef ENABLE_OSD
-    osd = osm_gps_map_osd_get(priv->map);
-    if(osd)
-        osd->check(osd, FALSE, event->x, event->y);
+    but = priv->osd->check(priv->osd, FALSE, event->x, event->y);
+    g_message("Button release %d (%d).", but, OSD_NONE);
 #endif
 
 #ifdef DRAG_DEBUG
@@ -460,9 +458,6 @@ osm_gps_map_gtk_expose (GtkWidget *widget, GdkEventExpose  *event)
 {
     OsmGpsMapGtk *map = OSM_GPS_MAP_GTK(widget);
     OsmGpsMapGtkPrivate *priv = map->priv;
-#ifdef ENABLE_OSD
-    osm_gps_map_osd_t *osd;
-#endif
     cairo_surface_t *source;
     cairo_t *cr;
 
@@ -536,10 +531,7 @@ osm_gps_map_gtk_expose (GtkWidget *widget, GdkEventExpose  *event)
     cairo_surface_destroy(source);
 
 #ifdef ENABLE_OSD
-    /* draw new OSD */
-    osd = osm_gps_map_osd_get(priv->map);
-    if(osd) 
-        osd->draw (osd, cr);
+    priv->osd->draw (priv->osd, cr);
 #endif
     cairo_destroy(cr);
         
@@ -595,6 +587,7 @@ osm_gps_map_gtk_new (OsmGpsMap *map)
     g_object_ref(map);
     g_signal_connect_swapped(G_OBJECT(map), "dirty",
                              G_CALLBACK(osm_gps_map_gtk_repaint), obj);
+    OSM_GPS_MAP_GTK_PRIVATE(obj)->osd = osm_gps_map_osd_classic_init(map);
 
     return GTK_WIDGET(obj);
 }
@@ -614,4 +607,10 @@ OsmGpsMap* osm_gps_map_gtk_get_map (OsmGpsMapGtk *widget)
     g_return_val_if_fail (OSM_IS_GPS_MAP_GTK (widget), (OsmGpsMap*)0);
     
     return widget->priv->map;
+}
+osm_gps_map_osd_t* osm_gps_map_gtk_get_osd(OsmGpsMapGtk *widget)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP_GTK (widget), (osm_gps_map_osd_t*)0);
+    
+    return widget->priv->osd;
 }

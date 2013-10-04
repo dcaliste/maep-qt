@@ -18,6 +18,8 @@
  */
 
 #include "config.h"
+
+#define WITH_GTK
 #include "misc.h"
 #include "icon.h"
 #include "about.h"

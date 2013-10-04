@@ -27,7 +27,6 @@
 #include <ctype.h>
 
 #include "config.h"
-#undef WITH_GTK
 #include "misc.h"
 
 #ifdef MAEMO5
