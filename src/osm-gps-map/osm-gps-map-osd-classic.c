@@ -293,6 +293,8 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
     cairo_set_source_rgba (cr, 0, 0, 0, BALLOON_TRANSPARENCY);
     cairo_set_line_width (cr, 1);
     cairo_stroke (cr);
+
+    g_message("Draw balloon.");
     
     if (priv->balloon.cb) {
         osm_gps_map_balloon_event_t event;
@@ -350,7 +352,7 @@ osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gi
             /* the user actually clicked outside the balloon */
             
             /* close the balloon! */
-            osm_gps_map_osd_clear_balloon (OSM_GPS_MAP(osd->map));
+            osm_gps_map_osd_clear_balloon (osd);
 
             /* and inform application about this */
             if(priv->balloon.cb) {
@@ -376,10 +378,7 @@ osd_balloon_check(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gi
     return is_in;
 }
 
-void osm_gps_map_osd_clear_balloon (OsmGpsMap *map) {
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
+void osm_gps_map_osd_clear_balloon (osm_gps_map_osd_t *osd) {
     g_return_if_fail (osd);
 
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
@@ -391,21 +390,19 @@ void osm_gps_map_osd_clear_balloon (OsmGpsMap *map) {
         priv->balloon.lat = OSM_GPS_MAP_INVALID;
         priv->balloon.lon = OSM_GPS_MAP_INVALID;
     }
-    osm_gps_map_redraw(map);
+    osd->render(osd);
 }
 
 void 
-osm_gps_map_osd_draw_balloon (OsmGpsMap *map, float latitude, float longitude, 
+osm_gps_map_osd_draw_balloon (osm_gps_map_osd_t *osd,
+                              float latitude, float longitude, 
                               OsmGpsMapBalloonCallback cb, gpointer data) {
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
     g_return_if_fail (osd);
 
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
     g_return_if_fail (priv);
 
-    osm_gps_map_osd_clear_balloon (map);
+    osm_gps_map_osd_clear_balloon (osd);
 
     priv->balloon.lat = latitude;
     priv->balloon.lon = longitude;
@@ -443,8 +440,6 @@ osm_gps_map_osd_draw_balloon (OsmGpsMap *map, float latitude, float longitude,
                                    BALLOON_W+2, BALLOON_H+2);
 
     osd_render_balloon(osd);
-
-    osm_gps_map_redraw(map);
 }
 
 #endif // OSD_BALLOON
@@ -1321,6 +1316,12 @@ osd_render_coordinates(osm_gps_map_osd_t *osd)
 
     cairo_destroy(cr);
 }
+static void onLatLon(GObject *obj, GParamSpec *pspec, gpointer user_data)
+{
+    osm_gps_map_osd_t *osd = (osm_gps_map_osd_t*)user_data;
+
+    osd_render_coordinates(osd);
+}
 #endif  // OSD_COORDINATES
 
 #ifdef OSD_NAV
@@ -1472,15 +1473,19 @@ osd_render_nav(osm_gps_map_osd_t *osd)
 static osd_button_t
 osd_nav_check(osm_gps_map_osd_t *osd, gint state, gint x, gint y) {
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
+    guint width, height;
     
     if(!priv->nav.surface || state == OSD_STATE_DOWN) 
         return OSD_NONE;
 
+    g_object_get(G_OBJECT(osd->map), "viewport-width", &width,
+                 "viewport-height", &height, NULL);
+
     x -= OSD_X;
     if(OSD_X < 0)
-        x -= (GTK_WIDGET(osd->map)->allocation.width - OSD_NAV_W);
+        x -= (width - OSD_NAV_W);
     
-    y -= (GTK_WIDGET(osd->map)->allocation.height - OSD_NAV_H)/2;
+    y -= (height - OSD_NAV_H)/2;
 
     if(x >= 0 && y >= 0 && x <= OSD_NAV_W && y <= OSD_NAV_H) {
         if(y < priv->nav.click_sep)
@@ -1488,17 +1493,14 @@ osd_nav_check(osm_gps_map_osd_t *osd, gint state, gint x, gint y) {
                                    priv->nav.lat, priv->nav.lon);
         else {
             priv->nav.mode = !priv->nav.mode;
-            osm_gps_map_redraw(OSM_GPS_MAP(osd->map));
+            osd->render(osd);
         }
     }
 
     return OSD_NONE;
 }
 
-void osm_gps_map_osd_clear_nav (OsmGpsMap *map) {
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
+void osm_gps_map_osd_clear_nav (osm_gps_map_osd_t *osd) {
     g_return_if_fail (osd);
 
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
@@ -1511,21 +1513,18 @@ void osm_gps_map_osd_clear_nav (OsmGpsMap *map) {
         priv->nav.lon = OSM_GPS_MAP_INVALID;
         if(priv->nav.name) g_free(priv->nav.name);
     }
-    osm_gps_map_redraw(map);
+    osd->render(osd);
 }
 
 void 
-osm_gps_map_osd_draw_nav (OsmGpsMap *map, gboolean imperial,
+osm_gps_map_osd_draw_nav (osm_gps_map_osd_t *osd, gboolean imperial,
                           float latitude, float longitude, char *name) {
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
     g_return_if_fail (osd);
 
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
     g_return_if_fail (priv);
 
-    osm_gps_map_osd_clear_nav (map);
+    osm_gps_map_osd_clear_nav (osd);
 
     /* allocate balloon surface */
     priv->nav.surface = 
@@ -1538,8 +1537,6 @@ osm_gps_map_osd_draw_nav (OsmGpsMap *map, gboolean imperial,
     priv->nav.imperial = imperial;
 
     osd_render_nav(osd);
-
-    osm_gps_map_redraw(map);
 }
 
 #endif // OSD_NAV
@@ -1639,10 +1636,7 @@ osd_render_hr(osm_gps_map_osd_t *osd)
 }
 
 void 
-osm_gps_map_osd_draw_hr (OsmGpsMap *map, gboolean ok, gint rate) {
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
+osm_gps_map_osd_draw_hr (osm_gps_map_osd_t *osd, gboolean ok, gint rate) {
     g_return_if_fail (osd);
 
     osd_priv_t *priv = (osd_priv_t*)osd->priv; 
@@ -1664,8 +1658,7 @@ osm_gps_map_osd_draw_hr (OsmGpsMap *map, gboolean ok, gint rate) {
         priv->hr.ok = ok;
         osd_render_hr(osd);
     }
-    
-    osm_gps_map_redraw(map);
+    osd->render(osd);
 }
  
 #endif // OSD_HEARTRATE
@@ -1941,6 +1934,13 @@ osd_render_scale(osm_gps_map_osd_t *osd)
     cairo_stroke(cr);
 
     cairo_destroy(cr);
+}
+
+static void onZoom(GObject *gobject, GParamSpec *pspec, gpointer user_data)
+{
+    osm_gps_map_osd_t *osd = (osm_gps_map_osd_t*)user_data;
+
+    osd_render_scale(osd);
 }
 #endif
 
@@ -2297,32 +2297,24 @@ osd_check(osm_gps_map_osd_t *osd, gboolean down, gint x, gint y) {
     return osd_check_int(osd, TRUE, down?OSD_STATE_DOWN:OSD_STATE_UP, x, y);
 }
 
-static osm_gps_map_osd_t osd_classic = {
-    .map     = NULL,
-
-    .draw       = osd_draw,
-    .check      = osd_check,
-    .render     = osd_render,
-    .free       = osd_free,
-    .busy       = osd_busy,
-
-    .cb         = NULL,
-    .data       = NULL,
-
-    .priv       = NULL
-};
-
 /* this is the only function that's externally visible */
-void
+osm_gps_map_osd_t*
 osm_gps_map_osd_classic_init(OsmGpsMap *map) 
 {
+    osm_gps_map_osd_t* osd_classic = g_new0(osm_gps_map_osd_t, 1);
     osd_priv_t *priv = g_new0(osd_priv_t, 1);
 
     /* reset entries to default value */
-    osd_classic.map = NULL;
-    osd_classic.cb     = NULL;
-    osd_classic.data   = NULL;
-    osd_classic.priv   = priv;
+    osd_classic->map = NULL;
+    osd_classic->cb     = NULL;
+    osd_classic->data   = NULL;
+    osd_classic->priv   = priv;
+
+    osd_classic->draw       = osd_draw,
+    osd_classic->check      = osd_check,
+    osd_classic->render     = osd_render,
+    osd_classic->free       = osd_free,
+    osd_classic->busy       = osd_busy,
 
 #ifdef OSD_BALLOON
     priv->balloon.lat = OSM_GPS_MAP_INVALID;
@@ -2333,15 +2325,33 @@ osm_gps_map_osd_classic_init(OsmGpsMap *map)
     priv->hr.rate = OSD_HR_NONE;
 #endif
 
-    osm_gps_map_register_osd(map, &osd_classic);
+    osd_classic->map = map;
+    g_object_ref(map);
+#ifdef OSD_SCALE
+    g_signal_connect(G_OBJECT(map), "notify::zoom",
+                     G_CALLBACK(onZoom), osd_classic);
+#endif
+#ifdef OSD_COORDINATES
+    g_signal_connect(G_OBJECT(map), "notify::map-x",
+                     G_CALLBACK(onLatLon), osd_classic);
+    g_signal_connect(G_OBJECT(map), "notify::map-y",
+                     G_CALLBACK(onLatLon), osd_classic);    
+#endif
+    return osd_classic; 
+}
+
+void osm_gps_map_osd_classic_free(osm_gps_map_osd_t *osd)
+{
+    osd->free(osd);
+    g_object_unref(osd->map);
+    g_free(osd);
 }
 
 #ifdef OSD_GPS_BUTTON
 /* below are osd specific functions which aren't used by osm-gps-map */
 /* but instead are to be used by the main application */
-void osm_gps_map_osd_enable_gps (OsmGpsMap *map, OsmGpsMapOsdCallback cb, 
+void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd, OsmGpsMapOsdCallback cb, 
                                  gpointer data) {
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
     g_return_if_fail (osd);
 
     osd->cb = cb;
@@ -2350,14 +2360,11 @@ void osm_gps_map_osd_enable_gps (OsmGpsMap *map, OsmGpsMapOsdCallback cb,
     /* this may have changed the state of the gps button */
     /* we thus re-render the overlay */
     osd->render(osd);
-
-    osm_gps_map_redraw(map);
 }
 #endif
 
 osd_button_t
-osm_gps_map_osd_check(OsmGpsMap *map, gint x, gint y) {
-    osm_gps_map_osd_t *osd = osm_gps_map_osd_get(map);
+osm_gps_map_osd_check(osm_gps_map_osd_t *osd, gint x, gint y) {
     g_return_val_if_fail (osd, OSD_NONE);
     
     return osd_check_int(osd, FALSE, OSD_STATE_CHECK, x, y);

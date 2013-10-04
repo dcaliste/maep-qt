@@ -73,6 +73,7 @@ typedef struct {
 typedef struct {
   OsmGpsMapGtk *widget;
   OsmGpsMap *map;
+  osm_gps_map_osd_t *osd;
   GSList *list;
   gulong destroy_handler_id, press_handler_id, release_handler_id;
   gulong changed_handler_id, motion_handler_id;
@@ -580,7 +581,7 @@ static void wiki_context_free(wiki_context_t *context, gboolean destroy) {
 
   if(!destroy) {
     osm_gps_map_clear_images (context->map);
-    osm_gps_map_osd_clear_balloon (context->map);
+    osm_gps_map_osd_clear_balloon (context->osd);
   }
 
   /* if a list of entries is present, then remove it */
@@ -826,7 +827,7 @@ static void balloon_cb(osm_gps_map_balloon_event_t *event, gpointer data) {
   } else if(event->type == OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK) {
     g_object_set_data(G_OBJECT(context->map), "balloon", NULL);
     wikipedia_details(GTK_WIDGET(context->widget), entry);
-    osm_gps_map_osd_clear_balloon (context->map);
+    osm_gps_map_osd_clear_balloon (context->osd);
   }
 }
 
@@ -836,7 +837,7 @@ static void geonames_wiki_context_button_event(wiki_context_t *context,
   static geonames_entry_t *nearest = NULL;
   
   /* check if we actually clicked parts of the OSD */
-  if (osm_gps_map_osd_check(context->map, x, y) != OSD_NONE) 
+  if (osm_gps_map_osd_check(context->osd, x, y) != OSD_NONE) 
     return;
 
   if (buttonPress) {
@@ -874,7 +875,7 @@ static void geonames_wiki_context_button_event(wiki_context_t *context,
     nearest = g_object_get_data(G_OBJECT(context->map), "nearest");
     if(nearest) {
       g_object_set_data(G_OBJECT(context->map), "balloon", nearest);
-      osm_gps_map_osd_draw_balloon (context->map, 
+      osm_gps_map_osd_draw_balloon (context->osd, 
 		    rad2deg(nearest->pos.rlat), rad2deg(nearest->pos.rlon),
 		    balloon_cb, context);
     }
@@ -917,7 +918,7 @@ void geonames_wiki_cb(net_result_t *result, gpointer data) {
 
       /* remove any list that may already be preset */
       if(context->list) {
-	osm_gps_map_osd_clear_balloon (context->map);
+	osm_gps_map_osd_clear_balloon (context->osd);
 	g_object_set_data(G_OBJECT(context->map), "balloon", NULL);
 	g_object_set_data(G_OBJECT(context->map), "nearest", NULL);
 	
@@ -1040,6 +1041,7 @@ void geonames_enable_wikipedia(GtkWidget *widget, OsmGpsMap *map, gboolean enabl
     g_object_set_data(G_OBJECT(map), "wikipedia", context);
     context->widget = OSM_GPS_MAP_GTK(widget);
     context->map = map;
+    context->osd = osm_gps_map_gtk_get_osd(context->widget);
 
     /* attach to maps changed event, so we can update the wiki */
     /* entries whenever the map changes */

@@ -31,6 +31,7 @@
 #include <gtk/gtk.h>
 
 #include "osm-gps-map.h"
+#include "osm-gps-map-osd-classic.h"
 
 G_BEGIN_DECLS
 
@@ -71,6 +72,7 @@ GType       osm_gps_map_gtk_get_type (void) G_GNUC_CONST;
 
 GtkWidget*  osm_gps_map_gtk_new      (OsmGpsMap *map);
 OsmGpsMap*  osm_gps_map_gtk_get_map  (OsmGpsMapGtk *widget);
+osm_gps_map_osd_t* osm_gps_map_gtk_get_osd(OsmGpsMapGtk *widget);
 
 void osm_gps_map_gtk_set_keyboard_shortcut(OsmGpsMapGtk *map,
                                            OsmGpsMapGtkKey_t key, guint keyval);

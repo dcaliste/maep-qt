@@ -168,13 +168,14 @@ static void gps_callback(gps_mask_t set, struct gps_t *fix, void *data) {
   gps_mask_t gps_set = 
     (gps_mask_t)GPOINTER_TO_INT(g_object_get_data(G_OBJECT(map), "gps_set")); 
 
+  g_error("impl");
   /* ... and enable "goto" button if it's valid */
-  if((set & FIX_LATLON_SET) != (gps_set & FIX_LATLON_SET)) {
-    osm_gps_map_osd_enable_gps(map,  
-       OSM_GPS_MAP_OSD_CALLBACK((set&FIX_LATLON_SET)?cb_map_gps:NULL), map);
+  /* if((set & FIX_LATLON_SET) != (gps_set & FIX_LATLON_SET)) { */
+  /*   osm_gps_map_osd_enable_gps(map,   */
+  /*      OSM_GPS_MAP_OSD_CALLBACK((set&FIX_LATLON_SET)?cb_map_gps:NULL), map); */
 
-    g_object_set_data(G_OBJECT(map), "gps_set", GINT_TO_POINTER(set)); 
-  }
+  /*   g_object_set_data(G_OBJECT(map), "gps_set", GINT_TO_POINTER(set));  */
+  /* } */
 
   if(set & FIX_LATLON_SET) {
     /* save fix in case the user later wants to enable gps */
@@ -336,8 +337,6 @@ static GtkWidget *map_new(GtkWidget *window, OsmGpsMap **map_) {
 
   osm_gps_map_set_mapcenter(map, lat, lon, zoom);
 
-  osm_gps_map_osd_classic_init(map);
-
   /* connect to GPS */
   gps_state_t *gps = gps_init();
 
@@ -370,24 +369,25 @@ static void on_window_destroy (GtkWidget *widget, gpointer data) {
 static void hxm_callback(hxm_t *hxm, void *data) {
   GtkWidget *map = GTK_WIDGET(data);
 
-  switch(hxm->state) {
-  case HXM_STATE_CONNECTED:
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), TRUE, hxm->hr);
-    break;
-  case HXM_STATE_FAILED:
-#ifdef USE_MAEMO
-    {
-      GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map));
-      hildon_banner_show_information(toplevel, NULL, 
-		   _("Connection to heart rate monitor failed!"));
-    }
-#endif
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_ERROR);
-    break;
-  default:
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_INVALID);
-    break;
-  }
+  g_error("impl");
+/*   switch(hxm->state) { */
+/*   case HXM_STATE_CONNECTED: */
+/*     osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), TRUE, hxm->hr); */
+/*     break; */
+/*   case HXM_STATE_FAILED: */
+/* #ifdef USE_MAEMO */
+/*     { */
+/*       GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(map)); */
+/*       hildon_banner_show_information(toplevel, NULL,  */
+/* 		   _("Connection to heart rate monitor failed!")); */
+/*     } */
+/* #endif */
+/*     osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_ERROR); */
+/*     break; */
+/*   default: */
+/*     osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_INVALID); */
+/*     break; */
+/*   } */
 }
 
 void hxm_enable(GtkWidget *map, gboolean enable) {
@@ -417,7 +417,8 @@ void hxm_enable(GtkWidget *map, gboolean enable) {
     hxm_release(hxm);
 
     /* undraw gui */
-    osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_NONE);
+    g_error("impl");
+    /* osm_gps_map_osd_draw_hr(OSM_GPS_MAP(map), FALSE, OSD_HR_NONE); */
   }
 }
 

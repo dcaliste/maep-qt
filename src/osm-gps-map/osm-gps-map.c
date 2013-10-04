@@ -101,10 +101,6 @@ struct _OsmGpsMapPrivate
     float gps_heading;
     gboolean gps_valid;
 
-#ifdef ENABLE_OSD
-    //the osd controls (if present)
-    osm_gps_map_osd_t *osd;
-#endif    
     //additional images or tracks added to the map
     GSList *tracks;
     GSList *images;
@@ -167,8 +163,12 @@ enum
     PROP_MAP_SOURCE,
     PROP_IMAGE_FORMAT,
     PROP_VIEWPORT_WIDTH,
-    PROP_VIEWPORT_HEIGHT
+    PROP_VIEWPORT_HEIGHT,
+
+    PROP_LAST
 };
+
+static GParamSpec *properties[PROP_LAST];
 
 G_DEFINE_TYPE (OsmGpsMap, osm_gps_map, G_TYPE_OBJECT);
 
@@ -928,8 +928,8 @@ osm_gps_map_render_missing_tile (OsmGpsMap *map, int zoom, int x, int y,
 }
 
 /* default tile lifetime is one week */
-#ifndef OSD_GPS_MAP_TILE_TTL 
-#define  OSD_GPS_MAP_TILE_TTL  (60*60*24*7)   
+#ifndef OSM_GPS_MAP_TILE_TTL 
+#define  OSM_GPS_MAP_TILE_TTL  (60*60*24*7)   
 #endif
 
 static gboolean
@@ -938,7 +938,7 @@ osm_gps_map_tile_age_exceeded(char *filename)
     struct stat buf;
     
     if(!g_stat(filename, &buf)) 
-        return(time(NULL) - buf.st_mtime > OSD_GPS_MAP_TILE_TTL);
+        return(time(NULL) - buf.st_mtime > OSM_GPS_MAP_TILE_TTL);
 
     return FALSE;
 }
@@ -1190,16 +1190,6 @@ osm_gps_map_purge_cache (OsmGpsMap *map)
 }
 
 static gboolean
-osm_gps_map_idle_redraw(OsmGpsMap *map)
-{
-    OsmGpsMapPrivate *priv = map->priv;
-
-    priv->idle_map_redraw = 0;
-    osm_gps_map_redraw(map);
-    return FALSE;
-}
-
-gboolean
 osm_gps_map_redraw (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
@@ -1223,10 +1213,10 @@ osm_gps_map_redraw (OsmGpsMap *map)
                 return FALSE;
         }
     }
-#ifdef ENABLE_OSD
-    if (priv->osd && priv->osd->busy(priv->osd))
-        return FALSE;
-#endif
+/* #ifdef ENABLE_OSD */
+/*     if (priv->osd && priv->osd->busy(priv->osd)) */
+/*         return FALSE; */
+/* #endif */
 
     priv->redraw_cycle++;
 
@@ -1249,12 +1239,6 @@ osm_gps_map_redraw (OsmGpsMap *map)
         }
     }
 
-#ifdef ENABLE_OSD
-    /* OSD may contain a coordinate/scale, so we may have to re-render it */
-    if(priv->osd && OSM_IS_GPS_MAP (priv->osd->map))
-        priv->osd->render (priv->osd);
-#endif
-
     osm_gps_map_purge_cache(map);
 
     g_signal_emit_by_name(G_OBJECT(map), "dirty");
@@ -1262,6 +1246,16 @@ osm_gps_map_redraw (OsmGpsMap *map)
     priv->dirty = cairo_region_create();
     
     return TRUE;
+}
+
+static gboolean
+osm_gps_map_idle_redraw(OsmGpsMap *map)
+{
+    OsmGpsMapPrivate *priv = map->priv;
+
+    priv->idle_map_redraw = 0;
+    osm_gps_map_redraw(map);
+    return FALSE;
 }
 
 static void
@@ -1295,9 +1289,6 @@ osm_gps_map_init (OsmGpsMap *object)
     priv->gps_valid = FALSE;
     priv->gps_heading = OSM_GPS_MAP_INVALID;
 
-#ifdef ENABLE_OSD
-    priv->osd = NULL;
-#endif
     priv->tracks = NULL;
     priv->images = NULL;
     priv->layers = NULL;
@@ -1468,13 +1459,6 @@ osm_gps_map_dispose (GObject *object)
         g_source_remove (priv->idle_map_redraw);
 
     g_free(priv->gps);
-
-#ifdef ENABLE_OSD
-    if(priv->osd) {
-        priv->osd->free(priv->osd);
-        priv->osd = NULL;
-    }
-#endif
 
     G_OBJECT_CLASS (osm_gps_map_parent_class)->dispose (object);
 }
@@ -1774,13 +1758,14 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
     object_class->set_property = osm_gps_map_set_property;
     object_class->get_property = osm_gps_map_get_property;
 
+    properties[PROP_DOUBLE_PIXEL] = g_param_spec_boolean ("double-pixel",
+                                                          "double pixel",
+                                                          "double map pixels for better readability",
+                                                          FALSE,
+                                                          G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT);
     g_object_class_install_property (object_class,
                                      PROP_DOUBLE_PIXEL,
-                                     g_param_spec_boolean ("double-pixel",
-                                                           "double pixel",
-                                                           "double map pixels for better readability",
-                                                           FALSE,
-                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
+                                     properties[PROP_DOUBLE_PIXEL]);
 
 
     g_object_class_install_property (object_class,
@@ -1855,15 +1840,16 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                             FALSE,
                                                             G_PARAM_READABLE | G_PARAM_WRITABLE));
 
+     properties[PROP_ZOOM] = g_param_spec_int ("zoom",
+                                               "zoom",
+                                               "initial zoom level",
+                                               MIN_ZOOM, /* minimum property value */
+                                               MAX_ZOOM, /* maximum property value */
+                                               3,
+                                               G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_property (object_class,
                                      PROP_ZOOM,
-                                     g_param_spec_int ("zoom",
-                                                       "zoom",
-                                                       "initial zoom level",
-                                                       MIN_ZOOM, /* minimum property value */
-                                                       MAX_ZOOM, /* maximum property value */
-                                                       3,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                     properties[PROP_ZOOM]);
 
     g_object_class_install_property (object_class,
                                      PROP_MAX_ZOOM,
@@ -1905,25 +1891,27 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                          0,
                                                          G_PARAM_READABLE));
 
+    properties[PROP_MAP_X] = g_param_spec_int ("map-x",
+                                               "map-x",
+                                               "initial map x location",
+                                               G_MININT, /* minimum property value */
+                                               G_MAXINT, /* maximum property value */
+                                               890,
+                                               G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
                                      PROP_MAP_X,
-                                     g_param_spec_int ("map-x",
-                                                       "map-x",
-                                                       "initial map x location",
-                                                       G_MININT, /* minimum property value */
-                                                       G_MAXINT, /* maximum property value */
-                                                       890,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                     properties[PROP_MAP_X]);
 
+    properties[PROP_MAP_Y] = g_param_spec_int ("map-y",
+                                               "map-y",
+                                               "initial map y location",
+                                               G_MININT, /* minimum property value */
+                                               G_MAXINT, /* maximum property value */
+                                               515,
+                                               G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
                                      PROP_MAP_Y,
-                                     g_param_spec_int ("map-y",
-                                                       "map-y",
-                                                       "initial map y location",
-                                                       G_MININT, /* minimum property value */
-                                                       G_MAXINT, /* maximum property value */
-                                                       515,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                     properties[PROP_MAP_Y]);
 
     g_object_class_install_property (object_class,
                                      PROP_TILES_QUEUED,
@@ -2324,14 +2312,10 @@ osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
         /* adjust gps precision indicator */
         priv->ui_gps_point_outer_radius *= factor;
 
-#ifdef ENABLE_OSD
-        /* OSD may contain a scale, so we may have to re-render it */
-        if(priv->osd  && OSM_IS_GPS_MAP (priv->osd->map))
-            priv->osd->render (priv->osd);
-#endif
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 
+        g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_ZOOM]);
         g_signal_emit_by_name(map, "changed");
     }
     return priv->map_zoom;
@@ -2594,14 +2578,11 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
     priv->map_y += dy;
     center_coord_update(map);
 
-#ifdef ENABLE_OSD
-    /* OSD may contain a coordinate, so we may have to re-render it */
-    if(priv->osd && OSM_IS_GPS_MAP (priv->osd->map))
-        priv->osd->render (priv->osd);
-#endif
-
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_X]);
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_Y]);
 }
 
 float
@@ -2637,30 +2618,6 @@ char * osm_gps_map_get_default_cache_directory(void)
 }
 
 #ifdef ENABLE_OSD
-
-osm_gps_map_osd_t *
-osm_gps_map_osd_get(OsmGpsMap *map) 
-{
-    g_return_val_if_fail (OSM_IS_GPS_MAP (map), NULL);
-    return map->priv->osd;
-}
-
-void 
-osm_gps_map_register_osd(OsmGpsMap *map, osm_gps_map_osd_t *osd) 
-{
-    OsmGpsMapPrivate *priv;
-
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-
-    priv = map->priv;
-    g_return_if_fail (!priv->osd);
-
-    priv->osd = osd;
-    /* the osd needs some references to map internal objects */
-    if(priv->osd)
-        priv->osd->map = map;
-}
-
 coord_t *
 osm_gps_map_get_gps (OsmGpsMap *map) 
 {

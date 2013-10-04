@@ -96,69 +96,6 @@ typedef struct {
     gint x, y, w, h;
 } OsmGpsMapRect_t;
 
-typedef enum {
-    OSD_NONE = 0,
-    OSD_BG,
-    OSD_UP,
-    OSD_DOWN,
-    OSD_LEFT,
-    OSD_RIGHT,
-    OSD_IN,
-    OSD_OUT,
-    OSD_CUSTOM   // first custom buttom
-} osd_button_t;
-
-typedef void (*OsmGpsMapOsdCallback)(osd_button_t but, gpointer data);
-#define	OSM_GPS_MAP_OSD_CALLBACK(f) ((OsmGpsMapOsdCallback) (f))
-
-/* the osd structure mainly contains various callbacks */
-/* required to draw and update the OSD */
-typedef struct osm_gps_map_osd_s {
-    /* To specify color. */
-    double fg[3];
-    double disabled[3];
-    double bg[3];
-
-    /* OSM renderer it is associated to. */
-    OsmGpsMap *map;
-
-    void(*render)(struct osm_gps_map_osd_s *);
-    void(*draw)(struct osm_gps_map_osd_s *, cairo_t *);
-    osd_button_t(*check)(struct osm_gps_map_osd_s *,gboolean,gint, gint);       /* check if x/y lies within OSD */
-    gboolean(*busy)(struct osm_gps_map_osd_s *);
-    void(*free)(struct osm_gps_map_osd_s *);
-
-    OsmGpsMapOsdCallback cb;
-    gpointer data;
-
-    gpointer priv;
-} osm_gps_map_osd_t;
-
-typedef enum { 
-    OSM_GPS_MAP_BALLOON_EVENT_TYPE_DRAW,
-    OSM_GPS_MAP_BALLOON_EVENT_TYPE_CLICK,
-    OSM_GPS_MAP_BALLOON_EVENT_TYPE_REMOVED,
-    OSM_GPS_MAP_BALLOON_EVENT_TYPE_SIZE_REQUEST,
-} osm_gps_map_balloon_event_type_t;
-
-typedef struct {
-    osm_gps_map_balloon_event_type_t type;
-    union {
-        struct { 
-            OsmGpsMapRect_t *rect;
-            cairo_t *cr;
-        } draw;
-
-        struct { 
-            int x, y; 
-            gboolean down; 
-        } click;
-    } data;
-} osm_gps_map_balloon_event_t;
-
-typedef void (*OsmGpsMapBalloonCallback)(osm_gps_map_balloon_event_t *event, gpointer data);
-#define	OSM_GPS_MAP_BALLOON_CALLBACK(f) ((OsmGpsMapBalloonCallback) (f))
-
 GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
 
 OsmGpsMap*  osm_gps_map_new                         (void);
@@ -196,11 +133,8 @@ float       osm_gps_map_get_scale                   (OsmGpsMap *map);
 void        osm_gps_map_add_layer                   (OsmGpsMap *map, OsmGpsMapLayer *layer);
 cairo_surface_t* osm_gps_map_get_surface            (OsmGpsMap *map);
 void        osm_gps_map_set_viewport                (OsmGpsMap *map, guint width, guint height);
-gboolean    osm_gps_map_redraw                      (OsmGpsMap *map);
 
 #ifdef ENABLE_OSD
-void osm_gps_map_register_osd(OsmGpsMap *map, osm_gps_map_osd_t *osd);
-osm_gps_map_osd_t *osm_gps_map_osd_get(OsmGpsMap *map);
 coord_t *osm_gps_map_get_gps (OsmGpsMap *map);
 #endif
 

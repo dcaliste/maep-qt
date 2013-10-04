@@ -46,9 +46,6 @@
 #define OSD_COORDINATES
 #undef OSD_NAV
 
-#define WITH_GTK
-#undef  WITH_QT
-
 #ifdef USE_MAEMO
 #define MAP_DRAG_LIMIT            (32)
 
@@ -92,6 +89,18 @@
 /* fremantle has controls at botton (for fringer friendlyness) */
 #define OSD_Y  -10
 #define OSD_HR_Y 60    // HR is always at screens top
+#endif
+
+#ifdef SAILFISH
+#define OSD_COLOR            1, 1, 1         // white
+#define OSD_COLOR_BG         0, 0, 0, 0.5    // transparent dark background
+#define OSD_COLOR_DISABLED   0.5, 0.5, 0.5   // grey disabled controls
+#define OSD_Y  -10
+#undef  WITH_GTK
+#define WITH_QT
+#else
+#define WITH_GTK
+#undef  WITH_QT
 #endif
 
 /* #define OSD_DOUBLE_BUFFER */    // render osd/map together offscreen

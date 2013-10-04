@@ -5,8 +5,6 @@
 
 #include <QWidget>
 #include <QPainter>
-#include <QImage>
-#include <cairo.h>
 
 #define GCONF_KEY_ZOOM       "zoom"
 #define GCONF_KEY_SOURCE     "source"
@@ -51,10 +49,16 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
     g_free(path);
 
+    osd = osm_gps_map_osd_classic_init(map);
+
     drag_start_mouse_x = 0;
     drag_start_mouse_y = 0;
     drag_mouse_dx = 0;
     drag_mouse_dy = 0;
+
+    surf = NULL;
+    cr = NULL;
+    img = NULL;
 
     forceActiveFocus();
     setAcceptedMouseButtons(Qt::LeftButton);
@@ -72,6 +76,14 @@ Maep::GpsMap::~GpsMap()
 	       "latitude", &lat, "longitude", &lon,
 	       "double-pixel", &dpix,
 	       NULL);
+  osm_gps_map_osd_classic_free(osd);
+
+  if (surf)
+    cairo_surface_destroy(surf);
+  if (cr)
+    cairo_destroy(cr);
+  if (img)
+    delete(img);
 
   /* ... and store it in gconf */
   gconf_set_int(GCONF_KEY_ZOOM, zoom);
@@ -90,25 +102,41 @@ static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
 
 void Maep::GpsMap::paint(QPainter *painter)
 {
-    QImage *img;
-    cairo_surface_t *surf;
+  cairo_surface_t *map_surf;
 
-    g_message("repainting %fx%f!", width(), height());
+  g_message("repainting %fx%f!", width(), height());
 
-    osm_gps_map_set_viewport(map, width(), height());
-    surf = osm_gps_map_get_surface(map);
-    img = new QImage(cairo_image_surface_get_data(surf),
-                     cairo_image_surface_get_width(surf),
-                     cairo_image_surface_get_height(surf),
-                     QImage::Format_ARGB32);
-    QRectF target(drag_mouse_dx - EXTRA_BORDER,
-                  drag_mouse_dy - EXTRA_BORDER,
-                  cairo_image_surface_get_width(surf),
-                  cairo_image_surface_get_height(surf));
-    QRectF source(0, 0, cairo_image_surface_get_width(surf),
-                  cairo_image_surface_get_height(surf));
-    painter->drawImage(target, *img, source);
-    cairo_surface_destroy(surf);
+  if (!surf)
+    {
+      surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width(), height());
+      cr = cairo_create(surf);
+      img = new QImage(cairo_image_surface_get_data(surf),
+                       cairo_image_surface_get_width(surf),
+                       cairo_image_surface_get_height(surf),
+                       QImage::Format_ARGB32);
+    }
+
+  cairo_set_source_rgb(cr, 1., 1., 1.);
+  cairo_paint(cr);
+
+  osm_gps_map_set_viewport(map, width(), height());
+  map_surf = osm_gps_map_get_surface(map);
+  cairo_set_source_surface(cr, map_surf,
+                           drag_mouse_dx - EXTRA_BORDER,
+                           drag_mouse_dy - EXTRA_BORDER);
+  cairo_paint(cr);
+  cairo_surface_destroy(map_surf);
+
+#ifdef ENABLE_OSD
+  osd->draw (osd, cr);
+#endif
+
+  QRectF target(0, 0,
+                cairo_image_surface_get_width(surf),
+                cairo_image_surface_get_height(surf));
+  QRectF source(0, 0, cairo_image_surface_get_width(surf),
+                cairo_image_surface_get_height(surf));
+  painter->drawImage(target, *img, source);
 }
 
 #define OSM_GPS_MAP_SCROLL_STEP     (10)
@@ -135,6 +163,53 @@ void Maep::GpsMap::keyPressEvent(QKeyEvent * event)
 
 void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
 {
+#ifdef ENABLE_OSD
+  /* pressed inside OSD control? */
+  int step;
+  osd_button_t but = 
+    osd->check(osd, TRUE, event->x(), event->y());
+  
+  step = width() / OSM_GPS_MAP_SCROLL_STEP;
+
+  if(but != OSD_NONE)
+    switch(but)
+      {
+      case OSD_UP:
+        osm_gps_map_scroll(map, 0, -step);
+        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+        return;
+
+      case OSD_DOWN:
+        osm_gps_map_scroll(map, 0, +step);
+        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+        return;
+
+      case OSD_LEFT:
+        osm_gps_map_scroll(map, -step, 0);
+        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+        return;
+                
+      case OSD_RIGHT:
+        osm_gps_map_scroll(map, +step, 0);
+        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+        return;
+                
+      case OSD_IN:
+        osm_gps_map_zoom_in(map);
+        return;
+                
+      case OSD_OUT:
+        osm_gps_map_zoom_out(map);
+        return;
+                
+      default:
+        /* all custom buttons are forwarded to the application */
+        if(osd->cb)
+          osd->cb(but, osd->data);
+        return;
+      }
+#endif
+
   drag_start_mouse_x = event->x();
   drag_start_mouse_y = event->y();
 }

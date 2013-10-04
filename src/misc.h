@@ -20,6 +20,8 @@
 #ifndef MISC_H
 #define MISC_H
 
+#include <glib.h>
+
 G_BEGIN_DECLS
 
 char *find_file(char *name);
