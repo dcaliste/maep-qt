@@ -636,10 +636,11 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
     cairo_translate(priv->cr, offset_x, offset_y);
     cairo_scale(priv->cr, modulo, modulo);
     cairo_set_source_surface(priv->cr, cr_surf, -area_x, -area_y);
-    cairo_fill_preserve(priv->cr);
+    /* cairo_fill_preserve(priv->cr); */
+    cairo_fill(priv->cr);
     cairo_restore(priv->cr);
-    cairo_set_source_rgb(priv->cr, 0., 0., 0.);
-    cairo_stroke(priv->cr);
+    /* cairo_set_source_rgb(priv->cr, 0., 0., 0.); */
+    /* cairo_stroke(priv->cr); */
     g_message("Blit surface %p(%p) at %dx%d x%d %dx%d.",
               (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y,
               modulo, area_x, area_y);
