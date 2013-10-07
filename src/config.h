@@ -75,9 +75,16 @@
 #define MAP_KEY_LEFT        GDK_Left
 #define MAP_KEY_RIGHT       GDK_Right
 
+#ifdef MAEMO5
+#define THUMB_OSD
+#endif
+#ifdef SAILFISH
+#define THUMB_OSD
+#endif
+
 /* specify OSD colors explicitely. Otherwise gtk default */
 /* colors are used. fremantle always uses gtk defaults */
-#ifndef MAEMO5
+#ifndef THUMB_OSD
 #define OSD_COLOR_BG         1, 1, 1, 1      // white background
 #define OSD_COLOR            0.5, 0.5, 1     // light blue border and controls
 #define OSD_COLOR_DISABLED   0.8, 0.8, 0.8   // light grey disabled controls
@@ -92,10 +99,6 @@
 #endif
 
 #ifdef SAILFISH
-#define OSD_COLOR            1, 1, 1         // white
-#define OSD_COLOR_BG         0, 0, 0, 0.5    // transparent dark background
-#define OSD_COLOR_DISABLED   0.5, 0.5, 0.5   // grey disabled controls
-#define OSD_Y  -10
 #undef  WITH_GTK
 #define WITH_QT
 #else
