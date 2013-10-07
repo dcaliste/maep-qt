@@ -48,11 +48,7 @@
 
 #ifdef USE_MAEMO
 #define MAP_DRAG_LIMIT            (32)
-
-#define OSD_FONT_SIZE             (28.0)
-#define OSD_DIAMETER              (60)
-#define OSD_SCALE_FONT_SIZE       (20.0)
-#define OSD_COORDINATES_FONT_SIZE (20.0)
+#define HIGH_DPI
 
 #include <hildon/hildon-defines.h>
 /* only maemo devices up to version 4 have a fullscreen button */
@@ -80,6 +76,7 @@
 #endif
 #ifdef SAILFISH
 #define THUMB_OSD
+#define HIGH_DPI
 #endif
 
 /* specify OSD colors explicitely. Otherwise gtk default */
@@ -96,6 +93,13 @@
 /* fremantle has controls at botton (for fringer friendlyness) */
 #define OSD_Y  -10
 #define OSD_HR_Y 60    // HR is always at screens top
+#endif
+
+#ifdef HIGH_DPI
+#define OSD_FONT_SIZE             (28.0)
+#define OSD_DIAMETER              (60)
+#define OSD_SCALE_FONT_SIZE       (20.0)
+#define OSD_COORDINATES_FONT_SIZE (20.0)
 #endif
 
 #ifdef SAILFISH
