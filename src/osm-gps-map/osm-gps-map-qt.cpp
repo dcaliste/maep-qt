@@ -11,10 +11,13 @@
 #define GCONF_KEY_LATITUDE   "latitude"
 #define GCONF_KEY_LONGITUDE  "longitude"
 #define GCONF_KEY_DOUBLEPIX  "double-pixel"
+#define GCONF_KEY_WIKIPEDIA  "wikipedia"
 
 #define MAP_SOURCE  OSM_GPS_MAP_SOURCE_OPENCYCLEMAP
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
+static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
+static void osm_gps_map_qt_places(Maep::GpsMap *widget, GSList *places, MaepSearchContext *wiki);
 
 Maep::GpsMap::GpsMap(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -27,41 +30,49 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
   gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
+  gboolean wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
 
   if(!p) p = "/tmp"; 
   path = g_strdup_printf("%s/.osm-gps-map", p);
 
-    map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
-		 "map-source",               source,
-		 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
-		 "tile-cache-base",          path,
-		 "auto-center",              FALSE,
-		 "record-trip-history",      FALSE, 
-		 "show-trip-history",        FALSE, 
-		 "gps-track-point-radius",   10,
-		 // proxy?"proxy-uri":NULL,     proxy,
-		 "double-pixel",             dpix,
-                                   NULL));
-    osm_gps_map_set_mapcenter(map, lat, lon, zoom);
+  map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
+                                 "map-source",               source,
+                                 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
+                                 "tile-cache-base",          path,
+                                 "auto-center",              FALSE,
+                                 "record-trip-history",      FALSE, 
+                                 "show-trip-history",        FALSE, 
+                                 "gps-track-point-radius",   10,
+                                 // proxy?"proxy-uri":NULL,     proxy,
+                                 "double-pixel",             dpix,
+                                 NULL));
+  osm_gps_map_set_mapcenter(map, lat, lon, zoom);
 
-    g_signal_connect_swapped(G_OBJECT(map), "dirty",
-                             G_CALLBACK(osm_gps_map_qt_repaint), this);
+  g_signal_connect_swapped(G_OBJECT(map), "dirty",
+                           G_CALLBACK(osm_gps_map_qt_repaint), this);
 
-    g_free(path);
+  g_free(path);
 
-    osd = osm_gps_map_osd_classic_init(map);
+  osd = osm_gps_map_osd_classic_init(map);
+  wiki = maep_wiki_context_new(map);
+  maep_wiki_context_enable(wiki, wikipedia);
+  g_signal_connect_swapped(G_OBJECT(wiki), "entry-selected",
+                           G_CALLBACK(osm_gps_map_qt_wiki), this);
+  search = maep_search_context_new();
+  g_signal_connect_swapped(G_OBJECT(search), "places-available",
+                           G_CALLBACK(osm_gps_map_qt_places), this);
 
-    drag_start_mouse_x = 0;
-    drag_start_mouse_y = 0;
-    drag_mouse_dx = 0;
-    drag_mouse_dy = 0;
+  drag_start_mouse_x = 0;
+  drag_start_mouse_y = 0;
+  drag_mouse_dx = 0;
+  drag_mouse_dy = 0;
 
-    surf = NULL;
-    cr = NULL;
-    img = NULL;
+  surf = NULL;
+  cr = NULL;
+  img = NULL;
 
-    forceActiveFocus();
-    setAcceptedMouseButtons(Qt::LeftButton);
+  forceActiveFocus();
+  setAcceptedMouseButtons(Qt::LeftButton);
 }
 Maep::GpsMap::~GpsMap()
 {
@@ -77,6 +88,9 @@ Maep::GpsMap::~GpsMap()
 	       "double-pixel", &dpix,
 	       NULL);
   osm_gps_map_osd_classic_free(osd);
+  maep_wiki_context_enable(wiki, FALSE);
+  g_object_unref(wiki);
+  g_object_unref(search);
 
   if (surf)
     cairo_surface_destroy(surf);
@@ -91,6 +105,8 @@ Maep::GpsMap::~GpsMap()
   gconf_set_float(GCONF_KEY_LATITUDE, lat);
   gconf_set_float(GCONF_KEY_LONGITUDE, lon);
   gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
+
+  gconf_set_bool(GCONF_KEY_WIKIPEDIA, TRUE);
 
   g_object_unref(map);
 }
@@ -159,6 +175,8 @@ void Maep::GpsMap::keyPressEvent(QKeyEvent * event)
     osm_gps_map_zoom_in(map);
   else if (event->key() == Qt::Key_Minus)
     osm_gps_map_zoom_out(map);
+  else if (event->key() == Qt::Key_S)
+    emit searchRequest();
 }
 
 void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
@@ -169,6 +187,8 @@ void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
   osd_button_t but = 
     osd->check(osd, TRUE, event->x(), event->y());
   
+  dragging = FALSE;
+
   step = width() / OSM_GPS_MAP_SCROLL_STEP;
 
   if(but != OSD_NONE)
@@ -209,19 +229,54 @@ void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
         return;
       }
 #endif
+  if (osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+                               event->x(), event->y(), TRUE))
+    return;
 
+  dragging = TRUE;
   drag_start_mouse_x = event->x();
   drag_start_mouse_y = event->y();
 }
 void Maep::GpsMap::mouseReleaseEvent(QMouseEvent *event)
 {
-  osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
-  drag_mouse_dx = 0;
-  drag_mouse_dy = 0;
+  if (dragging)
+    {
+      dragging = FALSE;
+      osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
+      drag_mouse_dx = 0;
+      drag_mouse_dy = 0;
+    }
+  osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+                           event->x(), event->y(), FALSE);
 }
 void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
 {
-  drag_mouse_dx = event->x() - drag_start_mouse_x;
-  drag_mouse_dy = event->y() - drag_start_mouse_y;
-  update();
+  if (dragging)
+    {
+      drag_mouse_dx = event->x() - drag_start_mouse_x;
+      drag_mouse_dy = event->y() - drag_start_mouse_y;
+      update();
+    }
+}
+
+void Maep::GpsMap::setWikiURL(const char *title, const char *url)
+{
+  wiki_title = QString(title);
+  wiki_url = QString(url);
+  emit wikiURLSelected(wiki_title, wiki_url);
+}
+
+static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki)
+{
+  widget->setWikiURL(entry->title, entry->url);
+}
+
+static void osm_gps_map_qt_places(Maep::GpsMap *widget, GSList *places, MaepSearchContext *wiki)
+{
+  g_message("Got %d matching places.", g_slist_length(places));
+}
+
+void Maep::GpsMap::setSearchRequest(const QString &request)
+{
+  maep_search_context_request(search, request.toLocal8Bit().data());
 }

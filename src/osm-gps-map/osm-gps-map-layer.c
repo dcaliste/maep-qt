@@ -43,24 +43,27 @@ GType osm_gps_map_layer_get_type()
 void
 osm_gps_map_layer_render (OsmGpsMapLayer *self, OsmGpsMap *map)
 {
-	OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->render (self, map);
+  OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->render (self, map);
 }
 
 void
-osm_gps_map_layer_draw (OsmGpsMapLayer *self, OsmGpsMap *map, cairo_t *cr)
+osm_gps_map_layer_draw (OsmGpsMapLayer *self, cairo_t *cr,
+                        int width, int height,
+                        int map_x0, int map_y0, int zoom)
 {
-	OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->draw (self, map, cr);
+  OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->draw (self, cr, width, height,
+                                                map_x0, map_y0, zoom);
 }
 
 gboolean
 osm_gps_map_layer_busy (OsmGpsMapLayer *self)
 {
-	return OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->busy (self);
+  return OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->busy (self);
 }
 
-/* gboolean */
-/* osm_gps_map_layer_button_press (OsmGpsMapLayer *self, OsmGpsMap *map, GdkEventButton *event) */
-/* { */
-/* 	return OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->button_press (self, map, event); */
-/* } */
+gboolean
+osm_gps_map_layer_button (OsmGpsMapLayer *self, int x, int y, gboolean press)
+{
+  return OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->button (self, x, y, press);
+}
 

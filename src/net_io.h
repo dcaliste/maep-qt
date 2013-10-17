@@ -20,7 +20,7 @@
 #ifndef NET_IO_H
 #define NET_IO_H
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
 typedef struct {
   char *ptr;
@@ -35,9 +35,16 @@ typedef struct {
 typedef void (*net_io_cb)(net_result_t *result, gpointer data);
 #define	NET_IO_CB(f) ((net_io_cb) (f))
 
+#define MAEP_NET_IO_ERROR net_io_get_quark()
+GQuark net_io_get_quark();
+
 typedef void* net_io_t;
 
+#ifdef WITH_GTK
+#include <gtk/gtk.h>
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem);
+#endif
+
 net_io_t net_io_download_async(char *url, net_io_cb, gpointer data);
 void net_io_cancel_async(net_io_t io);
 

@@ -22,6 +22,16 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef CONVERTER_H
+#define CONVERTER_H
+
+typedef struct {
+    float rlat;
+    float rlon;
+} coord_t;
+
+#define OSM_GPS_MAP_INVALID         (0.0/0.0)
+
 float
 deg2rad(float deg);
 
@@ -43,3 +53,5 @@ pixel2lon(  int zoom,
 float
 pixel2lat(  int zoom,
             int pixel_y);
+
+#endif
