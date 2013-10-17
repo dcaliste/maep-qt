@@ -82,10 +82,14 @@ void Maep::showView(QQuickView* view) {
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
+  bool isDesktop;
+
   qmlRegisterType<Maep::GpsMap>("Maep", 1, 0, "GpsMap");
 
   QScopedPointer<QApplication> app(Maep::createApplication(argc, argv));
-  QScopedPointer<QQuickView> view(Maep::createView("main.qml"));
+  isDesktop = app->arguments().contains("-desktop");
+
+  QScopedPointer<QQuickView> view(Maep::createView((isDesktop)?"main-nosilica.qml":"main.qml"));
   Maep::showView(view.data());
     
   return app->exec();
