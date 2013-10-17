@@ -35,7 +35,7 @@ gint gconf_get_int(const char *key, gint default_value);
 void gconf_set_float(const char *key, gfloat value);
 gfloat gconf_get_float(const char *key, gfloat default_value);
 
-char *url_encode(char *str);
+char *url_encode(const char *str);
 
 #ifdef WITH_GTK
 #include <gtk/gtk.h>

@@ -31,6 +31,8 @@
 #include <glib-object.h>
 #include <cairo.h>
 
+#include "converter.h"
+
 G_BEGIN_DECLS
 
 #define OSM_TYPE_GPS_MAP             (osm_gps_map_get_type ())
@@ -57,11 +59,6 @@ struct _OsmGpsMap
     OsmGpsMapPrivate *priv;
 };
 
-typedef struct {
-    float rlat;
-    float rlon;
-} coord_t;
-
 typedef enum {
     OSM_GPS_MAP_SOURCE_NULL,
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
@@ -84,7 +81,6 @@ typedef enum {
     OSM_GPS_MAP_SOURCE_LAST
 } OsmGpsMapSource_t;
 
-#define OSM_GPS_MAP_INVALID         (0.0/0.0)
 #define OSM_GPS_MAP_CACHE_DISABLED  "none://"
 #define OSM_GPS_MAP_CACHE_AUTO      "auto://"
 #define OSM_GPS_MAP_CACHE_FRIENDLY  "friendly://"
@@ -131,6 +127,8 @@ void        osm_gps_map_geographic_to_screen        (OsmGpsMap *map, gfloat lati
 void        osm_gps_map_scroll                      (OsmGpsMap *map, gint dx, gint dy);
 float       osm_gps_map_get_scale                   (OsmGpsMap *map);
 void        osm_gps_map_add_layer                   (OsmGpsMap *map, OsmGpsMapLayer *layer);
+void        osm_gps_map_layer_changed               (OsmGpsMap *map, OsmGpsMapLayer *layer);
+void        osm_gps_map_remove_layer                (OsmGpsMap *map, OsmGpsMapLayer *layer);
 cairo_surface_t* osm_gps_map_get_surface            (OsmGpsMap *map);
 void        osm_gps_map_set_viewport                (OsmGpsMap *map, guint width, guint height);
 

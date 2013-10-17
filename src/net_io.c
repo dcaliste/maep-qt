@@ -18,7 +18,6 @@
  */
 
 #include "config.h"
-#include <gtk/gtk.h>
 
 #include "misc.h"
 #include "net_io.h"
@@ -31,6 +30,15 @@
 
 #include <gconf/gconf.h>
 #include <gconf/gconf-client.h>
+
+static GQuark error_quark = NULL;
+
+GQuark net_io_get_quark()
+{
+  if (!error_quark)
+    error_quark = g_quark_from_static_string("MAEP_NET_IO");
+  return error_quark;
+}
 
 static struct http_message_s {
   int id;
@@ -85,6 +93,7 @@ static char *http_message(int id) {
   return NULL;
 }
 
+#ifdef WITH_GTK
 static gint dialog_destroy_event(GtkWidget *widget, gpointer data) {
   /* set cancel flag */
   *(gboolean*)data = TRUE;
@@ -126,6 +135,7 @@ static GtkWidget *busy_dialog(GtkWidget *parent, GtkWidget **pbar,
 
   return dialog;
 }
+#endif
 
 static void request_free(net_io_request_t *request) {
   /* decrease refcount and only free structure if no references are left */
@@ -297,6 +307,7 @@ static void *worker_thread(void *ptr) {
   return NULL;
 }
 
+#ifdef WITH_GTK
 static gboolean net_io_do(GtkWidget *parent, net_io_request_t *request) {
   /* the request structure is shared between master and worker thread. */
   /* typically the master thread will do some waiting until the worker */
@@ -363,6 +374,7 @@ static gboolean net_io_do(GtkWidget *parent, net_io_request_t *request) {
   return TRUE;
 }
 
+
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem) {
   net_io_request_t *request = g_new0(net_io_request_t, 1);
 
@@ -375,7 +387,7 @@ gboolean net_io_download(GtkWidget *parent, char *url, char **mem) {
   request_free(request);
   return result;
 }
-
+#endif
 /* --------- start of async io ------------ */
 
 static gboolean net_io_do_async(net_io_request_t *request) {

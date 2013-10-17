@@ -503,6 +503,45 @@ osm_gps_map_free_layers(OsmGpsMap *map)
     }
 }
 
+void
+osm_gps_map_add_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
+{
+    OsmGpsMapPrivate *priv;
+    GSList *list;
+    
+    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    priv = map->priv;
+
+    for (list = priv->layers; list; list = list->next)
+        if (list->data == layer)
+            return;
+    g_object_ref(layer);
+    priv->layers = g_slist_prepend(priv->layers, layer);
+}
+void
+osm_gps_map_layer_changed(OsmGpsMap *map, OsmGpsMapLayer *layer)
+{
+    OsmGpsMapPrivate *priv;
+    
+    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    priv = map->priv;
+    if (!priv->idle_map_redraw)
+        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+
+}
+void
+osm_gps_map_remove_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
+{
+    OsmGpsMapPrivate *priv;
+    GSList *list;
+    
+    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    priv = map->priv;
+
+    priv->layers = g_slist_remove(priv->layers, layer);
+    g_object_unref(layer);
+}
+
 static void
 osm_gps_map_print_images (OsmGpsMap *map)
 {
@@ -1236,7 +1275,10 @@ osm_gps_map_redraw (OsmGpsMap *map)
         GSList *list;
         for(list = priv->layers; list != NULL; list = list->next) {
             OsmGpsMapLayer *layer = list->data;
-            osm_gps_map_layer_render (layer, map);
+            osm_gps_map_layer_draw(layer, priv->cr,
+                                   priv->viewport_width, priv->viewport_height,
+                                   priv->map_x - EXTRA_BORDER,
+                                   priv->map_y - EXTRA_BORDER, priv->map_zoom);
         }
     }
 
@@ -2570,6 +2612,9 @@ void
 osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
 {
     OsmGpsMapPrivate *priv;
+
+    if (dx == 0 && dy == 0)
+        return;
 
     g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
