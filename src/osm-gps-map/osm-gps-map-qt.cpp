@@ -30,7 +30,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
   gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
-  gboolean wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
+  bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
 
   if(!p) p = "/tmp"; 
   path = g_strdup_printf("%s/.osm-gps-map", p);
@@ -54,8 +54,10 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_free(path);
 
   osd = osm_gps_map_osd_classic_init(map);
-  wiki = maep_wiki_context_new(map);
-  maep_wiki_context_enable(wiki, wikipedia);
+  wiki = maep_wiki_context_new();
+  wiki_enabled = wikipedia;
+  if (wiki_enabled)
+    maep_wiki_context_enable(wiki, map);
   g_signal_connect_swapped(G_OBJECT(wiki), "entry-selected",
                            G_CALLBACK(osm_gps_map_qt_wiki), this);
   search = maep_search_context_new();
@@ -88,7 +90,7 @@ Maep::GpsMap::~GpsMap()
 	       "double-pixel", &dpix,
 	       NULL);
   osm_gps_map_osd_classic_free(osd);
-  maep_wiki_context_enable(wiki, FALSE);
+  maep_wiki_context_enable(wiki, NULL);
   g_object_unref(wiki);
   g_object_unref(search);
 
@@ -106,7 +108,7 @@ Maep::GpsMap::~GpsMap()
   gconf_set_float(GCONF_KEY_LONGITUDE, lon);
   gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
 
-  gconf_set_bool(GCONF_KEY_WIKIPEDIA, TRUE);
+  gconf_set_bool(GCONF_KEY_WIKIPEDIA, wiki_enabled);
 
   g_object_unref(map);
 }
@@ -259,24 +261,58 @@ void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
-void Maep::GpsMap::setWikiURL(const char *title, const char *url)
+void Maep::GpsMap::setWikiStatus(bool status)
+{
+  if (status == wiki_enabled)
+    return;
+
+  wiki_enabled = status;
+  emit wikiStatusChanged(wiki_enabled);
+
+  maep_wiki_context_enable(wiki, (wiki_enabled)?map:NULL);
+}
+
+void Maep::GpsMap::setWikiURL(const char *title, const char *summary, const char *url)
 {
   wiki_title = QString(title);
+  wiki_summary = QString(summary);
   wiki_url = QString(url);
-  emit wikiURLSelected(wiki_title, wiki_url);
+  emit wikiURLSelected();
 }
 
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki)
 {
-  widget->setWikiURL(entry->title, entry->url);
+  widget->setWikiURL(entry->title, entry->summary, entry->url);
+}
+
+void Maep::GpsMap::setSearchResults(GSList *places)
+{
+  g_message("hello");
+
+  for (; places; places = places->next)
+    {
+      Maep::GeonamesPlace *place = new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
+      searchRes.append(place);
+    }
+  
+  emit searchResults();
 }
 
 static void osm_gps_map_qt_places(Maep::GpsMap *widget, GSList *places, MaepSearchContext *wiki)
 {
   g_message("Got %d matching places.", g_slist_length(places));
+  widget->setSearchResults(places);
 }
 
 void Maep::GpsMap::setSearchRequest(const QString &request)
 {
+  qDeleteAll(searchRes);
+  searchRes.clear();
   maep_search_context_request(search, request.toLocal8Bit().data());
+}
+
+void Maep::GpsMap::setLookAt(float lat, float lon)
+{
+  g_message("move to %fx%f", lat, lon);
+  osm_gps_map_set_center(map, rad2deg(lat), rad2deg(lon));
 }

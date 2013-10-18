@@ -85,6 +85,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   bool isDesktop;
 
   qmlRegisterType<Maep::GpsMap>("Maep", 1, 0, "GpsMap");
+  qmlRegisterType<Maep::GeonamesPlace>("Maep", 1, 0, "GeonamesPlace");
 
   QScopedPointer<QApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
