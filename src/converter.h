@@ -25,6 +25,10 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 typedef struct {
     float rlat;
     float rlon;
@@ -53,5 +57,7 @@ pixel2lon(  int zoom,
 float
 pixel2lat(  int zoom,
             int pixel_y);
+
+G_END_DECLS
 
 #endif
