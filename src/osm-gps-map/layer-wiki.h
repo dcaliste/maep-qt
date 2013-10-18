@@ -32,8 +32,8 @@ struct _MaepWikiContextClass
 
 GType maep_wiki_context_get_type(void);
 
-MaepWikiContext* maep_wiki_context_new(OsmGpsMap *map);
-void maep_wiki_context_enable(MaepWikiContext *context, gboolean enable);
+MaepWikiContext* maep_wiki_context_new(void);
+void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map);
 
 G_END_DECLS
 
