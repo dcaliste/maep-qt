@@ -538,8 +538,17 @@ osm_gps_map_remove_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
     g_return_if_fail(OSM_IS_GPS_MAP(map));
     priv = map->priv;
 
+    for (list = priv->layers; list; list = list->next)
+        if (list->data == layer)
+            break;
+    if (!list)
+        return;
+
     priv->layers = g_slist_remove(priv->layers, layer);
     g_object_unref(layer);
+
+    if (!priv->idle_map_redraw)
+        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
 
 static void
@@ -694,7 +703,7 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
 #else
 #define MSG_RESPONSE_BODY(a)    ((a)->response_body->data)
 #define MSG_RESPONSE_LEN(a)     ((a)->response_body->length)
-#define MSG_RESPONSE_LEN_FORMAT "%ld"
+#define MSG_RESPONSE_LEN_FORMAT G_GOFFSET_FORMAT
 #endif
 
 #if USE_LIBSOUP22
@@ -724,7 +733,7 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
                 {
                     fwrite (MSG_RESPONSE_BODY(msg), 1, MSG_RESPONSE_LEN(msg), file);
                     file_saved = TRUE;
-                    g_debug("Wrote "MSG_RESPONSE_LEN_FORMAT" bytes to %s", MSG_RESPONSE_LEN(msg), dl->filename);
+                    g_debug("Wrote %"MSG_RESPONSE_LEN_FORMAT" bytes to %s", MSG_RESPONSE_LEN(msg), dl->filename);
                     fclose (file);
                 }
             }
@@ -1410,7 +1419,7 @@ osm_gps_map_setup(OsmGpsMapPrivate *priv)
         cairo_paint(cr);
         cairo_destroy(cr);
     }
-    else if (priv->map_source >= 0) {
+    else {
         //check if the source given is valid
         uri = osm_gps_map_source_get_repo_uri(priv->map_source);
         if (uri) {
@@ -1566,7 +1575,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
                 SoupUri* uri = soup_uri_new(priv->proxy_uri);
                 g_object_set(G_OBJECT(priv->soup_session), SOUP_SESSION_PROXY_URI, uri, NULL);
 #else
-                GValue val = {0};
+                GValue val = {0, {{0}, {0}}};
                 SoupURI* uri = soup_uri_new(priv->proxy_uri);
                 g_value_init(&val, SOUP_TYPE_URI);
                 g_value_take_boxed(&val, uri);
@@ -1614,12 +1623,11 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             priv->ui_gps_point_outer_radius = g_value_get_int (value);
             break;
         case PROP_MAP_SOURCE: {
-            gint old = priv->map_source;
-            priv->map_source = g_value_get_int (value);
-            if(old >= OSM_GPS_MAP_SOURCE_NULL && 
-               priv->map_source != old &&
-               priv->map_source >= OSM_GPS_MAP_SOURCE_NULL &&
-               priv->map_source <= OSM_GPS_MAP_SOURCE_LAST) {
+            OsmGpsMapSource_t old = priv->map_source;
+            priv->map_source = g_value_get_uint (value);
+            if(priv->map_source != old &&
+               priv->map_source < OSM_GPS_MAP_SOURCE_LAST &&
+               priv->repo_uri) {
 
                 /* we now have to switch the entire map */
 
@@ -1729,7 +1737,7 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             g_value_set_int(value, priv->ui_gps_point_outer_radius);
             break;
         case PROP_MAP_SOURCE:
-            g_value_set_int(value, priv->map_source);
+            g_value_set_uint(value, priv->map_source);
             break;
         case PROP_IMAGE_FORMAT:
             g_value_set_string(value, priv->image_format);
@@ -1998,12 +2006,12 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
 
     g_object_class_install_property (object_class,
                                      PROP_MAP_SOURCE,
-                                     g_param_spec_int ("map-source",
+                                     g_param_spec_uint ("map-source",
                                                        "map source",
                                                        "map source ID",
-                                                       -1,          /* minimum property value */
-                                                       G_MAXINT,    /* maximum property value */
-                                                       -1,
+                                                       0,          /* minimum property value */
+                                                       OSM_GPS_MAP_SOURCE_LAST,    /* maximum property value */
+                                                       OSM_GPS_MAP_SOURCE_LAST,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
 
     g_object_class_install_property (object_class,
@@ -2322,6 +2330,7 @@ osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_Y]);
     g_signal_emit_by_name(map, "changed");
 }
 

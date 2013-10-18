@@ -116,6 +116,7 @@ static void maep_wiki_context_init(MaepWikiContext *obj)
   obj->priv->downloading = FALSE;
   obj->priv->balloon_src0 = NULL;
   obj->priv->balloon_src  = NULL;
+  obj->priv->changed_handler_id = 0;
 }
 static void maep_wiki_context_dispose(GObject* obj)
 {
@@ -137,7 +138,8 @@ static void maep_wiki_context_finalize(GObject* obj)
 
   maep_geonames_entry_list_free(priv->list);
 
-  g_object_unref(priv->map);
+  if (priv->map)
+    g_object_unref(priv->map);
   if (priv->timer_id)
     g_source_remove(priv->timer_id);
   if (priv->balloon_src)
@@ -180,6 +182,9 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
   coord_t coord;
   float dst;
   gboolean is_in_balloon;
+
+  if (!priv->map)
+    return FALSE;
 
   coord = osm_gps_map_get_co_ordinates(priv->map, x, y);
   is_in_balloon = FALSE;
@@ -604,7 +609,7 @@ static void on_map_changed(OsmGpsMap *map, gpointer data ) {
   wiki_timer_trigger((MaepWikiContext*)data);
 }
 
-MaepWikiContext* maep_wiki_context_new(OsmGpsMap *map)
+MaepWikiContext* maep_wiki_context_new(void)
 {
   MaepWikiContext *context;
 
@@ -612,35 +617,44 @@ MaepWikiContext* maep_wiki_context_new(OsmGpsMap *map)
   g_message("create wiki context");
   context = g_object_new(MAEP_TYPE_WIKI_CONTEXT, NULL);
 
-  g_object_ref(G_OBJECT(map));
-  context->priv->map = map;
-
-  /* trigger wiki data update either by "changed" events ... */
-  context->priv->changed_handler_id =
-    g_signal_connect(G_OBJECT(map), "changed",
-                     G_CALLBACK(on_map_changed), context);
-
   return context;
 }
 
 /* the wikimedia icons are automagically updated after one second */
 /* of idle time */
-void maep_wiki_context_enable(MaepWikiContext *context, gboolean enable)
+void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map)
 {
   guint width, height;
 
   g_return_if_fail(MAEP_IS_WIKI_CONTEXT(context));
 
-  if(enable) {
+  if (context->priv->map)
+    {
+      osm_gps_map_remove_layer(context->priv->map, OSM_GPS_MAP_LAYER(context));
+      g_signal_handler_disconnect(G_OBJECT(context->priv->map),
+                                  context->priv->changed_handler_id);
+      g_object_unref(context->priv->map);
+    }
+  context->priv->map = NULL;
+  context->priv->changed_handler_id = 0;
+
+  if(map) {
+    g_object_ref(G_OBJECT(map));
+    context->priv->map = map;
+
+    /* trigger wiki data update either by "changed" events ... */
+    context->priv->changed_handler_id =
+      g_signal_connect(G_OBJECT(map), "changed",
+                       G_CALLBACK(on_map_changed), context);
+
     osm_gps_map_add_layer(context->priv->map, OSM_GPS_MAP_LAYER(context));
 
     /* only do request if map has a reasonable size. otherwise map may */
     /* still be in setup phase */
-    g_object_get(G_OBJECT(context->priv->map), "viewport-width", &width, "viewport-height", &height, NULL);
+    g_object_get(G_OBJECT(context->priv->map), "viewport-width", &width,
+                 "viewport-height", &height, NULL);
     if(width > 1 && height > 1)
       wiki_update(context);
 
-  } else {
-    osm_gps_map_remove_layer(context->priv->map, OSM_GPS_MAP_LAYER(context));
   }
 }
