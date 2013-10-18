@@ -28,6 +28,10 @@
 #include "net_io.h"
 #include "misc.h"
 
+#ifndef LIBXML_TREE_ENABLED
+#error "Tree not enabled in libxml"
+#endif
+
 /* -------------- begin of xml parser ---------------- */
 
 static gboolean string_get(xmlNode *node, char *name, char **dst) {
