@@ -340,17 +340,27 @@ void Maep::GpsMap::setWikiStatus(bool status)
   maep_wiki_context_enable(wiki, (wiki_enabled)?map:NULL);
 }
 
-void Maep::GpsMap::setWikiURL(const char *title, const char *summary, const char *url)
+void Maep::GpsMap::setWikiInfo(const char *title, const char *summary,
+                               const char *thumbnail, const char *url,
+                               float lat, float lon)
 {
   wiki_title = QString(title);
   wiki_summary = QString(summary);
+  wiki_thumbnail = QString(thumbnail);
   wiki_url = QString(url);
+  wiki_coord = QGeoCoordinate(rad2deg(lat), rad2deg(lon));
   emit wikiURLSelected();
+}
+
+QString Maep::GpsMap::getWikiPosition()
+{
+  return wiki_coord.toString();
 }
 
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki)
 {
-  widget->setWikiURL(entry->title, entry->summary, entry->url);
+  widget->setWikiInfo(entry->title, entry->summary, entry->thumbnail_url, entry->url,
+                      entry->pos.rlat, entry->pos.rlon);
 }
 
 void Maep::GpsMap::setSearchResults(GSList *places)

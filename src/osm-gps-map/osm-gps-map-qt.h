@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QString>
 #include <QQmlListProperty>
+#include <QGeoCoordinate>
 #include <QGeoPositionInfoSource>
 #include <cairo.h>
 #include "search.h"
@@ -66,7 +67,9 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
   Q_PROPERTY(QString wiki_title READ wikiTitle)
   Q_PROPERTY(QString wiki_summary READ wikiSummary)
+  Q_PROPERTY(QString wiki_thumbnail READ wikiThumbnail)
   Q_PROPERTY(QString wiki_url READ wikiUrl)
+  Q_PROPERTY(QGeoCoordinate wiki_coordinate READ wikiCoord)
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults NOTIFY searchResults)
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
   Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
@@ -83,8 +86,14 @@ class GpsMap : public QQuickPaintedItem
   inline QString wikiSummary() const {
     return wiki_summary;
   }
+  inline QString wikiThumbnail() const {
+    return wiki_thumbnail;
+  }
   inline QString wikiUrl() const {
     return wiki_url;
+  }
+  inline QGeoCoordinate wikiCoord() const {
+    return wiki_coord;
   }
   inline QQmlListProperty<Maep::GeonamesPlace> getSearchResults() {
     return QQmlListProperty<Maep::GeonamesPlace>(this, NULL,
@@ -116,10 +125,13 @@ class GpsMap : public QQuickPaintedItem
 
  public slots:
   void setWikiStatus(bool status);
-  void setWikiURL(const char *title, const char *summary, const char *url);
+  void setWikiInfo(const char *title, const char *summary,
+                   const char *thumbnail, const char *url,
+                   float lat, float lon);
   void setSearchRequest(const QString &request);
   void setSearchResults(GSList *places);
   void setLookAt(float lat, float lon);
+  QString getWikiPosition();
   void zoomIn();
   void zoomOut();
   void positionUpdate(const QGeoPositionInfo &info);
@@ -159,7 +171,8 @@ class GpsMap : public QQuickPaintedItem
   /* Wiki entry. */
   bool wiki_enabled;
   MaepWikiContext *wiki;
-  QString wiki_title, wiki_summary, wiki_url;
+  QString wiki_title, wiki_summary, wiki_thumbnail, wiki_url;
+  QGeoCoordinate wiki_coord;
 
   /* Screen display. */
   cairo_surface_t *surf;
