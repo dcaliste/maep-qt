@@ -2,6 +2,8 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Maep 1.0
 import QtWebKit 3.0
+import QtPositioning 5.0
+//import QtQuick.Dialogs 1.0
 //import "pages"
 
 ApplicationWindow
@@ -12,14 +14,15 @@ ApplicationWindow
     // To enable PullDownMenu, place our content in a SilicaFlickable
     SilicaFlickable {
         id: header
+	z: +1
         anchors.top: parent.top
 
         // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
         PullDownMenu {
-            MenuItem {
+            /*MenuItem {
                 text: "Show Page 2"
                 //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
-            }
+            }*/
 	    MenuItem {
 		TextSwitch {
 		    id: wikicheck
@@ -55,8 +58,11 @@ ApplicationWindow
 		EnterKey.onClicked: {
 		    busy.running = true
 		    map.focus = true
+		    label = "Place search"
+		    placeview.model = null
                     map.setSearchRequest(text)
 		}
+		onFocusChanged: { if (focus) { selectAll() } }
             }
 	    BusyIndicator {
 	   	id: busy
@@ -78,10 +84,11 @@ ApplicationWindow
         width: page.width
 	z: -1
         height: page.height - header.height
-        onSearchRequest: { search.focus = true; search.label = "Place search" }
-        onWikiURLSelected: { pageStack.push(wikipedia) }
+        onSearchRequest: { search.focus = true }
+        onWikiURLSelected: { pageStack.push(wiki) }
 	onWikiStatusChanged: { wikicheck.checked = status }
-        onSearchResults: { placeview.visible = true; busy.running = false; search.label = search_results.length + " place(s) found" }
+        onSearchResults: { placeview.model = map.search_results; placeview.visible = true; placeview.focus = true;
+                           busy.running = false; search.label = search_results.length + " place(s) found" }
     }
     /*ListModel {
         id: placemodel
@@ -91,11 +98,11 @@ ApplicationWindow
         id: placeview
         z: 0
         width: parent.width * 0.75
-	height: parent.height
+	height: Math.min(childrenRect.height, page.height - header.height)
+	contentHeight: childrenRect.height
 	anchors.top: header.bottom
 	anchors.horizontalCenter: parent.horizontalCenter
         visible: false
-        model: map.search_results
 
         delegate: ListItem {
             width: parent.width
@@ -114,25 +121,101 @@ ApplicationWindow
 		}
             }
 	    onClicked: { placeview.visible = false; map.setLookAt(model.latitude, model.longitude) }
+	    onFocusChanged: { visible = focus }
         }
+	VerticalScrollDecorator { flickable: placeview }
+	onFocusChanged: { if (!focus) { visble = false } }
     }    
     }
     //cover: Qt.resolvedUrl("cover/CoverPage.qml")    
 
     Component {
-        id: wikipedia
+        id: wiki
 
         Page {
             PageHeader {
                 id: wikititle
                 title: map.wiki_title
             }
-            WebView {
+	    Item {
+		id: thumbnail
+		visible: (map.wiki_thumbnail != "")
+		width: wikiimg.width + Theme.paddingSmall * 2
+		height: wikiimg.height + Theme.paddingSmall * 2
+		anchors.top: wikititle.bottom
+                anchors.topMargin: Theme.paddingLarge
+                anchors.horizontalCenter: wikititle.horizontalCenter
+		Rectangle {
+		    id: frame
+		    color: Theme.secondaryColor
+		    radius: Theme.paddingSmall
+		    anchors.fill: parent
+		    opacity: 0.5
+		}
+		Image {
+		    id: wikiimg
+		    anchors.centerIn: frame
+       		    source: map.wiki_thumbnail
+       		    sourceSize.width: 360
+       		    sourceSize.height: 360
+    		}
+            }
+	    Label {
+		id: coordinates
+		anchors.top: thumbnail.bottom
+		anchors.right: parent.right
+		anchors.rightMargin: Theme.paddingMedium
+		text: "coordinates: " + map.getWikiPosition()
+		color: Theme.secondaryColor
+		font.pixelSize: Theme.fontSizeExtraSmall
+	    }
+	    Label {
+                id: body
+                text: map.wiki_summary
+                font.pixelSize: Theme.fontSizeSmall
+                wrapMode: Text.WordWrap
+		width: parent.width - Theme.paddingMedium * 2
+		horizontalAlignment: Text.AlignJustify
+		anchors.topMargin: Theme.paddingLarge
+		anchors.horizontalCenter: wikititle.horizontalCenter
+                anchors.top: coordinates.bottom
+	    }
+	    Button {
+		text: "View Wikipedia page"
+		onClicked: pageStack.push(wikipedia)
+		anchors.top: body.bottom
+		anchors.topMargin: Theme.paddingLarge
+		anchors.horizontalCenter: wikititle.horizontalCenter
+	    }
+        }
+    }
+    Component {
+        id: wikipedia
+        
+        Page {
+            PageHeader {
+                id: wikititle
+                title: map.wiki_title
+            }
+           WebView {
                 anchors.top: wikititle.bottom
                 width: page.width
                 height: page.height - wikititle.height
                 url: map.wiki_url
             }
+	   /*FileDialog {
+    id: fileDialog
+    title: "Please choose a file"
+    onAccepted: {
+        console.log("You chose: " + fileDialog.fileUrls)
+        Qt.quit()
+    }
+    onRejected: {
+        console.log("Canceled")
+        Qt.quit()
+    }
+    Component.onCompleted: visible = true
+}*/
         }
     }
 }

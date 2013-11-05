@@ -211,6 +211,8 @@ static void geonames_request_cb(net_result_t *result, gpointer data) {
     xmlDoc *doc = NULL;
 
     LIBXML_TEST_VERSION;
+    
+    g_message("Got: %s", result->data.ptr);
 
     /* parse the file and get the DOM */
     if((doc = xmlReadMemory(result->data.ptr, result->data.len, 
@@ -222,8 +224,6 @@ static void geonames_request_cb(net_result_t *result, gpointer data) {
     } else {
       GSList *list = geonames_parse_doc(doc); 
       
-      g_message("got %d results", g_slist_length(list));
-
       context->cb(context->obj, list, (GError*)0);
     }
   }
@@ -249,12 +249,16 @@ void maep_geonames_entry_request(coord_t *pt1, coord_t *pt2,
   g_ascii_formatd(str[3], sizeof(str[3]), "%.07f", rad2deg(pt2->rlon));
 
   gchar *locale, lang[3] = { 0,0,0 };
+  gchar *lang_avail[] = {"de", "en", "es", "fr", "it", "nl", "pl", "pt", "ru", "zh", NULL};
+  int i;
   locale = setlocale (LC_MESSAGES, NULL);
   g_utf8_strncpy (lang, locale, 2);
 
   /* currently only "de" and "en" are supported by geonames.org */
   /* force to "en" in any other case */
-  if(strcasecmp(lang, "de") && strcasecmp(lang, "en")) 
+  g_message("Look for entries in %s", lang);
+  for (i = 0; lang_avail[i] && strcasecmp(lang, lang_avail[i]); i++);
+  if (!lang_avail[i]) 
     strncpy(lang, "en", 2);
       
   /* build complete url for request */
