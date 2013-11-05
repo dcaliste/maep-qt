@@ -5,8 +5,10 @@
 #include <QImage>
 #include <QString>
 #include <QQmlListProperty>
+#include <QGeoPositionInfoSource>
 #include <cairo.h>
 #include "search.h"
+#include "track.h"
 #include "osm-gps-map/osm-gps-map.h"
 #include "osm-gps-map/layer-wiki.h"
 #include "osm-gps-map/osm-gps-map-osd-classic.h"
@@ -66,6 +68,8 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QString wiki_summary READ wikiSummary)
   Q_PROPERTY(QString wiki_url READ wikiUrl)
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults NOTIFY searchResults)
+  Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
+  Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
 
  public:
   GpsMap(QQuickItem *parent = 0);
@@ -87,6 +91,12 @@ class GpsMap : public QQuickPaintedItem
                                                  GpsMap::countSearchResults,
                                                  GpsMap::atSearchResults);
   }
+  void mapUpdate();
+  void paintTo(QPainter *painter, int width, int height);
+  inline bool trackCapture() {
+    return track_capture;
+  }
+  bool hasTrack();
 
  protected:
   void paint(QPainter *painter);
@@ -96,10 +106,13 @@ class GpsMap : public QQuickPaintedItem
   void mouseMoveEvent(QMouseEvent *event);
 
  signals:
+  void mapChanged();
   void wikiStatusChanged(bool status);
   void wikiURLSelected();
   void searchRequest();
   void searchResults();
+  void trackCaptureChanged(bool status);
+  void trackAvailable(bool status);
 
  public slots:
   void setWikiStatus(bool status);
@@ -107,6 +120,14 @@ class GpsMap : public QQuickPaintedItem
   void setSearchRequest(const QString &request);
   void setSearchResults(GSList *places);
   void setLookAt(float lat, float lon);
+  void zoomIn();
+  void zoomOut();
+  void positionUpdate(const QGeoPositionInfo &info);
+  void positionLost();
+  void setTrackCapture(bool status);
+  void setTrackFromFile(const QString &filename);
+  void exportTrackToFile(const QString &filename);
+  void clearTrack();
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -123,6 +144,7 @@ class GpsMap : public QQuickPaintedItem
               self->searchRes[index]->getLat(), self->searchRes[index]->getLon(), index);
     return self->searchRes[index];
   }
+  void gps_to_track();
 
   OsmGpsMap *map;
   osm_gps_map_osd_t *osd;
@@ -143,6 +165,44 @@ class GpsMap : public QQuickPaintedItem
   cairo_surface_t *surf;
   cairo_t *cr;
   QImage *img;
+
+  /* GPS */
+  QGeoPositionInfoSource *gps;
+  bool gps_fix;
+  float gps_lat, gps_lon;
+
+  /* Tracks */
+  bool track_capture;
+  track_state_t *track_current;
+};
+
+class GpsMapCover : public QQuickPaintedItem
+{
+  Q_OBJECT
+    Q_PROPERTY(Maep::GpsMap* map READ map WRITE setMap NOTIFY mapChanged)
+  Q_PROPERTY(bool status READ status WRITE setStatus NOTIFY statusChanged)
+
+ public:
+  GpsMapCover(QQuickItem *parent = 0);
+  ~GpsMapCover();
+  Maep::GpsMap* map() const;
+  bool status();
+
+ protected:
+  void paint(QPainter *painter);
+
+ signals:
+  void mapChanged();
+  void statusChanged();
+
+ public slots:
+  void setMap(Maep::GpsMap *map);
+  void setStatus(bool active);
+  void updateCover();
+
+ private:
+  bool status_;
+  GpsMap *map_;
 };
 
 }

@@ -32,6 +32,7 @@
 #include <cairo.h>
 
 #include "converter.h"
+#include "track.h"
 
 G_BEGIN_DECLS
 
@@ -112,8 +113,7 @@ void        osm_gps_map_set_center                  (OsmGpsMap *map, float latit
 int         osm_gps_map_set_zoom                    (OsmGpsMap *map, int zoom);
 int         osm_gps_map_zoom_in                     (OsmGpsMap *map);
 int         osm_gps_map_zoom_out                    (OsmGpsMap *map);
-void        osm_gps_map_add_track                   (OsmGpsMap *map, GSList *track);
-void        osm_gps_map_replace_track               (OsmGpsMap *map, GSList *old_track, GSList *new_track);
+void        osm_gps_map_add_track                   (OsmGpsMap *map, track_state_t *track);
 void        osm_gps_map_clear_tracks                (OsmGpsMap *map);
 void        osm_gps_map_add_image                   (OsmGpsMap *map, float latitude, float longitude, cairo_surface_t *image);
 void        osm_gps_map_add_image_with_alignment    (OsmGpsMap *map, float latitude, float longitude, cairo_surface_t *image, float xalign, float yalign);
