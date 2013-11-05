@@ -187,6 +187,15 @@ ApplicationWindow
 		anchors.topMargin: Theme.paddingLarge
 		anchors.horizontalCenter: wikititle.horizontalCenter
 	    }
+	    Label {
+		anchors.bottom: parent.bottom
+		anchors.right: parent.right
+		anchors.rightMargin: Theme.paddingMedium
+		font.pixelSize: Theme.fontSizeExtraSmall
+		font.italic: true
+		color: Theme.secondaryColor
+		text: "source: geonames.org"
+	    }
         }
     }
     Component {
