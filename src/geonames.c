@@ -144,7 +144,7 @@ static GSList *geonames_parse_doc(xmlDocPtr doc) {
 
   xmlFreeDoc(doc);
 
-  xmlCleanupParser();
+  /* xmlCleanupParser(); */
 
   return list;
 }

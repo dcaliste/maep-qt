@@ -342,8 +342,9 @@ static track_state_t *track_parse_doc(xmlDocPtr doc) {
   /*
    * Free the global variables that may
    * have been allocated by the parser.
+   * This should not be called if parsing is to be used again.
    */
-  xmlCleanupParser();
+  /* xmlCleanupParser(); */
 
   return track_state;
 }
@@ -370,14 +371,14 @@ track_state_t *track_read(const char *filename, gboolean autosave) {
     return NULL;
   }
 
-  track_state_t *track_state = track_parse_doc(doc); 
+  track_state_t *track_state = track_parse_doc(doc);
 
   if(!track_state || !track_state->track) {
     printf("track was empty/invalid track\n");
     return NULL;
   }
 
-  if(!track_state->dirty && autosave) { 
+  if(!track_state->dirty && autosave) {
     printf("TRACK: adding timeout\n");
 
     g_assert(!track_state->timer_handler);
