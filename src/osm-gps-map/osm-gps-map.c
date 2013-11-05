@@ -1639,7 +1639,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             if(priv->map_source != old &&
                priv->map_source < OSM_GPS_MAP_SOURCE_LAST &&
                priv->repo_uri) {
-
+                g_message("Change map source to %d.", priv->map_source);
                 /* we now have to switch the entire map */
 
                 /* flush the ram cache */
@@ -2128,7 +2128,7 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
-            return "http://c.andy.sandbox.cloudmade.com/tiles/cycle/#Z/#X/#Y.png";
+            return "http://c.tile.opencyclemap.org/cycle/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
             return "http://tile.xn--pnvkarte-m4a.de/tilegen/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:

@@ -93,6 +93,7 @@ ApplicationWindow
 		    placeview.model = null
                     map.setSearchRequest(text)
 		}
+		onFocusChanged: { if (focus) { selectAll() } }
             }
 	    BusyIndicator {
 	   	id: busy
@@ -200,19 +201,101 @@ ApplicationWindow
     }
 
     Component {
-        id: wikipedia
+        id: wiki
 
         Page {
             PageHeader {
                 id: wikititle
                 title: map.wiki_title
             }
-            WebView {
+	    Item {
+		id: thumbnail
+		visible: (map.wiki_thumbnail != "")
+		width: wikiimg.width + Theme.paddingSmall * 2
+		height: wikiimg.height + Theme.paddingSmall * 2
+		anchors.top: wikititle.bottom
+                anchors.topMargin: Theme.paddingLarge
+                anchors.horizontalCenter: wikititle.horizontalCenter
+		Rectangle {
+		    id: frame
+		    color: Theme.secondaryColor
+		    radius: Theme.paddingSmall
+		    anchors.fill: parent
+		    opacity: 0.5
+		}
+		Image {
+		    id: wikiimg
+		    anchors.centerIn: frame
+       		    source: map.wiki_thumbnail
+       		    sourceSize.width: 360
+       		    sourceSize.height: 360
+    		}
+            }
+	    Label {
+		id: coordinates
+		anchors.top: thumbnail.bottom
+		anchors.right: parent.right
+		anchors.rightMargin: Theme.paddingMedium
+		text: "coordinates: " + map.getWikiPosition()
+		color: Theme.secondaryColor
+		font.pixelSize: Theme.fontSizeExtraSmall
+	    }
+	    Label {
+                id: body
+                text: map.wiki_summary
+                font.pixelSize: Theme.fontSizeSmall
+                wrapMode: Text.WordWrap
+		width: parent.width - Theme.paddingMedium * 2
+		horizontalAlignment: Text.AlignJustify
+		anchors.topMargin: Theme.paddingLarge
+		anchors.horizontalCenter: wikititle.horizontalCenter
+                anchors.top: coordinates.bottom
+	    }
+	    Button {
+		text: "View Wikipedia page"
+		onClicked: pageStack.push(wikipedia)
+		anchors.top: body.bottom
+		anchors.topMargin: Theme.paddingLarge
+		anchors.horizontalCenter: wikititle.horizontalCenter
+	    }
+	    Label {
+		anchors.bottom: parent.bottom
+		anchors.right: parent.right
+		anchors.rightMargin: Theme.paddingMedium
+		font.pixelSize: Theme.fontSizeExtraSmall
+		font.italic: true
+		color: Theme.secondaryColor
+		text: "source: geonames.org"
+	    }
+        }
+    }
+    Component {
+        id: wikipedia
+        
+        Page {
+            PageHeader {
+                id: wikititle
+                title: map.wiki_title
+            }
+           WebView {
                 anchors.top: wikititle.bottom
                 width: page.width
                 height: page.height - wikititle.height
                 url: map.wiki_url
             }
+	   /*FileDialog {
+    id: fileDialog
+    title: "Please choose a file"
+    onAccepted: {
+        console.log("You chose: " + fileDialog.fileUrls)
+        Qt.quit()
+    }
+    onRejected: {
+        console.log("Canceled")
+        Qt.quit()
+    }
+    Component.onCompleted: visible = true
+}*/
         }
     }
 }
