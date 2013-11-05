@@ -126,7 +126,7 @@ ApplicationWindow
         height: page.height - header.height*/
 	anchors.fill: parent
         onSearchRequest: { search.focus = true; search.label = "Place search" }
-        onWikiURLSelected: { pageStack.push(wikipedia) }
+        onWikiURLSelected: { pageStack.push(wiki) }
 	onWikiStatusChanged: { wikicheck.checked = status }
         onSearchResults: { busy.running = false; search.label = search_results.length + " place(s) found";
 			   /*pageStack.push(placepage)*/
