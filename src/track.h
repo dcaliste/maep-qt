@@ -20,8 +20,10 @@
 #ifndef TRACK_H
 #define TRACK_H
 
-#include "osm-gps-map.h"
-#include <gtk/gtk.h>
+#include "converter.h"
+#include <glib.h>
+
+G_BEGIN_DECLS
 
 /* parts of a track */
 #define TRACK_SPEED    (1<<0)
@@ -56,22 +58,27 @@ typedef struct track_s {
 /* the state of the track handler */
 typedef struct {
   track_t *track;
+  track_seg_t *current_seg;
   gboolean dirty;
   guint timer_handler;
+
+  guint ref_count;
 } track_state_t;
 
-void track_import(GtkWidget *map);
-void track_export(GtkWidget *map);
-void track_clear(GtkWidget *map);
-void track_capture_enable(GtkWidget *map, gboolean enable); 
-void track_graph(GtkWidget *map);
-void track_hr_enable(GtkWidget *map, gboolean enable); 
+track_state_t* track_state_ref(track_state_t *track_state);
+void track_state_unref(track_state_t *track_state);
 
-void track_restore(GtkWidget *toplevel, OsmGpsMap *map);
-void track_save(GtkWidget *map);
-int track_length(track_state_t *);
+track_state_t *track_read(const char *filename, gboolean autosave);
+void track_write(const char *name, track_state_t *track_state);
 
-int track_contents(track_state_t *);
-void track_get_min_max(track_state_t *, int flag, float *min, float *max);
+track_state_t* track_point_new(track_state_t *track_state,
+                               float latitude, float longitude,
+                               float altitude, float speed,
+                               float hr, float cad);
+
+int track_contents(track_state_t *track_state);
+int track_length(track_state_t *track_state);
+
+G_END_DECLS
 
 #endif // TRACK_H
