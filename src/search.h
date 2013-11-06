@@ -18,6 +18,11 @@ typedef struct _MaepSearchContext        MaepSearchContext;
 typedef struct _MaepSearchContextPrivate MaepSearchContextPrivate;
 typedef struct _MaepSearchContextClass   MaepSearchContextClass;
 
+typedef enum {
+  MaepSearchContextGeonames  = 1,
+  MaepSearchContextNominatim = 2
+} MaepSearchContextSource;
+
 struct _MaepSearchContext
 {
   GObject parent;
@@ -33,7 +38,8 @@ struct _MaepSearchContextClass
 GType maep_search_context_get_type(void);
 
 MaepSearchContext* maep_search_context_new();
-void maep_search_context_request(MaepSearchContext *context, const gchar *request);
+void maep_search_context_request(MaepSearchContext *context, const gchar *request,
+                                 guint sources);
 
 G_END_DECLS
 
