@@ -4,11 +4,15 @@ struct _MaepSearchContextPrivate
 {
   gboolean dispose_has_run;
 
-  GSList *list;
-  gboolean downloading;
+  GSList *list_geonames_places;
+  gboolean downloading_geonames;
+
+  GSList *list_nominatim_places;
+  gboolean downloading_nominatim;
 };
 
 enum {
+  DOWNLOAD_ERROR_SIGNAL,
   PLACES_AVAILABLE_SIGNAL,
   LAST_SIGNAL
 };
@@ -26,11 +30,17 @@ static void maep_search_context_class_init(MaepSearchContextClass *klass)
   G_OBJECT_CLASS(klass)->dispose      = maep_search_context_dispose;
   G_OBJECT_CLASS(klass)->finalize     = maep_search_context_finalize;
 
+  _signals[DOWNLOAD_ERROR_SIGNAL] = 
+    g_signal_new ("download-error", G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                  0 , NULL, NULL, g_cclosure_marshal_VOID__UINT_POINTER,
+                  G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
+
   _signals[PLACES_AVAILABLE_SIGNAL] = 
     g_signal_new ("places-available", G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-                  0 , NULL, NULL, g_cclosure_marshal_VOID__POINTER,
-                  G_TYPE_NONE, 1, G_TYPE_POINTER);
+                  0 , NULL, NULL, g_cclosure_marshal_VOID__UINT_POINTER,
+                  G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
 
   g_type_class_add_private(klass, sizeof(MaepSearchContextPrivate));
 }
@@ -40,7 +50,10 @@ static void maep_search_context_init(MaepSearchContext *obj)
   obj->priv = G_TYPE_INSTANCE_GET_PRIVATE(obj, MAEP_TYPE_SEARCH_CONTEXT,
                                           MaepSearchContextPrivate);
   obj->priv->dispose_has_run = FALSE;
-  obj->priv->downloading = FALSE;
+  obj->priv->list_geonames_places = NULL;
+  obj->priv->downloading_geonames = FALSE;
+  obj->priv->list_nominatim_places = NULL;
+  obj->priv->downloading_nominatim = FALSE;
 }
 static void maep_search_context_dispose(GObject* obj)
 {
@@ -57,7 +70,10 @@ static void maep_search_context_finalize(GObject* obj)
 {
   MaepSearchContextPrivate *priv = MAEP_SEARCH_CONTEXT(obj)->priv;
 
-  maep_geonames_place_list_free(priv->list);
+  if (priv->list_geonames_places)
+    maep_geonames_place_list_free(priv->list_geonames_places);
+  if (priv->list_nominatim_places)
+    maep_geonames_place_list_free(priv->list_nominatim_places);
 
   G_OBJECT_CLASS(maep_search_context_parent_class)->finalize(obj);
 }
@@ -70,38 +86,75 @@ MaepSearchContext* maep_search_context_new()
   return search;
 }
 
-static void geonames_search_cb(MaepSearchContext *context, GSList *list, GError *error) {
+static void nominatim_search_cb(MaepSearchContext *context, GSList *list, GError *error) {
   if (!error)
     {
       /* remove any list that may already be preset */
-      if(context->priv->list) {
-	maep_geonames_place_list_free(context->priv->list);
-	context->priv->list = NULL;
+      if(context->priv->list_nominatim_places) {
+	maep_geonames_place_list_free(context->priv->list_nominatim_places);
+	context->priv->list_nominatim_places = NULL;
       }
       
       /* render all icons */
-      context->priv->list = list;
-      g_signal_emit(context, _signals[PLACES_AVAILABLE_SIGNAL], 0, list, NULL);
+      context->priv->list_nominatim_places = list;
+      g_signal_emit(context, _signals[PLACES_AVAILABLE_SIGNAL], 0,
+                    MaepSearchContextNominatim, list, NULL);
     }
   else
     {
       g_warning("%s", error->message);
+      g_signal_emit(context, _signals[DOWNLOAD_ERROR_SIGNAL], 0,
+                    MaepSearchContextNominatim, error, NULL);
     }
 
-  context->priv->downloading = FALSE;
+  context->priv->downloading_nominatim = FALSE;
+  g_object_unref(context);
+}
+
+static void geonames_search_cb(MaepSearchContext *context, GSList *list, GError *error) {
+  if (!error)
+    {
+      /* remove any list that may already be preset */
+      if(context->priv->list_geonames_places) {
+	maep_geonames_place_list_free(context->priv->list_geonames_places);
+	context->priv->list_geonames_places = NULL;
+      }
+      
+      /* render all icons */
+      context->priv->list_geonames_places = list;
+      g_signal_emit(context, _signals[PLACES_AVAILABLE_SIGNAL], 0,
+                    MaepSearchContextGeonames, list, NULL);
+    }
+  else
+    {
+      g_warning("%s", error->message);
+      g_signal_emit(context, _signals[DOWNLOAD_ERROR_SIGNAL], 0,
+                    MaepSearchContextGeonames, error, NULL);
+    }
+
+  context->priv->downloading_geonames = FALSE;
   g_object_unref(context);
 }
 
 /* request geotagged wikipedia entries for current map view */
-void maep_search_context_request(MaepSearchContext *context, const gchar *request) {
-  /* don't have more than one pending request */
-  if(context->priv->downloading)
-    return;
+void maep_search_context_request(MaepSearchContext *context, const gchar *request,
+                                 guint sources) {
+  if (sources & MaepSearchContextGeonames && !context->priv->downloading_geonames)
+    {
+      context->priv->downloading_geonames = TRUE;
 
-  context->priv->downloading = TRUE;
+      g_object_ref(context);
+      maep_geonames_place_request(request,
+                                  (MaepGeonamesRequestCallback)geonames_search_cb,
+                                  context);
+    }
+  if (sources & MaepSearchContextNominatim && !context->priv->downloading_nominatim)
+    {
+      context->priv->downloading_nominatim = TRUE;
 
-  g_object_ref(context);
-  maep_geonames_place_request(request,
-                              (MaepGeonamesRequestCallback)geonames_search_cb,
-                              context);
+      g_object_ref(context);
+      maep_nominatim_address_request(request,
+                                     (MaepGeonamesRequestCallback)nominatim_search_cb,
+                                     context);
+    }
 }
