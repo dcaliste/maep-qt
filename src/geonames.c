@@ -47,6 +47,48 @@ static gboolean string_get(xmlNode *node, char *name, char **dst) {
   return TRUE;
 }
 
+static MaepGeonamesPlace *nominatim_parse_place(xmlDocPtr doc, xmlNode *a_node) {
+  xmlNode *cur_node = NULL;
+  xmlAttr *attr;
+  xmlChar* value;
+  MaepGeonamesPlace *geoname = g_new0(MaepGeonamesPlace, 1);
+  gchar *id, *road, *city;
+
+  geoname->pos.rlat = geoname->pos.rlon = OSM_GPS_MAP_INVALID;
+
+  for (attr = cur_node->properties; attr; attr = attr->next)
+    if (attr->name && !strcmp((char*)attr->name, "lat") && attr->children)
+      {
+        value = xmlNodeListGetString(doc, attr->children, 1);
+	geoname->pos.rlat = deg2rad(g_ascii_strtod((gchar*)value, NULL));
+ 	xmlFree(value);
+      }
+    else if (attr->name && !strcmp((char*)attr->name, "lon") && attr->children)
+      {
+        value = xmlNodeListGetString(doc, attr->children, 1);
+	geoname->pos.rlon = deg2rad(g_ascii_strtod((gchar*)value, NULL));
+ 	xmlFree(value);
+      }
+
+  id = NULL;
+  road = NULL;
+  city = NULL;
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      string_get(cur_node, "house_number", &id);
+      string_get(cur_node, "road", &road);
+      string_get(cur_node, "city", &city);
+      string_get(cur_node, "country", &geoname->country);
+    }
+  }
+  geoname->name = g_strdup_printf("%s %s %s", id, road, city);
+  g_free(id);
+  g_free(road);
+  g_free(city);
+
+  return geoname;
+}
+
 static MaepGeonamesPlace *geonames_parse_geoname(xmlDocPtr doc, xmlNode *a_node) {
   xmlNode *cur_node = NULL;
   MaepGeonamesPlace *geoname = g_new0(MaepGeonamesPlace, 1);
@@ -116,6 +158,8 @@ static GSList *geonames_parse_geonames(xmlDocPtr doc, xmlNode *a_node) {
 	list = g_slist_append(list, geonames_parse_geoname(doc, cur_node));
       } else if(strcasecmp((char*)cur_node->name, "entry") == 0) {
 	list = g_slist_append(list, geonames_parse_entry(doc, cur_node));
+      } else if(strcasecmp((char*)cur_node->name, "place") == 0) {
+	list = g_slist_append(list, nominatim_parse_place(doc, cur_node));
       }
     }
   }
@@ -129,7 +173,8 @@ static GSList *geonames_parse_root(xmlDocPtr doc, xmlNode *a_node) {
 
   for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
-      if(!list && strcasecmp((char*)cur_node->name, "geonames") == 0) 
+      if(!list && (strcasecmp((char*)cur_node->name, "geonames") == 0 ||
+                   strcasecmp((char*)cur_node->name, "searchresults") == 0))
 	list = geonames_parse_geonames(doc, cur_node);
     }
   }
@@ -298,6 +343,33 @@ void maep_geonames_place_request(const gchar *request,
 
   /* request search results asynchronously */
   g_message("start asynchronous place download (%s).", url);
+  context = g_malloc0(sizeof(request_cb_t));
+  context->cb = cb;
+  context->obj = obj;
+  net_io_download_async(url, geonames_request_cb, context);
+
+  g_free(url);
+}
+
+#define NOMINATIM "http://nominatim.openstreetmap.org/"
+void maep_nominatim_address_request(const gchar *request,
+                                    MaepGeonamesRequestCallback cb, gpointer obj) {
+  request_cb_t *context;
+
+  /* gconf_set_string("search_text", phrase); */
+
+  gchar *locale, lang[3] = { 0,0,0 };
+  locale = setlocale (LC_MESSAGES, NULL);
+  g_utf8_strncpy (lang, locale, 2);
+
+  /* build search request */
+  char *encoded_phrase = url_encode(request);
+  char *url = g_strdup_printf(
+	      NOMINATIM "search?q=%s&format=xml&addressdetails=1", encoded_phrase);
+  g_free(encoded_phrase);
+
+  /* request search results asynchronously */
+  g_message("start asynchronous nominatim download (%s).", url);
   context = g_malloc0(sizeof(request_cb_t));
   context->cb = cb;
   context->obj = obj;

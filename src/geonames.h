@@ -56,6 +56,8 @@ void maep_geonames_entry_request(coord_t *pt1, coord_t *pt2,
                                  MaepGeonamesRequestCallback cb, gpointer obj);
 void maep_geonames_place_request(const gchar *request,
                                  MaepGeonamesRequestCallback cb, gpointer obj);
+void maep_nominatim_address_request(const gchar *request,
+                                    MaepGeonamesRequestCallback cb, gpointer obj);
 G_END_DECLS
 
 #endif
