@@ -3,30 +3,31 @@ import Sailfish.Silica 1.0
 import Maep 1.0
 import QtWebKit 3.0
 import QtPositioning 5.0
-//import QtQuick.Dialogs 1.0
 //import "pages"
 
 ApplicationWindow
 {
-    initialPage: Page {
+    initialPage: page
+    cover: coverPage
+
+    Page {
     id: page
 
     // To enable PullDownMenu, place our content in a SilicaFlickable
     SilicaFlickable {
         id: header
-	z: +1
         anchors.top: parent.top
 
         // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
         PullDownMenu {
-            /*MenuItem {
-                text: "Show Page 2"
-                //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
-            }*/
+            MenuItem {
+                text: "About Mæp"
+                //onClicked: pageStack.push(aboutpage)
+            }
 	    MenuItem {
 		TextSwitch {
 		    id: wikicheck
-		    anchors.horizontalCenter: parent.horizontalCentre
+		    anchors.horizontalCenter: parent.horizontalCenter
 		    text: "Wikipedia"
 		    checked: map.wiki_status
                     onCheckedChanged: {
@@ -35,8 +36,40 @@ ApplicationWindow
 		}
                 onClicked: {wikicheck.checked = !wikicheck.checked}
 	    }
+            MenuItem {
+                TextSwitch {
+                    id: trackcheck
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Track capture"
+                    checked: map.track_capture
+                    onCheckedChanged: {
+                        map.setTrackCapture(checked)
+                    }
+                }
+                onClicked: {trackcheck.checked = !trackcheck.checked}
+            }
+            MenuItem {
+                text: "Import track"
+                font.pixelSize: Theme.fontSizeSmall
+		color: Theme.secondaryColor
+                //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
+            }
+            MenuItem {
+                text: "Export track"
+                visible: map.track_available
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+                //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
+            }
+            MenuItem {
+                text: "Clear track"
+                visible: map.track_available
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+                onClicked: map.clearTrack()
+            }
         }
-	onMovementStarted: { map.opacity = 0.25 }
+	onMovementStarted: { map.opacity = Theme.highlightBackgroundOpacity }
         onMovementEnded: { map.opacity = 1 }
 
         // Tell SilicaFlickable the height of its content.
@@ -55,10 +88,10 @@ ApplicationWindow
                 placeholderText: "Enter a place name"
 	        label: "Place search"
 		anchors.verticalCenter: parent.verticalCenter
+		EnterKey.text: "search"
 		EnterKey.onClicked: {
 		    busy.running = true
 		    map.focus = true
-		    label = "Place search"
 		    placeview.model = null
                     map.setSearchRequest(text)
 		}
@@ -73,61 +106,120 @@ ApplicationWindow
             }
             PageHeader {
                 id: maep
-                width: 120
+                width: 130
                 title: "Mæp"
             }
         }
     }
-    GpsMap {
-        id: map
+    Drawer {
+ 	id: drawer
         anchors.top: header.bottom
         width: page.width
-	z: -1
         height: page.height - header.height
-        onSearchRequest: { search.focus = true }
-        onWikiURLSelected: { pageStack.push(wiki) }
+
+        dock: page.isPortrait ? Dock.Top : Dock.Left
+
+        background: placeview
+
+    GpsMap {
+        id: map
+        /*anchors.top: header.bottom
+        width: page.width
+        height: page.height - header.height*/
+	anchors.fill: parent
+        onSearchRequest: { search.focus = true; search.label = "Place search" }
+        onWikiEntryChanged: { pageStack.push(wiki) }
 	onWikiStatusChanged: { wikicheck.checked = status }
-        onSearchResults: { placeview.model = map.search_results; placeview.visible = true; placeview.focus = true;
-                           busy.running = false; search.label = search_results.length + " place(s) found" }
+        onSearchResults: { busy.running = false; search.label = search_results.length + " place(s) found";
+			   /*pageStack.push(placepage)*/
+			   drawer.open = true
+			   placeview.model = search_results }
+	Behavior on opacity {
+            FadeAnimation {}
+        }
     }
-    /*ListModel {
-        id: placemodel
-        model: map.getSearchResults()
-    }*/
+    }
+
+    Dialog {
+	id: placepage
+	property string place
+
     SilicaListView {
         id: placeview
-        z: 0
-        width: parent.width * 0.75
-	height: Math.min(childrenRect.height, page.height - header.height)
-	contentHeight: childrenRect.height
-	anchors.top: header.bottom
-	anchors.horizontalCenter: parent.horizontalCenter
-        visible: false
+        anchors.fill: parent
+        /*header: DialogHeader {
+            title: "Select a place"
+        }*/
+
+	PullDownMenu {
+	    MenuItem {
+		text: "Cancel search"
+		onClicked: { drawer.open = false }
+	    }
+	}
+	PushUpMenu {
+            MenuItem {
+                text: "Cancel search"
+                onClicked: { drawer.open = false }
+            }
+        }
+
+	ViewPlaceholder {
+            enabled: placeview.count == 0
+            text: "No result"
+        }
 
         delegate: ListItem {
-            width: parent.width
-            height: Theme.itemSizeSmall
-
-            Rectangle {
-		width: parent.width
-		height: parent.height
-		color: "black"
-		opacity: 0.85
+		
+		contentHeight: Theme.itemSizeSmall * 0.75
 		Label {
                     text: model.name + ", " + model.country
+		    font.pixelSize: Theme.fontSizeSmall
 		    anchors.fill: parent
-		    anchors.verticalCenter: parent.verticalCenter
 		    color: highlighted ? Theme.highlightColor : Theme.primaryColor
 		}
-            }
-	    onClicked: { placeview.visible = false; map.setLookAt(model.latitude, model.longitude) }
-	    onFocusChanged: { visible = focus }
+		Label {
+		    property real dist: map.coordinate.distanceTo(model.coordinate)
+		    font.pixelSize: Theme.fontSizeExtraSmall
+		    text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
+		    color: Theme.secondaryColor
+		    anchors.right: parent.right
+		    anchors.bottom: parent.bottom
+		}
+	    onClicked: { search.text = model.name
+	    		 drawer.open = false
+			 /*placepage.place = model.name
+	                 placepage.accept()*/
+			 map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
         }
 	VerticalScrollDecorator { flickable: placeview }
-	onFocusChanged: { if (!focus) { visble = false } }
-    }    
+    }}
     }
-    //cover: Qt.resolvedUrl("cover/CoverPage.qml")    
+
+    CoverBackground {
+	id: coverPage
+	property bool active: status == Cover.Active
+	/*CoverPlaceholder {*/
+            GpsMapCover {
+                width: parent.width
+                height: parent.height
+                map: map
+	        status: coverPage.active
+            }
+        /*}*/
+    }
+    CoverActionList {
+        enabled: true
+        iconBackground: true
+        CoverAction {
+            iconSource: "image://theme/icon-m-remove"
+            onTriggered: map.zoomOut()
+        }
+        CoverAction {
+            iconSource: "image://theme/icon-m-add"
+            onTriggered: map.zoomIn()
+        }
+    }
 
     Component {
         id: wiki
@@ -135,11 +227,11 @@ ApplicationWindow
         Page {
             PageHeader {
                 id: wikititle
-                title: map.wiki_title
+                title: map.wiki_entry.title
             }
 	    Item {
 		id: thumbnail
-		visible: (map.wiki_thumbnail != "")
+		visible: (map.wiki_entry.thumbnail != "")
 		width: wikiimg.width + Theme.paddingSmall * 2
 		height: wikiimg.height + Theme.paddingSmall * 2
 		anchors.top: wikititle.bottom
@@ -155,7 +247,7 @@ ApplicationWindow
 		Image {
 		    id: wikiimg
 		    anchors.centerIn: frame
-       		    source: map.wiki_thumbnail
+       		    source: map.wiki_entry.thumbnail
        		    sourceSize.width: 360
        		    sourceSize.height: 360
     		}
@@ -165,13 +257,13 @@ ApplicationWindow
 		anchors.top: thumbnail.bottom
 		anchors.right: parent.right
 		anchors.rightMargin: Theme.paddingMedium
-		text: "coordinates: " + map.getWikiPosition()
+		text: "coordinates: " + map.wiki_entry.coordinateToString()
 		color: Theme.secondaryColor
 		font.pixelSize: Theme.fontSizeExtraSmall
 	    }
 	    Label {
                 id: body
-                text: map.wiki_summary
+                text: map.wiki_entry.summary
                 font.pixelSize: Theme.fontSizeSmall
                 wrapMode: Text.WordWrap
 		width: parent.width - Theme.paddingMedium * 2
@@ -182,7 +274,7 @@ ApplicationWindow
 	    }
 	    Button {
 		text: "View Wikipedia page"
-		onClicked: pageStack.push(wikipedia)
+		onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }
 		anchors.top: body.bottom
 		anchors.topMargin: Theme.paddingLarge
 		anchors.horizontalCenter: wikititle.horizontalCenter
@@ -204,27 +296,45 @@ ApplicationWindow
         Page {
             PageHeader {
                 id: wikititle
-                title: map.wiki_title
+                title: map.wiki_entry.title
             }
-           WebView {
-                anchors.top: wikititle.bottom
-                width: page.width
-                height: page.height - wikititle.height
-                url: map.wiki_url
+            SilicaWebView {
+		id: webView
+		anchors {
+		    top: wikititle.bottom
+		    bottom: parent.bottom
+		}
+		width: page.width
+		opacity: 0
+        	onLoadingChanged: {
+            	    switch (loadRequest.status)
+            	    {
+            	    case WebView.LoadSucceededStatus:
+                        opacity = 1
+                        break
+           	    case WebView.LoadFailedStatus:
+                        opacity = 0
+                        viewPlaceHolder.errorString = loadRequest.errorString
+                        break
+	            default:
+                        opacity = 0
+                        break
+                    }
+                }
+
+                FadeAnimation on opacity {}
+	    }
+	    ViewPlaceholder {
+        	id: viewPlaceHolder
+        	property string errorString
+
+        	enabled: webView.opacity == 0
+        	text: webView.loading ? "Loading" : "Web content load error: " + errorString
+        	hintText: "Check network connectivity"
+	    }
+	    Component.onCompleted: {
+        	webView.url = map.wiki_entry.url
             }
-	   /*FileDialog {
-    id: fileDialog
-    title: "Please choose a file"
-    onAccepted: {
-        console.log("You chose: " + fileDialog.fileUrls)
-        Qt.quit()
-    }
-    onRejected: {
-        console.log("Canceled")
-        Qt.quit()
-    }
-    Component.onCompleted: visible = true
-}*/
         }
     }
 }

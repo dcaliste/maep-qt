@@ -63,9 +63,9 @@ typedef struct osm_gps_map_osd_s {
     gboolean(*busy)(struct osm_gps_map_osd_s *);
     void(*free)(struct osm_gps_map_osd_s *);
 
-    OsmGpsMapOsdCallback cb;
-    gpointer data;
-
+#ifdef OSD_GPS_BUTTON
+    gboolean gps_enabled;
+#endif
     gpointer priv;
 } osm_gps_map_osd_t;
 
@@ -98,8 +98,7 @@ osm_gps_map_osd_t* osm_gps_map_osd_classic_init(OsmGpsMap *map);
 void osm_gps_map_osd_classic_free(osm_gps_map_osd_t *osd);
 osd_button_t osm_gps_map_osd_check(osm_gps_map_osd_t *osd, gint x, gint y);
 #ifdef OSD_GPS_BUTTON
-void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd,
-                                 OsmGpsMapOsdCallback cb, gpointer data);
+void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd, gboolean status);
 #endif
 
 #ifdef OSD_BALLOON

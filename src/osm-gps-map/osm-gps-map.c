@@ -96,7 +96,7 @@ struct _OsmGpsMapPrivate
     //gps tracking state
     gboolean record_trip_history;
     gboolean show_trip_history;
-    GSList *trip_history;
+    track_seg_t *trip_history;
     coord_t *gps;
     float gps_heading;
     gboolean gps_valid;
@@ -448,9 +448,16 @@ static void
 osm_gps_map_free_trip (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
+    track_point_t *point;
+
     if (priv->trip_history) {
-        g_slist_foreach(priv->trip_history, (GFunc) g_free, NULL);
-        g_slist_free(priv->trip_history);
+        point = priv->trip_history->track_point;
+        while (point)
+            {
+                point = point->next;
+                g_free(point);
+            }
+        g_free(priv->trip_history);
         priv->trip_history = NULL;
     }
 }
@@ -465,8 +472,7 @@ osm_gps_map_free_tracks (OsmGpsMap *map)
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            g_slist_foreach(tmp->data, (GFunc) g_free, NULL);
-            g_slist_free(tmp->data);
+            track_state_unref((track_state_t*)tmp->data);
             tmp = g_slist_next(tmp);
         }
         g_slist_free(priv->tracks);
@@ -1154,17 +1160,18 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
 }
 
 static void
-osm_gps_map_print_track (OsmGpsMap *map, GSList *trackpoint_list)
+osm_gps_map_print_segment (OsmGpsMap *map, track_seg_t *track)
 {
     OsmGpsMapPrivate *priv = map->priv;
 
-    GSList *list;
+    track_point_t *list;
     int x,y;
     int min_x = 0,min_y = 0,max_x = 0,max_y = 0;
     int lw = priv->ui_gps_track_width;
     int map_x0, map_y0;
     cairo_rectangle_int_t rect;
 
+    g_message("Print a track!");
     cairo_set_line_width (priv->cr, lw);
     cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
     cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
@@ -1172,15 +1179,15 @@ osm_gps_map_print_track (OsmGpsMap *map, GSList *trackpoint_list)
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
-    for(list = trackpoint_list; list != NULL; list = list->next)
+    for(list = track->track_point; list != NULL; list = list->next)
     {
-        coord_t *tp = list->data;
+        coord_t *tp = &(list->coord);
 
         x = lon2pixel(priv->map_zoom, tp->rlon) - map_x0;
         y = lat2pixel(priv->map_zoom, tp->rlat) - map_y0;
 
         // first time through loop
-        if (list == trackpoint_list) {
+        if (list == track->track_point) {
             cairo_move_to(priv->cr, x, y);
         }
 
@@ -1204,16 +1211,20 @@ static void
 osm_gps_map_print_tracks (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
+    track_t *track;
+    track_seg_t *seg;
 
     if (priv->show_trip_history)
-        osm_gps_map_print_track (map, priv->trip_history);
+        osm_gps_map_print_segment (map, priv->trip_history);
 
     if (priv->tracks)
     {
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            osm_gps_map_print_track (map, tmp->data);
+            for (track = ((track_state_t*)tmp->data)->track; track; track = track->next)
+                for (seg = track->track_seg; seg; seg = seg->next)
+                    osm_gps_map_print_segment (map, seg);
             tmp = g_slist_next(tmp);
         }
     }
@@ -1322,6 +1333,7 @@ center_coord_update(OsmGpsMap *map) {
     priv->center_rlon = pixel2lon(priv->map_zoom, pixel_x);
     priv->center_rlat = pixel2lat(priv->map_zoom, pixel_y);
 
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_LATITUDE]);
     g_signal_emit_by_name(map, "changed");
 }
 
@@ -1922,25 +1934,27 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                        OSM_MIN_ZOOM,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+    properties[PROP_LATITUDE] = g_param_spec_float ("latitude",
+                                                    "latitude",
+                                                    "latitude in degrees",
+                                                    -90.0, /* minimum property value */
+                                                    90.0, /* maximum property value */
+                                                    0,
+                                                    G_PARAM_READABLE);
     g_object_class_install_property (object_class,
                                      PROP_LATITUDE,
-                                     g_param_spec_float ("latitude",
-                                                         "latitude",
-                                                         "latitude in degrees",
-                                                         -90.0, /* minimum property value */
-                                                         90.0, /* maximum property value */
-                                                         0,
-                                                         G_PARAM_READABLE));
-
+                                     properties[PROP_LATITUDE]);
+    
+    properties[PROP_LONGITUDE] = g_param_spec_float ("longitude",
+                                                     "longitude",
+                                                     "longitude in degrees",
+                                                     -180.0, /* minimum property value */
+                                                     180.0, /* maximum property value */
+                                                     0,
+                                                     G_PARAM_READABLE);
     g_object_class_install_property (object_class,
                                      PROP_LONGITUDE,
-                                     g_param_spec_float ("longitude",
-                                                         "longitude",
-                                                         "longitude in degrees",
-                                                         -180.0, /* minimum property value */
-                                                         180.0, /* maximum property value */
-                                                         0,
-                                                         G_PARAM_READABLE));
+                                     properties[PROP_LONGITUDE]);
 
     properties[PROP_MAP_X] = g_param_spec_int ("map-x",
                                                "map-x",
@@ -2319,6 +2333,7 @@ osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
 
     priv->center_rlat = deg2rad(latitude);
     priv->center_rlon = deg2rad(longitude);
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_LATITUDE]);
 
     // pixel_x,y, offsets
     pixel_x = lon2pixel(priv->map_zoom, priv->center_rlon);
@@ -2388,7 +2403,7 @@ osm_gps_map_zoom_out (OsmGpsMap *map)
 }
 
 void
-osm_gps_map_add_track (OsmGpsMap *map, GSList *track)
+osm_gps_map_add_track (OsmGpsMap *map, track_state_t *track)
 {
     OsmGpsMapPrivate *priv;
 
@@ -2397,33 +2412,10 @@ osm_gps_map_add_track (OsmGpsMap *map, GSList *track)
 
     if (track) {
         priv->tracks = g_slist_append(priv->tracks, track);
+        track_state_ref(track);
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
     }
-}
-
-void
-osm_gps_map_replace_track (OsmGpsMap *map, GSList *old_track, GSList *new_track)
-{
-    OsmGpsMapPrivate *priv;
-
-    if(!old_track) {
-        osm_gps_map_add_track (map, new_track);
-        return;
-    }
-
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
-    priv = map->priv;
-
-    GSList *old = g_slist_find(priv->tracks, old_track);
-    if(!old) {
-        g_warning("track to be replaced not found");
-        return;
-    }
-
-    old->data = new_track;
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
 
 void
@@ -2525,14 +2517,17 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
 
     //If trip marker add to list of gps points.
     if (priv->record_trip_history) {
-        coord_t *tp = g_new0(coord_t,1);
-        tp->rlat = priv->gps->rlat;
-        tp->rlon = priv->gps->rlon;
-        priv->trip_history = g_slist_append(priv->trip_history, tp);
+        if (!priv->trip_history)
+            priv->trip_history = g_new0(track_seg_t, 1);
+        track_point_t *tp = g_new0(track_point_t,1);
+        tp->coord.rlat = priv->gps->rlat;
+        tp->coord.rlon = priv->gps->rlon;
+        tp->next = priv->trip_history->track_point;
+        priv->trip_history->track_point = tp;
     }
 
     // dont draw anything if we are dragging
-    g_error("implement here.");
+    /* g_error("implement here."); */
     /* if (priv->dragging) { */
     /*     g_debug("Dragging"); */
     /*     return; */

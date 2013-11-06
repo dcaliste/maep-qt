@@ -1954,13 +1954,13 @@ osd_render_controls(osm_gps_map_osd_t *osd)
 
     if(priv->controls.rendered 
 #ifdef OSD_GPS_BUTTON
-       && (priv->controls.gps_enabled == (osd->cb != NULL))
+       && (priv->controls.gps_enabled == osd->gps_enabled)
 #endif
        )
         return;
 
 #ifdef OSD_GPS_BUTTON
-    priv->controls.gps_enabled = (osd->cb != NULL);
+    priv->controls.gps_enabled = osd->gps_enabled;
 #endif
     priv->controls.rendered = TRUE;
 
@@ -2009,7 +2009,7 @@ osd_render_controls(osm_gps_map_osd_t *osd)
 #endif
     cairo_stroke(cr);
 #ifdef OSD_GPS_BUTTON
-    osd_labels_shadow(cr, Z_RAD/6, osd->cb != NULL);
+    osd_labels_shadow(cr, Z_RAD/6, osd->gps_enabled);
     osd_dpad_gps(cr, 1+OSD_LBL_SHADOW, 1+OSD_LBL_SHADOW); 
     cairo_stroke(cr);
 #endif
@@ -2027,9 +2027,9 @@ osd_render_controls(osm_gps_map_osd_t *osd)
     cairo_stroke(cr);
 
 #ifndef OSD_COLOR
-    osd_labels(cr, Z_RAD/6, osd->cb != NULL, osd->fg, osd->disabled);
+    osd_labels(cr, Z_RAD/6, osd->gps_enabled, osd->fg, osd->disabled);
 #else
-    osd_labels(cr, Z_RAD/6, osd->cb != NULL);
+    osd_labels(cr, Z_RAD/6, osd->gps_enabled);
 #endif
 #ifdef OSD_GPS_BUTTON
     osd_dpad_gps(cr, 1, 1);
@@ -2306,8 +2306,7 @@ osm_gps_map_osd_classic_init(OsmGpsMap *map)
 
     /* reset entries to default value */
     osd_classic->map = NULL;
-    osd_classic->cb     = NULL;
-    osd_classic->data   = NULL;
+    osd_classic->gps_enabled = FALSE;
     osd_classic->priv   = priv;
 
     osd_classic->draw       = osd_draw,
@@ -2350,12 +2349,13 @@ void osm_gps_map_osd_classic_free(osm_gps_map_osd_t *osd)
 #ifdef OSD_GPS_BUTTON
 /* below are osd specific functions which aren't used by osm-gps-map */
 /* but instead are to be used by the main application */
-void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd, OsmGpsMapOsdCallback cb, 
-                                 gpointer data) {
+void osm_gps_map_osd_enable_gps (osm_gps_map_osd_t *osd, gboolean status) {
     g_return_if_fail (osd);
 
-    osd->cb = cb;
-    osd->data = data;
+    if (osd->gps_enabled == status)
+        return;
+
+    osd->gps_enabled = status;
 
     /* this may have changed the state of the gps button */
     /* we thus re-render the overlay */

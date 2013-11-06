@@ -6,8 +6,10 @@
 #include <QString>
 #include <QQmlListProperty>
 #include <QGeoCoordinate>
+#include <QGeoPositionInfoSource>
 #include <cairo.h>
 #include "search.h"
+#include "track.h"
 #include "osm-gps-map/osm-gps-map.h"
 #include "osm-gps-map/layer-wiki.h"
 #include "osm-gps-map/osm-gps-map-osd-classic.h"
@@ -19,8 +21,7 @@ class GeonamesPlace: public QObject
   Q_OBJECT
   Q_PROPERTY(QString name READ getName NOTIFY nameChanged)
   Q_PROPERTY(QString country READ getCountry NOTIFY countryChanged)
-  Q_PROPERTY(float latitude READ getLat)
-  Q_PROPERTY(float longitude READ getLon)
+  Q_PROPERTY(QGeoCoordinate coordinate READ getCoord NOTIFY coordinateChanged)
 
 public:
   inline GeonamesPlace(const MaepGeonamesPlace *place = NULL, QObject *parent = NULL) : QObject(parent)
@@ -29,8 +30,8 @@ public:
         {
           this->name = QString(place->name);
           this->country = QString(place->country);
-          this->lat = place->pos.rlat;
-          this->lon = place->pos.rlon;
+          this->coordinate = QGeoCoordinate(rad2deg(place->pos.rlat),
+                                            rad2deg(place->pos.rlon));
         }
     }
     inline QString getName() const
@@ -40,62 +41,121 @@ public:
     inline QString getCountry() const
     {
         return this->country;
-    }    
-    inline float getLat()
+    }     
+    inline QGeoCoordinate getCoord() const
     {
-        return this->lat;
+        return this->coordinate;
     }    
-    inline float getLon()
-    {
-        return this->lon;
-    }
 
 signals:
     void nameChanged();
     void countryChanged();
+    void coordinateChanged();
+
+public slots:
+  QString coordinateToString(QGeoCoordinate::CoordinateFormat format = QGeoCoordinate::DegreesMinutesSecondsWithHemisphere) const;
 
 private:
     QString name, country;
-    float lat, lon;
+    QGeoCoordinate coordinate;
+};
+
+class GeonamesEntry: public QObject
+{
+  Q_OBJECT
+  Q_PROPERTY(QString title READ getTitle NOTIFY titleChanged)
+  Q_PROPERTY(QString summary READ getSummary NOTIFY summaryChanged)
+  Q_PROPERTY(QString thumbnail READ getThumbnail NOTIFY thumbnailChanged)
+  Q_PROPERTY(QString url READ getURL NOTIFY urlChanged)
+  Q_PROPERTY(QGeoCoordinate coordinate READ getCoord NOTIFY coordinateChanged)
+
+public:
+  inline GeonamesEntry(const MaepGeonamesEntry *entry = NULL,
+                       QObject *parent = NULL) : QObject(parent)
+  {
+    if (entry)
+      {
+        this->title = QString(entry->title);
+        this->summary = QString(entry->summary);
+        this->thumbnail = QString(entry->thumbnail_url);
+        this->url = QString(entry->url);
+        this->coordinate = QGeoCoordinate(rad2deg(entry->pos.rlat),
+                                          rad2deg(entry->pos.rlon));
+      }
+  }
+  inline void set(const Maep::GeonamesEntry *entry)
+  {
+    title = QString(entry->getTitle());
+  }
+  inline QString getTitle() const
+  {
+    return this->title;
+  }    
+  inline QString getSummary() const
+  {
+    return this->summary;
+  }     
+  inline QString getThumbnail() const
+  {
+    return this->thumbnail;
+  }     
+  inline QString getURL() const
+  {
+    return this->url;
+  }     
+  inline QGeoCoordinate getCoord() const
+  {
+    return this->coordinate;
+  }    
+
+signals:
+  void titleChanged();
+  void summaryChanged();
+  void thumbnailChanged();
+  void urlChanged();
+  void coordinateChanged();
+
+public slots:
+  QString coordinateToString(QGeoCoordinate::CoordinateFormat format = QGeoCoordinate::DegreesMinutesSecondsWithHemisphere) const;
+
+private:
+    QString title, summary, thumbnail, url;
+    QGeoCoordinate coordinate;
 };
 
 class GpsMap : public QQuickPaintedItem
 {
   Q_OBJECT
+  Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
-  Q_PROPERTY(QString wiki_title READ wikiTitle)
-  Q_PROPERTY(QString wiki_summary READ wikiSummary)
-  Q_PROPERTY(QString wiki_thumbnail READ wikiThumbnail)
-  Q_PROPERTY(QString wiki_url READ wikiUrl)
-  Q_PROPERTY(QGeoCoordinate wiki_coordinate READ wikiCoord)
+  Q_PROPERTY(Maep::GeonamesEntry *wiki_entry READ getWikiEntry NOTIFY wikiEntryChanged)
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults NOTIFY searchResults)
+  Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
+  Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
 
  public:
   GpsMap(QQuickItem *parent = 0);
   ~GpsMap();
+  inline QGeoCoordinate getCoord() const {
+    return coordinate;
+  }
   inline bool wikiStatus() {
     return wiki_enabled;
   }
-  inline QString wikiTitle() const {
-    return wiki_title;
-  }
-  inline QString wikiSummary() const {
-    return wiki_summary;
-  }
-  inline QString wikiThumbnail() const {
-    return wiki_thumbnail;
-  }
-  inline QString wikiUrl() const {
-    return wiki_url;
-  }
-  inline QGeoCoordinate wikiCoord() const {
-    return wiki_coord;
+  inline Maep::GeonamesEntry* getWikiEntry() const {
+    return wiki_entry;
   }
   inline QQmlListProperty<Maep::GeonamesPlace> getSearchResults() {
     return QQmlListProperty<Maep::GeonamesPlace>(this, NULL,
                                                  GpsMap::countSearchResults,
                                                  GpsMap::atSearchResults);
   }
+  void mapUpdate();
+  void paintTo(QPainter *painter, int width, int height);
+  inline bool trackCapture() {
+    return track_capture;
+  }
+  bool hasTrack();
 
  protected:
   void paint(QPainter *painter);
@@ -105,20 +165,33 @@ class GpsMap : public QQuickPaintedItem
   void mouseMoveEvent(QMouseEvent *event);
 
  signals:
+  void mapChanged();
+  void coordinateChanged();
   void wikiStatusChanged(bool status);
-  void wikiURLSelected();
+  void wikiEntryChanged();
   void searchRequest();
   void searchResults();
+  void trackCaptureChanged(bool status);
+  void trackAvailable(bool status);
 
  public slots:
+  void setCoordinate(float lat, float lon);
   void setWikiStatus(bool status);
-  void setWikiInfo(const char *title, const char *summary,
-                   const char *thumbnail, const char *url,
-                   float lat, float lon);
+  void setWikiEntry(const MaepGeonamesEntry *entry);
   void setSearchRequest(const QString &request);
   void setSearchResults(GSList *places);
   void setLookAt(float lat, float lon);
-  QString getWikiPosition();
+  inline void setLookAt(QGeoCoordinate coord) {
+    setLookAt(coord.latitude(), coord.longitude());
+  }
+  void zoomIn();
+  void zoomOut();
+  void positionUpdate(const QGeoPositionInfo &info);
+  void positionLost();
+  void setTrackCapture(bool status);
+  void setTrackFromFile(const QString &filename);
+  void exportTrackToFile(const QString &filename);
+  void clearTrack();
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -132,11 +205,14 @@ class GpsMap : public QQuickPaintedItem
     GpsMap *self = qobject_cast<GpsMap*>(prop->object);
     g_message("#### Hey I've got name %s (%fx%f) for result %d!",
               self->searchRes[index]->getName().toLocal8Bit().data(),
-              self->searchRes[index]->getLat(), self->searchRes[index]->getLon(), index);
+              self->searchRes[index]->getCoord().latitude(),
+              self->searchRes[index]->getCoord().longitude(), index);
     return self->searchRes[index];
   }
+  void gps_to_track();
 
   OsmGpsMap *map;
+  QGeoCoordinate coordinate;
   osm_gps_map_osd_t *osd;
 
   MaepSearchContext *search;
@@ -149,13 +225,50 @@ class GpsMap : public QQuickPaintedItem
   /* Wiki entry. */
   bool wiki_enabled;
   MaepWikiContext *wiki;
-  QString wiki_title, wiki_summary, wiki_thumbnail, wiki_url;
-  QGeoCoordinate wiki_coord;
+  GeonamesEntry *wiki_entry;
 
   /* Screen display. */
   cairo_surface_t *surf;
   cairo_t *cr;
   QImage *img;
+
+  /* GPS */
+  QGeoPositionInfoSource *gps;
+  bool gps_fix;
+  float gps_lat, gps_lon;
+
+  /* Tracks */
+  bool track_capture;
+  track_state_t *track_current;
+};
+
+class GpsMapCover : public QQuickPaintedItem
+{
+  Q_OBJECT
+    Q_PROPERTY(Maep::GpsMap* map READ map WRITE setMap NOTIFY mapChanged)
+  Q_PROPERTY(bool status READ status WRITE setStatus NOTIFY statusChanged)
+
+ public:
+  GpsMapCover(QQuickItem *parent = 0);
+  ~GpsMapCover();
+  Maep::GpsMap* map() const;
+  bool status();
+
+ protected:
+  void paint(QPainter *painter);
+
+ signals:
+  void mapChanged();
+  void statusChanged();
+
+ public slots:
+  void setMap(Maep::GpsMap *map);
+  void setStatus(bool active);
+  void updateCover();
+
+ private:
+  bool status_;
+  GpsMap *map_;
 };
 
 }
