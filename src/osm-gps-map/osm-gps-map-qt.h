@@ -129,7 +129,7 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
   Q_PROPERTY(Maep::GeonamesEntry *wiki_entry READ getWikiEntry NOTIFY wikiEntryChanged)
-  Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults NOTIFY searchResults)
+  Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults)
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
   Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
 
