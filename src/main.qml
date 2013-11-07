@@ -3,173 +3,166 @@ import Sailfish.Silica 1.0
 import Maep 1.0
 import QtWebKit 3.0
 import QtPositioning 5.0
-//import "pages"
 
 ApplicationWindow
 {
     initialPage: page
     cover: coverPage
-
+    
     Page {
-    id: page
+        id: page
 
-    // To enable PullDownMenu, place our content in a SilicaFlickable
-    SilicaFlickable {
-        id: header
-        anchors.top: parent.top
+        // To enable PullDownMenu, place our content in a SilicaFlickable
+        SilicaFlickable {
+            id: header
+            anchors.top: parent.top
 
-        // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
-        PullDownMenu {
-            MenuItem {
-                text: "About Mæp"
-                //onClicked: pageStack.push(aboutpage)
-            }
-	    MenuItem {
-		TextSwitch {
-		    id: wikicheck
-		    anchors.horizontalCenter: parent.horizontalCenter
-		    text: "Wikipedia"
-		    checked: map.wiki_status
-                    onCheckedChanged: {
-                        map.setWikiStatus(checked)
-                    }
-		}
-                onClicked: {wikicheck.checked = !wikicheck.checked}
-	    }
-            MenuItem {
-                TextSwitch {
-                    id: trackcheck
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Track capture"
-                    checked: map.track_capture
-                    onCheckedChanged: {
-                        map.setTrackCapture(checked)
-                    }
+            // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
+            PullDownMenu {
+                MenuItem {
+                    text: "About Mæp"
+                    //onClicked: pageStack.push(aboutpage)
                 }
-                onClicked: {trackcheck.checked = !trackcheck.checked}
+	        MenuItem {
+	            TextSwitch {
+		        id: wikicheck
+		        anchors.horizontalCenter: parent.horizontalCenter
+		        text: "Wikipedia"
+		        checked: map.wiki_status
+                        onCheckedChanged: {
+                            map.setWikiStatus(checked)
+                        }
+	            }
+                    onClicked: {wikicheck.checked = !wikicheck.checked}
+	        }
+                MenuItem {
+                    TextSwitch {
+                        id: trackcheck
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Track capture"
+                        checked: map.track_capture
+                        onCheckedChanged: {
+                            map.setTrackCapture(checked)
+                        }
+                    }
+                    onClicked: {trackcheck.checked = !trackcheck.checked}
+                }
+                MenuItem {
+                    text: "Import track"
+                    font.pixelSize: Theme.fontSizeSmall
+	            color: Theme.secondaryColor
+                    //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
+                }
+                MenuItem {
+                    text: "Export track"
+                    visible: map.track_available
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryColor
+                    //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
+                }
+                MenuItem {
+                    text: "Clear track"
+                    visible: map.track_available
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryColor
+                    onClicked: map.clearTrack()
+                }
             }
-            MenuItem {
-                text: "Import track"
-                font.pixelSize: Theme.fontSizeSmall
-		color: Theme.secondaryColor
-                //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
-            }
-            MenuItem {
-                text: "Export track"
-                visible: map.track_available
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.secondaryColor
-                //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
-            }
-            MenuItem {
-                text: "Clear track"
-                visible: map.track_available
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.secondaryColor
-                onClicked: map.clearTrack()
+	    onMovementStarted: { map.opacity = Theme.highlightBackgroundOpacity }
+            onMovementEnded: { map.opacity = 1 }
+
+            // Tell SilicaFlickable the height of its content.
+            width: page.width
+	    height: 100 //childrenRect.height
+            contentHeight: childrenRect.height
+
+            Row {
+                width: parent.width
+	        spacing: 0 /*Theme.paddingSmall*/
+                TextField {
+                    id: search
+                    width: parent.width - maep.width
+                    placeholderText: "Enter a place name"
+	            label: "Place search"
+		    anchors.verticalCenter: parent.verticalCenter
+		    EnterKey.text: "search"
+		    EnterKey.onClicked: {
+		        busy.running = true
+		        map.focus = true
+		        placeview.model = null
+                        map.setSearchRequest(text)
+		    }
+		    onFocusChanged: { if (focus) { selectAll() } }
+                }
+	        BusyIndicator {
+	   	    id: busy
+                    running: false
+                    visible: true
+                    size: BusyIndicatorSize.Small
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                PageHeader {
+                    id: maep
+                    width: 130
+                    title: "Mæp"
+                }
             }
         }
-	onMovementStarted: { map.opacity = Theme.highlightBackgroundOpacity }
-        onMovementEnded: { map.opacity = 1 }
+        Drawer {
+ 	    id: drawer
+            anchors.top: header.bottom
+            width: page.width
+            height: page.height - header.height
 
-        // Tell SilicaFlickable the height of its content.
-        width: page.width
-	height: 100 //childrenRect.height
-        contentHeight: childrenRect.height
+            dock: page.isPortrait ? Dock.Top : Dock.Left
 
-        // Place our content in a Column.  The PageHeader is always placed at the top
-        // of the page, followed by our content.
-        Row {
-            width: parent.width
-	    spacing: 0 /*Theme.paddingSmall*/
-            TextField {
-                id: search
-                width: parent.width - maep.width
-                placeholderText: "Enter a place name"
-	        label: "Place search"
-		anchors.verticalCenter: parent.verticalCenter
-		EnterKey.text: "search"
-		EnterKey.onClicked: {
-		    busy.running = true
-		    map.focus = true
-		    placeview.model = null
-                    map.setSearchRequest(text)
-		}
-		onFocusChanged: { if (focus) { selectAll() } }
-            }
-	    BusyIndicator {
-	   	id: busy
-                running: false
-                visible: true
-                size: BusyIndicatorSize.Small
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            PageHeader {
-                id: maep
-                width: 130
-                title: "Mæp"
+            background: placeview
+
+            GpsMap {
+                id: map
+                /*anchors.top: header.bottom
+                  width: page.width
+                  height: page.height - header.height*/
+	        anchors.fill: parent
+                onSearchRequest: { search.focus = true; search.label = "Place search" }
+                onWikiEntryChanged: { pageStack.push(wiki) }
+	        onWikiStatusChanged: { wikicheck.checked = status }
+                onSearchResults: { busy.running = false; search.label = search_results.length + " place(s) found";
+			           /*pageStack.push(placepage)*/
+			           drawer.open = true
+			           placeview.model = search_results }
+	        Behavior on opacity {
+                    FadeAnimation {}
+                }
             }
         }
-    }
-    Drawer {
- 	id: drawer
-        anchors.top: header.bottom
-        width: page.width
-        height: page.height - header.height
 
-        dock: page.isPortrait ? Dock.Top : Dock.Left
+        SilicaListView {
+            id: placeview
+            anchors.fill: parent
+            /*header: DialogHeader {
+              title: "Select a place"
+              }*/
 
-        background: placeview
-
-    GpsMap {
-        id: map
-        /*anchors.top: header.bottom
-        width: page.width
-        height: page.height - header.height*/
-	anchors.fill: parent
-        onSearchRequest: { search.focus = true; search.label = "Place search" }
-        onWikiEntryChanged: { pageStack.push(wiki) }
-	onWikiStatusChanged: { wikicheck.checked = status }
-        onSearchResults: { busy.running = false; search.label = search_results.length + " place(s) found";
-			   /*pageStack.push(placepage)*/
-			   drawer.open = true
-			   placeview.model = search_results }
-	Behavior on opacity {
-            FadeAnimation {}
-        }
-    }
-    }
-
-    Dialog {
-	id: placepage
-	property string place
-
-    SilicaListView {
-        id: placeview
-        anchors.fill: parent
-        /*header: DialogHeader {
-            title: "Select a place"
-        }*/
-
-	PullDownMenu {
-	    MenuItem {
-		text: "Cancel search"
-		onClicked: { drawer.open = false }
+	    PullDownMenu {
+	        MenuItem {
+		    text: "Cancel search"
+		    onClicked: { drawer.open = false }
+	        }
 	    }
-	}
-	PushUpMenu {
-            MenuItem {
-                text: "Cancel search"
-                onClicked: { drawer.open = false }
+	    PushUpMenu {
+                MenuItem {
+                    text: "Cancel search"
+                    onClicked: { drawer.open = false }
+                }
             }
-        }
 
-	ViewPlaceholder {
-            enabled: placeview.count == 0
-            text: "No result"
-        }
+	    ViewPlaceholder {
+                enabled: placeview.count == 0
+                text: "No result"
+            }
 
-        delegate: ListItem {
+            delegate: ListItem {
 		
 		contentHeight: Theme.itemSizeSmall * 0.75
 		Label {
@@ -186,28 +179,27 @@ ApplicationWindow
 		    anchors.right: parent.right
 		    anchors.bottom: parent.bottom
 		}
-	    onClicked: { search.text = model.name
-	    		 drawer.open = false
-			 /*placepage.place = model.name
-	                 placepage.accept()*/
-			 map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
+	        onClicked: { search.text = model.name
+	    		     drawer.open = false
+			     /*placepage.place = model.name
+	                       placepage.accept()*/
+			     map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
+            }
+	    VerticalScrollDecorator { flickable: placeview }
         }
-	VerticalScrollDecorator { flickable: placeview }
-    }}
     }
 
     CoverBackground {
 	id: coverPage
 	property bool active: status == Cover.Active
-	/*CoverPlaceholder {*/
-            GpsMapCover {
-                width: parent.width
-                height: parent.height
-                map: map
-	        status: coverPage.active
-            }
-        /*}*/
+        GpsMapCover {
+            width: parent.width
+            height: parent.height
+            map: map
+	    status: coverPage.active
+        }
     }
+
     CoverActionList {
         enabled: true
         iconBackground: true
@@ -290,6 +282,7 @@ ApplicationWindow
 	    }
         }
     }
+
     Component {
         id: wikipedia
         
@@ -309,14 +302,14 @@ ApplicationWindow
         	onLoadingChanged: {
             	    switch (loadRequest.status)
             	    {
-            	    case WebView.LoadSucceededStatus:
+            	        case WebView.LoadSucceededStatus:
                         opacity = 1
                         break
-           	    case WebView.LoadFailedStatus:
+           	        case WebView.LoadFailedStatus:
                         opacity = 0
                         viewPlaceHolder.errorString = loadRequest.errorString
                         break
-	            default:
+	                default:
                         opacity = 0
                         break
                     }
