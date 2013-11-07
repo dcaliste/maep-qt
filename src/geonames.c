@@ -56,19 +56,27 @@ static MaepGeonamesPlace *nominatim_parse_place(xmlDocPtr doc, xmlNode *a_node) 
 
   geoname->pos.rlat = geoname->pos.rlon = OSM_GPS_MAP_INVALID;
 
-  for (attr = cur_node->properties; attr; attr = attr->next)
+  g_message("nominatim analyse place");
+  for (attr = a_node->properties; attr; attr = attr->next)
     if (attr->name && !strcmp((char*)attr->name, "lat") && attr->children)
       {
         value = xmlNodeListGetString(doc, attr->children, 1);
-	geoname->pos.rlat = deg2rad(g_ascii_strtod((gchar*)value, NULL));
- 	xmlFree(value);
+        geoname->pos.rlat = deg2rad(g_ascii_strtod((gchar*)value, NULL));
+        xmlFree(value);
       }
     else if (attr->name && !strcmp((char*)attr->name, "lon") && attr->children)
       {
         value = xmlNodeListGetString(doc, attr->children, 1);
-	geoname->pos.rlon = deg2rad(g_ascii_strtod((gchar*)value, NULL));
- 	xmlFree(value);
+        geoname->pos.rlon = deg2rad(g_ascii_strtod((gchar*)value, NULL));
+        xmlFree(value);
       }
+    else if (attr->name && !strcmp((char*)attr->name, "display_name") && attr->children)
+      {
+        value = xmlNodeListGetString(doc, attr->children, 1);
+        geoname->name = g_strdup((gchar*)value);
+        xmlFree(value);
+      }
+  g_message("attributes lat %f lon %f.", geoname->pos.rlat, geoname->pos.rlon);
 
   id = NULL;
   road = NULL;
@@ -81,10 +89,25 @@ static MaepGeonamesPlace *nominatim_parse_place(xmlDocPtr doc, xmlNode *a_node) 
       string_get(cur_node, "country", &geoname->country);
     }
   }
-  geoname->name = g_strdup_printf("%s %s %s", id, road, city);
+  if (id && road && city)
+    {
+      g_free(geoname->name);
+      geoname->name = g_strdup_printf("%s, %s %s", id, road, city);
+    }
+  else if (road && city)
+    {
+      g_free(geoname->name);
+      geoname->name = g_strdup_printf("%s %s", road, city);
+    }
+  else if (city)
+    {
+      g_free(geoname->name);
+      geoname->name = g_strdup_printf("%s", city);
+    }
   g_free(id);
   g_free(road);
   g_free(city);
+  g_message("got name '%s' and country '%s'", geoname->name, geoname->country);
 
   return geoname;
 }
@@ -258,6 +281,7 @@ static void geonames_request_cb(net_result_t *result, gpointer data) {
     LIBXML_TEST_VERSION;
     
     g_message("Got: %s", result->data.ptr);
+    g_message("analysing...");
 
     /* parse the file and get the DOM */
     if((doc = xmlReadMemory(result->data.ptr, result->data.len, 
@@ -267,6 +291,7 @@ static void geonames_request_cb(net_result_t *result, gpointer data) {
       context->cb(context->obj, NULL, err);
       g_error_free(err);
     } else {
+      g_message("XML parsed without error");
       GSList *list = geonames_parse_doc(doc); 
       
       context->cb(context->obj, list, (GError*)0);

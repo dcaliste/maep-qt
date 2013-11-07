@@ -89,6 +89,7 @@ ApplicationWindow
 		    EnterKey.onClicked: {
 		        busy.running = true
 		        map.focus = true
+		        drawer.open = false
 		        placeview.model = null
                         map.setSearchRequest(text)
 		    }
@@ -127,8 +128,8 @@ ApplicationWindow
                 onSearchRequest: { search.focus = true; search.label = "Place search" }
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
-                onSearchResults: { busy.running = false; search.label = search_results.length + " place(s) found";
-			           /*pageStack.push(placepage)*/
+                onSearchResults: { search.label = search_results.length + " place(s) found"
+			           busy.running = false
 			           drawer.open = true
 			           placeview.model = search_results }
 	        Behavior on opacity {
@@ -181,9 +182,7 @@ ApplicationWindow
 		}
 	        onClicked: { search.text = model.name
 	    		     drawer.open = false
-			     /*placepage.place = model.name
-	                       placepage.accept()*/
-			     map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
+			     map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) } 
             }
 	    VerticalScrollDecorator { flickable: placeview }
         }
@@ -245,13 +244,17 @@ ApplicationWindow
     		}
             }
 	    Label {
+	        property real dist: map.coordinate.distanceTo(map.wiki_entry.coordinate)
+		property string at: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
 		id: coordinates
 		anchors.top: thumbnail.bottom
 		anchors.right: parent.right
+		anchors.left: parent.left
 		anchors.rightMargin: Theme.paddingMedium
-		text: "coordinates: " + map.wiki_entry.coordinateToString()
+		text: "coordinates: " + map.wiki_entry.coordinateToString() + "\n" + at
 		color: Theme.secondaryColor
 		font.pixelSize: Theme.fontSizeExtraSmall
+		horizontalAlignment: Text.AlignRight
 	    }
 	    Label {
                 id: body
@@ -323,7 +326,7 @@ ApplicationWindow
 
         	enabled: webView.opacity == 0
         	text: webView.loading ? "Loading" : "Web content load error: " + errorString
-        	hintText: "Check network connectivity"
+        	hintText: map.wiki_entry.url
 	    }
 	    Component.onCompleted: {
         	webView.url = map.wiki_entry.url
