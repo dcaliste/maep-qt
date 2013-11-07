@@ -149,6 +149,7 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults)
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
   Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
+  Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
 
  public:
   GpsMap(QQuickItem *parent = 0);
@@ -173,6 +174,9 @@ class GpsMap : public QQuickPaintedItem
     return track_capture;
   }
   bool hasTrack();
+  inline bool screen_rotation() const {
+    return screenRotation;
+  }
 
  protected:
   void paint(QPainter *painter);
@@ -190,8 +194,10 @@ class GpsMap : public QQuickPaintedItem
   void searchResults();
   void trackCaptureChanged(bool status);
   void trackAvailable(bool status);
+  void screenRotationChanged(bool status);
 
  public slots:
+  void setScreenRotation(bool status);
   void setCoordinate(float lat, float lon);
   void setWikiStatus(bool status);
   void setWikiEntry(const MaepGeonamesEntry *entry);
@@ -228,6 +234,7 @@ class GpsMap : public QQuickPaintedItem
   }
   void gps_to_track();
 
+  bool screenRotation;
   OsmGpsMap *map;
   QGeoCoordinate coordinate;
   osm_gps_map_osd_t *osd;

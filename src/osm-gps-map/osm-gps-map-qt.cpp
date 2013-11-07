@@ -30,6 +30,7 @@
 #define GCONF_KEY_WIKIPEDIA  "wikipedia"
 #define GCONF_KEY_TRACK_CAPTURE "track_capture_enabled"
 #define GCONF_KEY_TRACK_PATH "track_path"
+#define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
 
 #define MAP_SOURCE  OSM_GPS_MAP_SOURCE_OPENCYCLEMAP
 
@@ -64,10 +65,12 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
   bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
+  bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
 
   if(!p) p = "/tmp"; 
   path = g_strdup_printf("%s/.osm-gps-map", p);
 
+  screenRotation = orientation;
   map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
                                  "map-source",               source,
                                  "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
@@ -173,6 +176,8 @@ Maep::GpsMap::~GpsMap()
   gconf_set_bool(GCONF_KEY_WIKIPEDIA, wiki_enabled);
 
   gconf_set_bool(GCONF_KEY_TRACK_CAPTURE, track_capture);
+
+  gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, screenRotation);
 
   g_object_unref(map);
 }
@@ -366,6 +371,15 @@ void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
       mapUpdate();
       update();
     }
+}
+
+void Maep::GpsMap::setScreenRotation(bool status)
+{
+  if (status == screenRotation)
+    return;
+
+  screenRotation = status;
+  emit screenRotationChanged(status);
 }
 
 void Maep::GpsMap::setWikiStatus(bool status)

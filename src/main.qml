@@ -23,11 +23,13 @@ import QtPositioning 5.0
 
 ApplicationWindow
 {
+    id: main
     initialPage: page
     cover: coverPage
     
     Page {
         id: page
+	allowedOrientations: map.screen_rotation ? Orientation.All : main.deviceOrientation
 
         // To enable PullDownMenu, place our content in a SilicaFlickable
         SilicaFlickable {
@@ -40,15 +42,23 @@ ApplicationWindow
                     text: "About Mæp"
                     //onClicked: pageStack.push(aboutpage)
                 }
+                MenuItem {
+                    TextSwitch {
+                        id: orientationcheck
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Screen rotation"
+                        checked: map.screen_rotation
+                        onCheckedChanged: { map.screen_rotation = checked }
+                    }
+                    onClicked: {orientationcheck.checked = !orientationcheck.checked}
+                }
 	        MenuItem {
 	            TextSwitch {
 		        id: wikicheck
 		        anchors.horizontalCenter: parent.horizontalCenter
 		        text: "Wikipedia"
 		        checked: map.wiki_status
-                        onCheckedChanged: {
-                            map.setWikiStatus(checked)
-                        }
+                        onCheckedChanged: { map.wiki_status = checked }
 	            }
                     onClicked: {wikicheck.checked = !wikicheck.checked}
 	        }
@@ -58,9 +68,7 @@ ApplicationWindow
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Track capture"
                         checked: map.track_capture
-                        onCheckedChanged: {
-                            map.setTrackCapture(checked)
-                        }
+                        onCheckedChanged: { map.track_capture = checked }
                     }
                     onClicked: {trackcheck.checked = !trackcheck.checked}
                 }
@@ -90,7 +98,7 @@ ApplicationWindow
 
             // Tell SilicaFlickable the height of its content.
             width: page.width
-	    height: 100 //childrenRect.height
+	    height: Theme.itemSizeMedium //childrenRect.height
             contentHeight: childrenRect.height
 
             Row {
@@ -162,6 +170,7 @@ ApplicationWindow
             /*header: DialogHeader {
               title: "Select a place"
               }*/
+	    onModelChanged: { console.log("hey, model changed"); console.log(map.search_results.count()); }
 
 	    PullDownMenu {
 	        MenuItem {
@@ -236,6 +245,7 @@ ApplicationWindow
         id: wiki
 
         Page {
+	    allowedOrientations: page.allowedOrientations
             PageHeader {
                 id: wikititle
                 title: map.wiki_entry.title
@@ -246,8 +256,10 @@ ApplicationWindow
 		width: wikiimg.width + Theme.paddingSmall * 2
 		height: wikiimg.height + Theme.paddingSmall * 2
 		anchors.top: wikititle.bottom
-                anchors.topMargin: Theme.paddingLarge
-                anchors.horizontalCenter: wikititle.horizontalCenter
+                anchors.topMargin: page.isPortrait ? Theme.paddingLarge : Theme.paddingSmall
+                anchors.horizontalCenter: page.isPortrait ? wikititle.horizontalCenter : undefined
+		anchors.left: page.isPortrait ? undefined : parent.left
+		anchors.leftMargin: page.isPortrait ? undefined : Theme.paddingLarge
 		Rectangle {
 		    id: frame
 		    color: Theme.secondaryColor
@@ -267,10 +279,11 @@ ApplicationWindow
 	        property real dist: map.coordinate.distanceTo(map.wiki_entry.coordinate)
 		property string at: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
 		id: coordinates
-		anchors.top: thumbnail.bottom
+		anchors.top: page.isPortrait ? thumbnail.bottom : undefined
 		anchors.right: parent.right
-		anchors.left: parent.left
+		anchors.left: page.isPortrait ? parent.left : thumbnail.right
 		anchors.rightMargin: Theme.paddingMedium
+		anchors.verticalCenter: page.isPortrait ? undefined : thumbnail.verticalCenter
 		text: "coordinates: " + map.wiki_entry.coordinateToString() + "\n" + at
 		color: Theme.secondaryColor
 		font.pixelSize: Theme.fontSizeExtraSmall
@@ -285,13 +298,13 @@ ApplicationWindow
 		horizontalAlignment: Text.AlignJustify
 		anchors.topMargin: Theme.paddingLarge
 		anchors.horizontalCenter: wikititle.horizontalCenter
-                anchors.top: coordinates.bottom
+                anchors.top: page.isPortrait ? coordinates.bottom : thumbnail.bottom
 	    }
 	    Button {
 		text: "View Wikipedia page"
 		onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }
 		anchors.top: body.bottom
-		anchors.topMargin: Theme.paddingLarge
+		anchors.topMargin: page.isPortrait ? Theme.paddingLarge : Theme.paddingSmall
 		anchors.horizontalCenter: wikititle.horizontalCenter
 	    }
 	    Label {
@@ -310,6 +323,7 @@ ApplicationWindow
         id: wikipedia
         
         Page {
+	    allowedOrientations: page.allowedOrientations
             PageHeader {
                 id: wikititle
                 title: map.wiki_entry.title
