@@ -179,7 +179,7 @@ class GpsMap : public QQuickPaintedItem
   void setWikiStatus(bool status);
   void setWikiEntry(const MaepGeonamesEntry *entry);
   void setSearchRequest(const QString &request);
-  void setSearchResults(GSList *places);
+  void setSearchResults(MaepSearchContextSource source, GSList *places);
   void setLookAt(float lat, float lon);
   inline void setLookAt(QGeoCoordinate coord) {
     setLookAt(coord.latitude(), coord.longitude());
@@ -217,6 +217,7 @@ class GpsMap : public QQuickPaintedItem
 
   MaepSearchContext *search;
   QList<GeonamesPlace*> searchRes;
+  guint searchFinished;
 
   gboolean dragging;
   int drag_start_mouse_x, drag_start_mouse_y;

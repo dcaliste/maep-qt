@@ -28,7 +28,11 @@ QString Maep::GeonamesEntry::coordinateToString(QGeoCoordinate::CoordinateFormat
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
-static void osm_gps_map_qt_places(Maep::GpsMap *widget, GSList *places, MaepSearchContext *wiki);
+static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
+                                  GSList *places, MaepSearchContext *wiki);
+static void osm_gps_map_qt_places_failure(Maep::GpsMap *widget,
+                                          MaepSearchContextSource source,
+                                          GError *error, MaepSearchContext *wiki);
 
 Maep::GpsMap::GpsMap(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -79,6 +83,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   search = maep_search_context_new();
   g_signal_connect_swapped(G_OBJECT(search), "places-available",
                            G_CALLBACK(osm_gps_map_qt_places), this);
+  g_signal_connect_swapped(G_OBJECT(search), "download-error",
+                           G_CALLBACK(osm_gps_map_qt_places_failure), this);
 
   drag_start_mouse_x = 0;
   drag_start_mouse_y = 0;
@@ -369,31 +375,55 @@ static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, 
   widget->setWikiEntry(entry);
 }
 
-void Maep::GpsMap::setSearchResults(GSList *places)
+void Maep::GpsMap::setSearchResults(MaepSearchContextSource source, GSList *places)
 {
   g_message("hello got %d places", g_slist_length(places));
 
-  qDeleteAll(searchRes);
-  searchRes.clear();
-
-  for (; places; places = places->next)
-    {
-      Maep::GeonamesPlace *place = new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
-      searchRes.append(place);
-    }
+  if (searchRes.count() == 0 || source == MaepSearchContextGeonames)
+    for (; places; places = places->next)
+      {
+        Maep::GeonamesPlace *place =
+          new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
+        searchRes.append(place);
+      }
+  else
+    for (; places; places = places->next)
+      {
+        Maep::GeonamesPlace *place =
+          new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
+        searchRes.prepend(place);
+      }
+  searchFinished |= source;
   
-  emit searchResults();
+  if (searchFinished == (MaepSearchContextGeonames | MaepSearchContextNominatim))
+    {
+      g_message("search finished !");
+      emit searchResults();
+    }
 }
-
-static void osm_gps_map_qt_places(Maep::GpsMap *widget, GSList *places, MaepSearchContext *wiki)
+static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
+                                  GSList *places, MaepSearchContext *wiki)
 {
   g_message("Got %d matching places.", g_slist_length(places));
-  widget->setSearchResults(places);
+  widget->setSearchResults(source, places);
+}
+static void osm_gps_map_qt_places_failure(Maep::GpsMap *widget,
+                                          MaepSearchContextSource source,
+                                          GError *error, MaepSearchContext *wiki)
+{
+  g_message("Got download error '%s'.", error->message);
+  widget->setSearchResults(source, NULL);
 }
 
 void Maep::GpsMap::setSearchRequest(const QString &request)
 {
-  maep_search_context_request(search, request.toLocal8Bit().data());
+  qDeleteAll(searchRes);
+  searchRes.clear();
+
+  searchFinished = 0;
+  maep_search_context_request(search, request.toLocal8Bit().data(),
+                              MaepSearchContextGeonames |
+                              MaepSearchContextNominatim);
 }
 
 void Maep::GpsMap::setLookAt(float lat, float lon)
@@ -419,6 +449,9 @@ static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, O
   g_object_get(G_OBJECT(map), "latitude", &lat, "longitude", &lon, NULL);
   widget->setCoordinate(lat, lon);
 }
+// QString Maep::GpsMap::orientationTo(QGeoCoordinate coord)
+// {
+// }
 
 void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 {
