@@ -1,6 +1,9 @@
 /*
  * Copyright (C) 2008 Till Harbaum <till@harbaum.org>.
  *
+ * Contributions by
+ * Damien Caliste 2013 <dcaliste@free.fr>
+ *
  * This file is part of Maep.
  *
  * Maep is free software: you can redistribute it and/or modify
