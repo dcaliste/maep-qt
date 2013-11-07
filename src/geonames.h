@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2009 Till Harbaum <till@harbaum.org>.
  *
- * Contributor: Damien Caliste <dcaliste@free.fr>
+ * Contributor: Damien Caliste 2013 <dcaliste@free.fr>
  *
  * This file is part of Maep.
  *
