@@ -90,7 +90,7 @@ ApplicationWindow
 		        busy.running = true
 		        map.focus = true
 		        drawer.open = false
-		        placeview.model = null
+			placeview.model = null
                         map.setSearchRequest(text)
 		    }
 		    onFocusChanged: { if (focus) { selectAll() } }
@@ -130,11 +130,12 @@ ApplicationWindow
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: { search.label = search_results.length + " place(s) found"
 			           busy.running = false
-			           drawer.open = true
-			           placeview.model = search_results }
+				   placeview.model = search_results
+			           drawer.open = true }
 	        Behavior on opacity {
                     FadeAnimation {}
                 }
+		onFocusChanged: { if (focus) { drawer.open = false } }
             }
         }
 
@@ -148,12 +149,14 @@ ApplicationWindow
 	    PullDownMenu {
 	        MenuItem {
 		    text: "Cancel search"
+		    font.pixelSize: Theme.fontSizeSmall
 		    onClicked: { drawer.open = false }
 	        }
 	    }
 	    PushUpMenu {
                 MenuItem {
                     text: "Cancel search"
+		    font.pixelSize: Theme.fontSizeSmall
                     onClicked: { drawer.open = false }
                 }
             }
