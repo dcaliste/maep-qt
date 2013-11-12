@@ -57,7 +57,6 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 {
   char *path;
 
-  const char *p = getenv("HOME");
   gint source = gconf_get_int(GCONF_KEY_SOURCE, MAP_SOURCE);
   gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
@@ -67,8 +66,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
 
-  if(!p) p = "/tmp"; 
-  path = g_strdup_printf("%s/.osm-gps-map", p);
+  path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
 
   screenRotation = orientation;
   map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
