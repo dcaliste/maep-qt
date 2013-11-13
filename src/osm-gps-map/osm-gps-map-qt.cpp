@@ -32,8 +32,6 @@
 #define GCONF_KEY_TRACK_PATH "track_path"
 #define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
 
-#define MAP_SOURCE  OSM_GPS_MAP_SOURCE_OPENCYCLEMAP
-
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
   return coordinate.toString(format);
@@ -57,7 +55,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 {
   char *path;
 
-  gint source = gconf_get_int(GCONF_KEY_SOURCE, MAP_SOURCE);
+  gint source = gconf_get_int(GCONF_KEY_SOURCE, OSM_GPS_MAP_SOURCE_OPENSTREETMAP);
   gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
@@ -123,6 +121,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
               this, SLOT(positionUpdate(QGeoPositionInfo)));
       connect(gps, SIGNAL(updateTimeout()),
               this, SLOT(positionLost()));
+      gps->setUpdateInterval(1000);
       gps->startUpdates();
     }
   else
@@ -131,7 +130,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   track_capture = track;
   track_current = NULL;
-  setTrackFromFile("/home/nemo/devel/Tinchebray");
+  // setTrackFromFile("/home/nemo/devel/Tinchebray");
 }
 Maep::GpsMap::~GpsMap()
 {
@@ -461,10 +460,10 @@ void Maep::GpsMap::setLookAt(float lat, float lon)
   osm_gps_map_set_center(map, lat, lon);
   // We're not updating coordinate since the signal of map will do it.
 
-  QGeoCoordinate coord = QGeoCoordinate(lat, lon);
-  QGeoPositionInfo info = QGeoPositionInfo(coord, QDateTime::currentDateTime());
-  info.setAttribute(QGeoPositionInfo::HorizontalAccuracy, 2567.);
-  positionUpdate(info);
+  // QGeoCoordinate coord = QGeoCoordinate(lat, lon);
+  // QGeoPositionInfo info = QGeoPositionInfo(coord, QDateTime::currentDateTime());
+  // info.setAttribute(QGeoPositionInfo::HorizontalAccuracy, 2567.);
+  // positionUpdate(info);
 }
 void Maep::GpsMap::setCoordinate(float lat, float lon)
 {

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Mæp
-Icon=maep
+Icon=/usr/share/icons/hicolor/86x86/apps/maep.86.png
 Exec=invoker --type=e /usr/bin/maep-qt
 #Exec=/usr/bin/test-qml > /home/nemo/log 2>&1
 Comment=Map browser with GPS capabilities

@@ -28,8 +28,8 @@ target.path = $$PREFIX/bin
 desktop.path = $$PREFIX/share/applications
 desktop.files = ../maep.desktop
 
-icon.path = $$PREFIX/share/icons/hicolor/90x90/apps
-icon.files = ../data/maep.90.png
+icon.path = $$PREFIX/share/icons/hicolor/86x86/apps
+icon.files = ../data/maep.86.png
 
 qml.path = $$DEPLOYMENT_PATH
 qml.files = ../src/main.qml
