@@ -48,6 +48,7 @@ rm -rf $RPM_BUILD_ROOT
 %build
 # >> build pre
 # << build pre
+rm -rf tmp
 mkdir tmp
 cd tmp
 %qmake5 -o Makefile ../src/maep.pro
