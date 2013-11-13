@@ -3,7 +3,7 @@
 # Maep.  Such packages make it easy to install and uninstall
 # the library and related files from binaries or source.
 #
-# RPM. To build, use the command: rpm --clean -ba maep-qt.spec
+# RPM. To build, use the command: rpmbuild --clean -ba maep-qt.spec
 #
 
 Name: maep-qt
@@ -12,14 +12,25 @@ Version: 1.3.7
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
-Source: %{name}-%{version}.tar.bz2
+Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
 Requires: sailfishsilica-qt5
 Requires: mapplauncherd-booster-silica-qt5
+Requires: qt5-qtdeclarative-import-positioning
+Requires: qt5-qtqml-import-webkitplugin
 BuildRequires: pkgconfig(qdeclarative5-boostable)
 BuildRequires: pkgconfig(Qt5Core)
 BuildRequires: pkgconfig(Qt5Qml)
 BuildRequires: pkgconfig(Qt5Quick)
+BuildRequires: pkgconfig(Qt5Positioning)
+BuildRequires: pkgconfig(Qt5Widgets)
+BuildRequires: pkgconfig(gobject-2.0)
+BuildRequires: pkgconfig(cairo)
+BuildRequires: pkgconfig(libsoup-2.4)
+BuildRequires: pkgconfig(gconf-2.0)
+BuildRequires: pkgconfig(libxml-2.0)
+BuildRequires: pkgconfig(libcurl)
+
 
 %description
 Maep is a tile based map utility for services like OpenStreetMap, Google maps
@@ -37,16 +48,18 @@ rm -rf $RPM_BUILD_ROOT
 %build
 # >> build pre
 # << build pre
+mkdir tmp
+cd tmp
+%qmake5 -o Makefile ../src/maep.pro
 
-%qtc_qmake5 
-
-%qtc_make %{?jobs:-j%jobs}
+make %{?jobs:-j%jobs}
 
 # >> build post
 # << build post
 
 %install
 rm -rf %{buildroot}
+cd tmp
 # >> install pre
 # << install pre
 %qmake5_install
@@ -57,7 +70,8 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/share/applications
-/usr/share/test-qml
+/usr/share/icons
+/usr/share/%{name}
 /usr/bin
 # >> files
 # << files
