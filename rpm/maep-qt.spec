@@ -17,6 +17,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
 Requires: sailfishsilica-qt5
 Requires: mapplauncherd-booster-silica-qt5
 Requires: qt5-qtdeclarative-import-positioning
+Requires: qt5-qtdeclarative-import-folderlistmodel
 Requires: qt5-qtqml-import-webkitplugin
 BuildRequires: pkgconfig(qdeclarative5-boostable)
 BuildRequires: pkgconfig(Qt5Core)
