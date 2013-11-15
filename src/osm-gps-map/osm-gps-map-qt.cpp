@@ -41,6 +41,62 @@ QString Maep::GeonamesEntry::coordinateToString(QGeoCoordinate::CoordinateFormat
   return coordinate.toString(format);
 }
 
+void Maep::Track::set(track_state_t *t)
+{
+  if (!t)
+    return;
+
+  track_state_unref(track);
+  track_state_ref(t);
+  track = t;
+}
+bool Maep::Track::set(const QString &filename)
+{
+  track_state_t *t;
+  GError *error;
+
+  error = NULL;
+  t = track_read(filename.toLocal8Bit().data(), FALSE, &error);
+  if (t)
+    {
+      set(t);
+      source = filename;
+      return true;
+    }
+  if (error)
+    {
+      emit fileError(QString(error->message));
+      g_error_free(error);
+    }
+  return false;
+}
+bool Maep::Track::toFile(const QString &filename)
+{
+  GError *error;
+  bool res;
+
+  error = NULL;
+  res = track_write(track, filename.toLocal8Bit().data(), &error);
+  if (error)
+    {
+      emit fileError(QString(error->message));
+      g_error_free(error);
+    }
+  return res;
+}
+void Maep::Track::addPoint(QGeoPositionInfo &info)
+{
+  QGeoCoordinate coord = info.coordinate();
+  qreal speed;
+
+  speed = 0.;
+  if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
+    speed = info.attribute(QGeoPositionInfo::GroundSpeed);
+
+  track_point_new(track, coord.latitude(), coord.longitude(), coord.altitude(),
+                  speed, 0., 0.);
+}
+
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
@@ -126,7 +182,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
     }
   else
     g_message("no source...");
-  gps_fix = false;
+  lastGps = QGeoPositionInfo();
 
   track_capture = track;
   track_current = NULL;
@@ -160,8 +216,8 @@ Maep::GpsMap::~GpsMap()
     delete(img);
   if (gps)
     delete(gps);
-  if (track_current)
-    track_state_unref(track_current);
+  if (track_current && track_current->parent() == this)
+    delete(track_current);
 
   /* ... and store it in gconf */
   gconf_set_int(GCONF_KEY_ZOOM, zoom);
@@ -322,9 +378,10 @@ void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
         return;
 
       case OSD_GPS:
-        if (gps_fix)
+        if (lastGps.isValid())
           {
-            osm_gps_map_set_center(map, gps_lat, gps_lon);
+            osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
+                                   lastGps.coordinate().longitude());
 
             /* re-enable centering */
             g_object_set(map, "auto-center", TRUE, NULL);
@@ -498,20 +555,19 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 
   osm_gps_map_osd_enable_gps(osd, TRUE);
 
-  gps_fix = true;
-  gps_lat = info.coordinate().latitude();
-  gps_lon = info.coordinate().longitude();
-  osm_gps_map_draw_gps(map, gps_lat, gps_lon, track);
+  lastGps = info;
+  osm_gps_map_draw_gps(map, info.coordinate().latitude(),
+                       info.coordinate().longitude(), track);
 
   // Add track capture, if any.
   if (track_capture)
-    gps_to_track();
+    gpsToTrack();
 }
 void Maep::GpsMap::positionLost()
 {
-  osm_gps_map_osd_enable_gps(osd, FALSE);
+  lastGps = QGeoPositionInfo();
 
-  gps_fix = false;
+  osm_gps_map_osd_enable_gps(osd, FALSE);
   osm_gps_map_clear_gps(map);
 }
 
@@ -523,58 +579,40 @@ void Maep::GpsMap::setTrackCapture(bool status)
   track_capture = status;
   emit trackCaptureChanged(track_capture);
   
-  if (status && gps_fix)
-    gps_to_track();
+  if (status && lastGps.isValid())
+    gpsToTrack();
 }
 
-void Maep::GpsMap::setTrackFromFile(const QString &filename)
+void Maep::GpsMap::setTrack(Maep::Track *track)
 {
-  track_state_t *track_state;
-
   osm_gps_map_clear_tracks(map);
 
-  track_state = track_read(filename.toLocal8Bit().data(), FALSE);
-  if (!track_state)
-    return;
+  g_message("Set track %p (track parent is %p)", track,
+            (track)?(gpointer)track->parent():NULL);
 
-  gconf_set_string(GCONF_KEY_TRACK_PATH, filename.toLocal8Bit().data());
-  if (track_current)
-    track_state_unref(track_current);
-  track_current = track_state;
-  osm_gps_map_add_track(map, track_state);
-  
-  emit trackAvailable(true);
-}
-void Maep::GpsMap::exportTrackToFile(const QString &filename)
-{
-  track_write(filename.toLocal8Bit().data(), track_current);
-}
-void Maep::GpsMap::clearTrack()
-{
-  if (track_current)
-    track_state_unref(track_current);
-  track_current = NULL;
+  if (track_current && track_current->parent() == this)
+    delete(track_current);
+  track_current = track;
 
-  osm_gps_map_clear_tracks(map);
+  if (track && track->get())
+    osm_gps_map_add_track(map, track->get());
+
+  if (track && !track->getSource().isEmpty())
+    gconf_set_string(GCONF_KEY_TRACK_PATH, track->getSource().toLocal8Bit().data());
   
-  emit trackAvailable(false);
+  emit trackChanged(track != NULL);
 }
-bool Maep::GpsMap::hasTrack()
+void Maep::GpsMap::gpsToTrack()
 {
-  return (track_current != NULL);
-}
-void Maep::GpsMap::gps_to_track()
-{
-  track_state_t *track_state;
-      
-  track_state = track_current;
-  track_current = track_point_new(track_current, gps_lat, gps_lon,
-                                  0., 0., 0., 0.);
-  if (!track_state)
+  if (!track_current)
     {
-      osm_gps_map_clear_tracks(map);
-      osm_gps_map_add_track(map, track_current);
+      Maep::Track *track = new Maep::Track();
+      track->setParent(this);
+
+      setTrack(track);
     }
+
+  track_current->addPoint(lastGps);
 }
 
 

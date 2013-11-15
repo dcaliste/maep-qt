@@ -68,16 +68,26 @@ typedef struct {
   guint ref_count;
 } track_state_t;
 
+#define MAEP_TRACK_ERROR track_get_quark()
+GQuark track_get_quark();
+
+enum {
+  MAEP_TRACK_ERROR_XML,
+  MAEP_TRACK_ERROR_EMPTY
+};
+
+track_state_t *track_state_new();
+
 track_state_t* track_state_ref(track_state_t *track_state);
 void track_state_unref(track_state_t *track_state);
 
-track_state_t *track_read(const char *filename, gboolean autosave);
-void track_write(const char *name, track_state_t *track_state);
+track_state_t *track_read(const char *filename, gboolean autosave, GError **error);
+gboolean track_write(track_state_t *track_state, const char *name, GError **error);
 
-track_state_t* track_point_new(track_state_t *track_state,
-                               float latitude, float longitude,
-                               float altitude, float speed,
-                               float hr, float cad);
+void track_point_new(track_state_t *track_state,
+                     float latitude, float longitude,
+                     float altitude, float speed,
+                     float hr, float cad);
 
 int track_contents(track_state_t *track_state);
 int track_length(track_state_t *track_state);

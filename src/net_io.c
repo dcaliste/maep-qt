@@ -32,7 +32,6 @@
 #include <gconf/gconf-client.h>
 
 static GQuark error_quark = NULL;
-
 GQuark net_io_get_quark()
 {
   if (!error_quark)

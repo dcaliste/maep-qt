@@ -25,6 +25,7 @@
 #include <QGeoCoordinate>
 #include <QGeoPositionInfoSource>
 #include <cairo.h>
+#include "misc.h"
 #include "search.h"
 #include "track.h"
 #include "osm-gps-map/osm-gps-map.h"
@@ -32,6 +33,32 @@
 #include "osm-gps-map/osm-gps-map-osd-classic.h"
 
 namespace Maep {
+
+class Conf: public QObject
+{
+  Q_OBJECT
+  
+public:
+  Q_INVOKABLE inline QString getString(const QString &key, const QString &fallback = NULL) const
+  {
+    gchar *val;
+    QString ret;
+
+    val = gconf_get_string(key.toLocal8Bit().data());
+    ret = QString(val);
+    if (val)
+      g_free(val);
+    else if (fallback != NULL)
+      ret = QString(fallback);
+    return ret;
+  }
+
+public slots:
+  inline void setString(const QString &key, const QString &value)
+  {
+    gconf_set_string(key.toLocal8Bit().data(), value.toLocal8Bit().data());
+  }
+};
 
 class GeonamesPlace: public QObject
 {
@@ -42,39 +69,39 @@ class GeonamesPlace: public QObject
 
 public:
   inline GeonamesPlace(const MaepGeonamesPlace *place = NULL, QObject *parent = NULL) : QObject(parent)
-    {
-      if (place)
-        {
-          this->name = QString(place->name);
-          this->country = QString(place->country);
-          this->coordinate = QGeoCoordinate(rad2deg(place->pos.rlat),
-                                            rad2deg(place->pos.rlon));
-        }
-    }
-    inline QString getName() const
-    {
-        return this->name;
-    }    
-    inline QString getCountry() const
-    {
-        return this->country;
-    }     
-    inline QGeoCoordinate getCoord() const
-    {
-        return this->coordinate;
-    }    
+  {
+    if (place)
+      {
+        this->name = QString(place->name);
+        this->country = QString(place->country);
+        this->coordinate = QGeoCoordinate(rad2deg(place->pos.rlat),
+                                          rad2deg(place->pos.rlon));
+      }
+  }
+  inline QString getName() const
+  {
+    return this->name;
+  }    
+  inline QString getCountry() const
+  {
+    return this->country;
+  }     
+  inline QGeoCoordinate getCoord() const
+  {
+    return this->coordinate;
+  }    
 
 signals:
-    void nameChanged();
-    void countryChanged();
-    void coordinateChanged();
+  void nameChanged();
+  void countryChanged();
+  void coordinateChanged();
 
 public slots:
   QString coordinateToString(QGeoCoordinate::CoordinateFormat format = QGeoCoordinate::DegreesMinutesSecondsWithHemisphere) const;
 
 private:
-    QString name, country;
-    QGeoCoordinate coordinate;
+  QString name, country;
+  QGeoCoordinate coordinate;
 };
 
 class GeonamesEntry: public QObject
@@ -140,6 +167,48 @@ private:
     QGeoCoordinate coordinate;
 };
 
+class Track: public QObject
+{
+  Q_OBJECT
+
+public:
+  Q_INVOKABLE inline Track(track_state_t *track = NULL,
+               QObject *parent = NULL) : QObject(parent)
+  {
+    if (track)
+      track_state_ref(track);
+    else
+      track = track_state_new();
+    this->track = track;
+  }
+  inline ~Track()
+  {
+    track_state_unref(track);
+  }
+  inline track_state_t* get() const {
+    return track;
+  }
+  inline QString getSource() const {
+    return source;
+  }
+  Q_INVOKABLE inline bool isEmpty() {
+    return track_length(track) == 0;
+  }
+
+signals:
+  void fileError(const QString &errorMsg);
+
+public slots:
+  void set(track_state_t *track);
+  bool set(const QString &filename);
+  bool toFile(const QString &filename);
+  void addPoint(QGeoPositionInfo &info);
+
+private:
+  track_state_t *track;
+  QString source;
+};
+
 class GpsMap : public QQuickPaintedItem
 {
   Q_OBJECT
@@ -148,7 +217,7 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(Maep::GeonamesEntry *wiki_entry READ getWikiEntry NOTIFY wikiEntryChanged)
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults)
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
-  Q_PROPERTY(bool track_available READ hasTrack NOTIFY trackAvailable)
+  Q_PROPERTY(Maep::Track *track READ getTrack WRITE setTrack NOTIFY trackChanged)
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
 
  public:
@@ -173,7 +242,9 @@ class GpsMap : public QQuickPaintedItem
   inline bool trackCapture() {
     return track_capture;
   }
-  bool hasTrack();
+  inline Maep::Track* getTrack() {
+    return track_current;
+  }
   inline bool screen_rotation() const {
     return screenRotation;
   }
@@ -193,7 +264,7 @@ class GpsMap : public QQuickPaintedItem
   void searchRequest();
   void searchResults();
   void trackCaptureChanged(bool status);
-  void trackAvailable(bool status);
+  void trackChanged(bool available);
   void screenRotationChanged(bool status);
 
  public slots:
@@ -212,9 +283,7 @@ class GpsMap : public QQuickPaintedItem
   void positionUpdate(const QGeoPositionInfo &info);
   void positionLost();
   void setTrackCapture(bool status);
-  void setTrackFromFile(const QString &filename);
-  void exportTrackToFile(const QString &filename);
-  void clearTrack();
+  void setTrack(Maep::Track *track = NULL);
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -232,7 +301,7 @@ class GpsMap : public QQuickPaintedItem
               self->searchRes[index]->getCoord().longitude(), index);
     return self->searchRes[index];
   }
-  void gps_to_track();
+  void gpsToTrack();
 
   bool screenRotation;
   OsmGpsMap *map;
@@ -259,12 +328,11 @@ class GpsMap : public QQuickPaintedItem
 
   /* GPS */
   QGeoPositionInfoSource *gps;
-  bool gps_fix;
-  float gps_lat, gps_lon;
+  QGeoPositionInfo lastGps;
 
   /* Tracks */
   bool track_capture;
-  track_state_t *track_current;
+  Maep::Track *track_current;
 };
 
 class GpsMapCover : public QQuickPaintedItem

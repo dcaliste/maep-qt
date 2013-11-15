@@ -84,8 +84,10 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 {
   bool isDesktop;
 
+  qmlRegisterType<Maep::Conf>("Maep", 1, 0, "Conf");
   qmlRegisterType<Maep::GeonamesPlace>("Maep", 1, 0, "GeonamesPlace");
   qmlRegisterType<Maep::GeonamesEntry>("Maep", 1, 0, "GeonamesEntry");
+  qmlRegisterType<Maep::Track>("Maep", 1, 0, "Track");
   qmlRegisterType<Maep::GpsMap>("Maep", 1, 0, "GpsMap");
   qmlRegisterType<Maep::GpsMapCover>("Maep", 1, 0, "GpsMapCover");
 
