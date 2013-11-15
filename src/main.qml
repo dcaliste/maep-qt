@@ -78,21 +78,25 @@ ApplicationWindow
                     font.pixelSize: Theme.fontSizeSmall
 	            color: Theme.secondaryColor
                     onClicked: { var dialog = pageStack.push(trackopen)
-		                 dialog.accepted.connect(function() { if (dialog.trackFile) { map.setTrackFromFile(dialog.trackFile) } }) }
+		                 dialog.accepted.connect(
+                                     function() {
+                                         if (!dialog.track.isEmpty()) {
+                                             map.setTrack(dialog.track) }
+                                     } ) }
                 }
                 MenuItem {
                     text: "Export track"
-                    visible: map.track_available
+                    visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.secondaryColor
                     //onClicked: pageStack.push(Qt.resolvedUrl("SecondPage.qml"))
                 }
                 MenuItem {
                     text: "Clear track"
-                    visible: map.track_available
+                    visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.secondaryColor
-                    onClicked: map.clearTrack()
+                    onClicked: map.setTrack()
                 }
             }
 	    onMovementStarted: { map.opacity = Theme.highlightBackgroundOpacity }
@@ -375,8 +379,12 @@ ApplicationWindow
 
 	Dialog {
 	    id: trackopen_dialog
-	    property string trackFile
-	    onTrackFileChanged: { accept() }
+	    property Track track: Track { onFileError: { console.log(errorMsg) } }
+            property Conf  conf:  Conf {  }
+            onOpened: { var url = conf.getString("track_path")
+                        if (url.length > 0) {
+                            folderModel.folder = url.substring(0, url.lastIndexOf("/"))
+                        } else { folderModel.folder = StandardPaths.documents } }
 
 	    allowedOrientations: page.allowedOrientations
 	    FolderListModel {
@@ -407,11 +415,14 @@ ApplicationWindow
 			append({"fileName": "My Jolla", "filePath": "file:///home/nemo"})
 		    }
 		}
+                function load(url) {
+                    if (track.set(url)) { trackopen_dialog.accept() }
+                }
             }
 	    Component {
 		id: trackopen_header
 	        Column {
-		    width: parent.width
+		    width: parent ? parent.width : undefined
 	            DialogHeader {
 		        title: "Select a track file"
 	            }
@@ -476,7 +487,7 @@ ApplicationWindow
 		        anchors.right: parent.right
 		        anchors.bottom: parent.bottom
 		    }
-	            onClicked: { fileIsDir ? folderModel.folder = filePath : trackopen_dialog.trackFile = filePath }
+	            onClicked: { fileIsDir ? folderModel.folder = filePath : folderModel.load(filePath) }
 		}
 	    }
 	    VerticalScrollDecorator { flickable: trackopen_list }
