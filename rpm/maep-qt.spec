@@ -43,31 +43,17 @@ GPXView and OSM2Go.
 rm -rf $RPM_BUILD_ROOT
 %setup -q -n %{name}-%{version}
 
-# >> setup
-# << setup
-
 %build
-# >> build pre
-# << build pre
 rm -rf tmp
 mkdir tmp
 cd tmp
 %qmake5 -o Makefile ../src/maep.pro
-
 make %{?jobs:-j%jobs}
-
-# >> build post
-# << build post
 
 %install
 rm -rf %{buildroot}
 cd tmp
-# >> install pre
-# << install pre
 %qmake5_install
-
-# >> install post
-# << install post
 
 %files
 %defattr(-,root,root,-)
@@ -75,5 +61,3 @@ cd tmp
 /usr/share/icons
 /usr/share/%{name}
 /usr/bin
-# >> files
-# << files
