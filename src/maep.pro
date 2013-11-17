@@ -26,10 +26,10 @@ SOURCES += misc.c net_io.c geonames.c search.c track.c icon.c converter.c osm-gp
 target.path = $$PREFIX/bin
 
 desktop.path = $$PREFIX/share/applications
-desktop.files = ../maep.desktop
+desktop.files = ../maep-qt.desktop
 
 icon.path = $$PREFIX/share/icons/hicolor/86x86/apps
-icon.files = ../data/maep.86.png
+icon.files = ../data/maep-qt.png
 
 qml.path = $$DEPLOYMENT_PATH
 qml.files = ../src/main.qml
