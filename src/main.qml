@@ -86,7 +86,7 @@ ApplicationWindow
                 }
                 MenuItem {
                     text: "Export track"
-                    //visible: map.track != undefined
+                    visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.secondaryColor
                     onClicked: pageStack.push(tracksave, { track: map.track })
@@ -142,6 +142,7 @@ ApplicationWindow
         }
         Drawer {
  	    id: drawer
+            z: -1
             anchors.top: header.bottom
             width: page.width
             height: page.height - header.height
