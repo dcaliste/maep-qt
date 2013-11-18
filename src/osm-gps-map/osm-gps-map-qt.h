@@ -301,6 +301,7 @@ class GpsMap : public QQuickPaintedItem
               self->searchRes[index]->getCoord().longitude(), index);
     return self->searchRes[index];
   }
+  bool mapSized();
   void gpsToTrack();
 
   bool screenRotation;

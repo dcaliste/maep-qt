@@ -241,12 +241,19 @@ static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
   widget->update();
 }
 
-void Maep::GpsMap::mapUpdate()
+bool Maep::GpsMap::mapSized()
 {
-  cairo_surface_t *map_surf;
-
   if (width() < 1 || height() < 1)
-    return;
+    return false;
+
+  if (surf && (cairo_image_surface_get_width(surf) != width() &&
+               cairo_image_surface_get_height(surf) != height()))
+    {
+      cairo_surface_destroy(surf);
+      cairo_destroy(cr);
+      delete(img);
+      surf = NULL;
+    }
 
   if (!surf)
     {
@@ -257,10 +264,17 @@ void Maep::GpsMap::mapUpdate()
                        cairo_image_surface_get_height(surf),
                        QImage::Format_ARGB32);
       osm_gps_map_set_viewport(map, width(), height());
+      return true;
     }
+  return false;
+}
 
-  cairo_set_source_rgb(cr, 1., 1., 1.);
-  cairo_paint(cr);
+void Maep::GpsMap::mapUpdate()
+{
+  cairo_surface_t *map_surf;
+
+  // cairo_set_source_rgb(cr, 1., 1., 1.);
+  // cairo_paint(cr);
 
   map_surf = osm_gps_map_get_surface(map);
   cairo_set_source_surface(cr, map_surf,
@@ -270,7 +284,7 @@ void Maep::GpsMap::mapUpdate()
   cairo_surface_destroy(map_surf);
 
 #ifdef ENABLE_OSD
-  osd->draw (osd, cr);
+  osd->draw(osd, cr);
 #endif
 
   emit mapChanged();
@@ -296,7 +310,7 @@ void Maep::GpsMap::paintTo(QPainter *painter, int width, int height)
 
 void Maep::GpsMap::paint(QPainter *painter)
 {
-  if (!img)
+  if (mapSized())
     mapUpdate();
   paintTo(painter, width(), height());
 }
