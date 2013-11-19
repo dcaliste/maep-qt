@@ -606,6 +606,8 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
 
   if (track_current && track_current->parent() == this)
     delete(track_current);
+  g_message("Reparenting.");
+  track->setParent(this);
   track_current = track;
 
   if (track && track->get())

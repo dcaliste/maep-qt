@@ -385,7 +385,7 @@ track_state_t *track_read(const char *filename, gboolean autosave, GError **erro
   if((doc = xmlReadFile(filename, NULL, 0)) == NULL) {
     xmlErrorPtr	errP = xmlGetLastError();
     g_set_error(error, MAEP_TRACK_ERROR, MAEP_TRACK_ERROR_XML,
-                "While parsing '%s':\n%s.", filename, errP->message);
+                "Wrong track file:\n%s", g_strstrip(errP->message));
     return NULL;
   }
 
@@ -393,7 +393,7 @@ track_state_t *track_read(const char *filename, gboolean autosave, GError **erro
 
   if(!track_state || !track_state->track) {
     g_set_error(error, MAEP_TRACK_ERROR, MAEP_TRACK_ERROR_EMPTY,
-                "While parsing '%s':\n%s.", filename, "track was empty/invalid track");
+                "%s", "Track was empty or invalid");
     return NULL;
   }
 
@@ -679,6 +679,4 @@ void track_point_new(track_state_t *track_state,
   } else
     /* create new chain */
     point = seg->track_point = new_point;
-
-  return track_state;
 }
