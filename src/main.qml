@@ -76,7 +76,7 @@ ApplicationWindow
                 MenuItem {
                     text: "Import track"
                     font.pixelSize: Theme.fontSizeSmall
-	            color: Theme.secondaryColor
+	            color: Theme.secondaryHighlightColor
                     onClicked: { var dialog = pageStack.push(trackopen)
 		                 dialog.accepted.connect(
                                      function() {
@@ -88,14 +88,14 @@ ApplicationWindow
                     text: "Export track"
                     visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.secondaryColor
+                    color: Theme.secondaryHighlightColor
                     onClicked: pageStack.push(tracksave, { track: map.track })
                 }
                 MenuItem {
                     text: "Clear track"
                     visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.secondaryColor
+                    color: Theme.secondaryHighlightColor
                     onClicked: map.setTrack()
                 }
 		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
@@ -537,8 +537,8 @@ ApplicationWindow
 	    property Conf  conf:  Conf {  }
 	    
 	    function load(url) {
-                    if (track.set(url)) { accept() }
-                }
+                if (track.set(url)) { accept() }
+            }
 	    onOpened: { var url = conf.getString("track_path")
                         if (url.length > 0) {
                             chooser.folder = url.substring(0, url.lastIndexOf("/"))
