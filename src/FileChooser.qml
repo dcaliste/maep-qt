@@ -24,6 +24,8 @@ Item {
     property Component title: chooser_title
     property alias folder: folderModel.folder
     property string selection
+    property string entry
+    property bool saveMode: false
 
     FolderListModel {
 	id: folderModel
@@ -41,7 +43,7 @@ Item {
 	    if (url == "file:///home") {
 		return "file:///media"
 	    } else if (url == "file:///") {
-		return ""
+		return "file:///home/nemo"
 	    } else {
 		return url
 	    }
@@ -63,6 +65,33 @@ Item {
 	Column {
 	    width: parent ? parent.width: undefined
 	    Loader { sourceComponent: chooser_item.title; anchors.right: parent.right }
+	    Row {
+		width: parent.width
+	        TextField {
+		    id: chooser_entry
+		    width: parent.width - chooser_adddir.width
+		    placeholderText: "enter a new file name"
+		    validator: RegExpValidator { regExp: /^[^/]+$/ }
+		    inputMethodHints: Qt.ImhNoPredictiveText
+		    EnterKey.text: "save"
+		    EnterKey.onClicked: { if (acceptableInput) { chooser_item.entry = folderModel.folder + "/" + text } }
+	        }
+		IconButton {
+		    id: chooser_adddir
+		    icon.source: "image://theme/icon-m-folder"
+		    enabled: chooser_entry.acceptableInput
+		    onClicked: {  }
+		}
+		visible: chooser_item.saveMode
+	    }
+	    Label {
+		width: parent.width
+		visible: chooser_item.saveMode
+		text: "or select an existing one"
+		font.pixelSize: Theme.fontSizeSmall
+		color: Theme.secondaryColor
+		horizontalAlignment: Text.AlignHCenter
+	    }
 	    Row {
 		id: chooser_head
 		height: Theme.itemSizeSmall
@@ -107,8 +136,8 @@ Item {
 	    contentHeight: Theme.itemSizeSmall * 0.75
 	    Image {
 		id: chooser_icon
-		source: "image://theme/icon-m-folder"
-		visible: fileIsDir
+		source: fileIsDir ? "image://theme/icon-m-folder" : "image://theme/icon-m-document"
+		//visible: fileIsDir
 	    }
 	    Label {
                 text: fileName
