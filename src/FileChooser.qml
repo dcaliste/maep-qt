@@ -2,15 +2,9 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Qt.labs.folderlistmodel 1.0
 
-Dialog {
-id: trackopen_dialog
-property string title
-property string selection
-}
-
-/*	Dialog {
-	    id: trackopen_dialog
-	    property string title
+	Item {
+	    id: chooser_item
+	    property Component title: chooser_title
 	    property alias folder: folderModel.folder
 	    property string selection
 
@@ -44,43 +38,45 @@ property string selection
 		}
             }
 	    Component {
-		id: trackopen_header
+		id: chooser_title
+		Label { text: "Select a file" }
+	    }
+	    Component {
+		id: chooser_header
 	        Column {
-		    width: parent ? parent.width : undefined
-	            DialogHeader {
-		        title: trackopen_dialog.title
-	            }
+		    width: parent ? parent.width: undefined
+		    Loader { sourceComponent: chooser_item.title; anchors.right: parent.right }
 	            Row {
-		        id: trackopen_head
+		        id: chooser_head
 		        height: Theme.itemSizeSmall
 		        width: parent.width
 		        IconButton {
-		            id: trackopen_back
+		            id: chooser_back
 		            icon.source: "image://theme/icon-header-back"
 		            enabled: folderModel.dirname().length > 0
 		            onClicked: { folderModel.navigateUp() }
 		        }
 		        Button {
-		            width: parent.width - trackopen_back.width - trackopen_options.width
+		            width: parent.width - chooser_back.width - chooser_options.width
 		            text: folderModel.basename()
 		            visible: folderModel.dirname().length > 0
 		            enabled: false
 		        }
 		        IconButton {
-		            id: trackopen_options
+		            id: chooser_options
 		            icon.source: "image://theme/icon-m-levels"
-		            onClicked: { trackopen_controls.open = !trackopen_controls.open }
+		            onClicked: { chooser_controls.open = !chooser_controls.open }
 		        }
 	            }
 	        }
 	    }
 	    SilicaListView {
-		id: trackopen_list
-		header: trackopen_header
+		id: chooser_list
+		header: chooser_header
 		anchors {
 		    fill: parent
-		    rightMargin: page.isPortrait ? 0 : trackopen_controls.visibleSize
-                    bottomMargin: page.isPortrait ? trackopen_controls.visibleSize + Theme.paddingLarge: 0
+		    rightMargin: page.isPortrait ? 0 : chooser_controls.visibleSize
+                    bottomMargin: page.isPortrait ? chooser_controls.visibleSize + Theme.paddingLarge: 0
 		}
 		model: folderModel
 		Formatter {
@@ -93,7 +89,7 @@ property string selection
 		delegate: ListItem {
 		    contentHeight: Theme.itemSizeSmall * 0.75
 		    Image {
-			id: trackopen_icon
+			id: chooser_icon
 			source: "image://theme/icon-m-folder"
 			visible: fileIsDir
 		    }
@@ -101,7 +97,7 @@ property string selection
                         text: fileName
 		        font.pixelSize: Theme.fontSizeSmall
 		        anchors.fill: parent
-			anchors.leftMargin: trackopen_icon.width + Theme.paddingSmall
+			anchors.leftMargin: chooser_icon.width + Theme.paddingSmall
 		        color: highlighted ? Theme.highlightColor : Theme.primaryColor
 		    }
 		    Label {
@@ -114,9 +110,9 @@ property string selection
 	            onClicked: { fileIsDir ? folderModel.folder = filePath : selection = filePath }
 		}
 	    }
-	    VerticalScrollDecorator { flickable: trackopen_list }
+	    VerticalScrollDecorator { flickable: chooser_list }
 	    DockedPanel {
-        	id: trackopen_controls
+        	id: chooser_controls
 		open: false
 
         	width: page.isPortrait ? parent.width : Theme.itemSizeSmall
@@ -144,4 +140,4 @@ property string selection
 		    }
 		}
             }
-	}*/
+	}
