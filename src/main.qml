@@ -78,11 +78,11 @@ ApplicationWindow
                     font.pixelSize: Theme.fontSizeSmall
 	            color: Theme.secondaryColor
                     onClicked: { var dialog = pageStack.push(trackopen)
-		                 /*dialog.accepted.connect(
+		                 dialog.accepted.connect(
                                      function() {
                                          if (!dialog.track.isEmpty()) {
                                              map.setTrack(dialog.track) }
-                                     } )*/ }
+                                     } ) }
                 }
                 MenuItem {
                     text: "Export track"
@@ -98,9 +98,8 @@ ApplicationWindow
                     color: Theme.secondaryColor
                     onClicked: map.setTrack()
                 }
+		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
             }
-	    onMovementStarted: { map.opacity = Theme.highlightBackgroundOpacity }
-            onMovementEnded: { map.opacity = 1 }
 
             // Tell SilicaFlickable the height of its content.
             width: page.width
@@ -532,18 +531,27 @@ ApplicationWindow
     Component {
 	id: trackopen
 
-	Item {
-	    property Track track: Track { onFileError: { console.log(errorMsg) } }
+	Dialog {
+	    id: trackopen_dialog
+	    property Track track: Track { onFileError: { console.log(errorMsg); banner.text = errorMsg; banner.active = true } }
 	    property Conf  conf:  Conf {  }
 	    
 	    function load(url) {
-                    if (track.set(url)) { trackopen_dialog.accept() }
+                    if (track.set(url)) { accept() }
                 }
-
+	    onOpened: { var url = conf.getString("track_path")
+                        if (url.length > 0) {
+                            chooser.folder = url.substring(0, url.lastIndexOf("/"))
+                        } else { chooser.folder = StandardPaths.documents } }
 	    FileChooser {
-		id: trackopen_dialog
-		title: "Select a track file"
+		id: chooser
+		anchors.fill: parent
+		title: DialogHeader { title: "Select a track file"; dialog: trackopen_dialog }
 		onSelectionChanged: { load(selection) }
+	    }
+	    Notification {
+		id: banner
+		anchors.fill: parent
 	    }
 	}
     }
