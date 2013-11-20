@@ -19,6 +19,7 @@
 #define OSM_GPS_MAP_QT_H
 
 #include <QQuickPaintedItem>
+#include <QFile>
 #include <QImage>
 #include <QString>
 #include <QQmlListProperty>
@@ -215,10 +216,18 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
   Q_PROPERTY(Maep::GeonamesEntry *wiki_entry READ getWikiEntry NOTIFY wikiEntryChanged)
+
   Q_PROPERTY(QQmlListProperty<Maep::GeonamesPlace> search_results READ getSearchResults)
+
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
   Q_PROPERTY(Maep::Track *track READ getTrack WRITE setTrack NOTIFY trackChanged)
+
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
+
+  Q_PROPERTY(QString version READ version)
+  Q_PROPERTY(QString compilation_date READ compilation_date)
+  Q_PROPERTY(QString authors READ authors)
+  Q_PROPERTY(QString license READ license)
 
  public:
   GpsMap(QQuickItem *parent = 0);
@@ -247,6 +256,30 @@ class GpsMap : public QQuickPaintedItem
   }
   inline bool screen_rotation() const {
     return screenRotation;
+  }
+  inline QString version() const {
+    return QString(VERSION);
+  }
+  inline QString compilation_date() const {
+    return QString(__DATE__ " " __TIME__);
+  }
+  inline QString authors() const {
+    QFile file(DEPLOYMENT_PATH"/AUTHORS");
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+      return QString("File AUTHORS not found");
+
+    QTextStream in(&file);
+    return in.readAll();
+  }
+  inline QString license() const {
+    QFile file(DEPLOYMENT_PATH"/COPYING");
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+      return QString("File COPYING not found");
+
+    QTextStream in(&file);
+    return in.readAll();
   }
 
  protected:
