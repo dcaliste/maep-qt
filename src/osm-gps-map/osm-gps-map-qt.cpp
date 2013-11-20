@@ -606,16 +606,20 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
 
   if (track_current && track_current->parent() == this)
     delete(track_current);
-  g_message("Reparenting.");
-  track->setParent(this);
   track_current = track;
 
-  if (track && track->get())
-    osm_gps_map_add_track(map, track->get());
+  if (track)
+    {
+      g_message("Reparenting.");
+      track->setParent(this);
 
-  if (track && !track->getSource().isEmpty())
-    gconf_set_string(GCONF_KEY_TRACK_PATH, track->getSource().toLocal8Bit().data());
-  
+      if (track->get())
+        osm_gps_map_add_track(map, track->get());
+
+      if (!track->getSource().isEmpty())
+        gconf_set_string(GCONF_KEY_TRACK_PATH, track->getSource().toLocal8Bit().data());
+    }
+
   emit trackChanged(track != NULL);
 }
 void Maep::GpsMap::gpsToTrack()
