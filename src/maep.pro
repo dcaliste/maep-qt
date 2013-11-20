@@ -12,9 +12,9 @@ isEmpty(PREFIX)
 }
 
 DEPLOYMENT_PATH = $$PREFIX/share/$$TARGET
-DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}/\"\\\"\"
+DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += APP=\"\\\"\"maep\"\\\"\"
-DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}/\"\\\"\"
+DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += SAILFISH
 DEFINES += VERSION=\"\\\"\"1.3.7\"\\\"\"
 
@@ -35,6 +35,6 @@ qml.path = $$DEPLOYMENT_PATH
 qml.files = ../src/main.qml
 
 resources.path = $$DEPLOYMENT_PATH
-resources.files = ../data/wikipedia_w.32.png
+resources.files = ../data/wikipedia_w.32.png ../data/AUTHORS ../data/COPYING
 
 INSTALLS += target desktop icon qml resources

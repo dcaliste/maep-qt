@@ -434,62 +434,14 @@ ApplicationWindow
 
     Component {
         id: aboutpage
-        
         Page {
             anchors.fill: parent
-            Column {
+            About {
                 anchors.fill: parent
-                PageHeader { title: "About Mæp" }
-                Image {
-                    source: "file:///usr/share/icons/hicolor/86x86/apps/maep-qt.png"
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-                Label {
-                    width: parent.width
-                    text: "A small and fast tile map"
-                    color: Theme.secondaryHighlightColor
-                    font.pixelSize: Theme.fontSizeMedium
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.bottomMargin: Theme.paddingLarge
-                }
-                Label {
-                    width: parent.width
-                    text: "Version 1.3.7"
-                    color: Theme.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Label {
-                    width: parent.width
-                    text: "November 19 2013 18:18"
-                    color: Theme.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Label {
-                    width: parent.width
-                    text: "Copyright 2009-2013"
-                    color: Theme.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.topMargin: Theme.paddingSmall
-                }
-                Label {
-                    text: "Authors"
-                    color: Theme.secondaryHighlightColor
-                    font.pixelSize: Theme.fontSizeMedium
-                    anchors.topMargin: Theme.paddingSmall
-                }
-                Label {
-                    text: "Main developer:
-Till Harbaum <till@harbaum.org>
-
-Original osm-gps-map widget by:
-John Stowers <john.stowers@gmail.com>
-Marcus Bauer <marcus.bauer@gmail.com>"
-                    color: Theme.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                }
+                version: map.version
+                date: map.compilation_date
+                authors: map.authors
+                license: map.license
             }
         }
     }

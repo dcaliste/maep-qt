@@ -62,7 +62,7 @@ QQuickView *Maep::createView(const QString &file)
           }
         else
           // Otherwise use deployement path as is
-          view->setSource(QUrl::fromLocalFile(path + file));
+          view->setSource(QUrl::fromLocalFile(path + QDir::separator() + file));
       }
     return view;
 }
