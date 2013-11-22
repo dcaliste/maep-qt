@@ -437,7 +437,7 @@ my_log_handler (const gchar * log_domain, GLogLevelFlags log_level, const gchar 
 }
 
 static float
-osm_gps_map_get_scale_at_point(int zoom, float rlat, float rlon)
+osm_gps_map_get_scale_at_lat(int zoom, float rlat)
 {
     /* world at zoom 1 == 512 pixels */
     return cos(rlat) * M_PI * OSM_EQ_RADIUS / (1<<(7+zoom));
@@ -448,16 +448,9 @@ static void
 osm_gps_map_free_trip (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
-    track_point_t *point;
 
     if (priv->trip_history) {
-        point = priv->trip_history->track_point;
-        while (point)
-            {
-                point = point->next;
-                g_free(point);
-            }
-        g_free(priv->trip_history);
+        track_seg_free(priv->trip_history);
         priv->trip_history = NULL;
     }
 }
@@ -1164,7 +1157,7 @@ osm_gps_map_print_segment (OsmGpsMap *map, track_seg_t *track)
 {
     OsmGpsMapPrivate *priv = map->priv;
 
-    track_point_t *list;
+    guint i;
     int x,y;
     int min_x = 0,min_y = 0,max_x = 0,max_y = 0;
     int lw = priv->ui_gps_track_width;
@@ -1179,25 +1172,25 @@ osm_gps_map_print_segment (OsmGpsMap *map, track_seg_t *track)
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
-    for(list = track->track_point; list != NULL; list = list->next)
-    {
-        coord_t *tp = &(list->coord);
+    for(i = 0; i < track->track_points->len; i++)
+        {
+            coord_t *tp = &(g_array_index(track->track_points, track_point_t, i).coord);
 
-        x = lon2pixel(priv->map_zoom, tp->rlon) - map_x0;
-        y = lat2pixel(priv->map_zoom, tp->rlat) - map_y0;
+            x = lon2pixel(priv->map_zoom, tp->rlon) - map_x0;
+            y = lat2pixel(priv->map_zoom, tp->rlat) - map_y0;
 
-        // first time through loop
-        if (list == track->track_point) {
-            cairo_move_to(priv->cr, x, y);
+            // first time through loop
+            if (i == 0) {
+                cairo_move_to(priv->cr, x, y);
+            }
+
+            cairo_line_to(priv->cr, x, y);
+
+            max_x = MAX(x,max_x);
+            min_x = MIN(x,min_x);
+            max_y = MAX(y,max_y);
+            min_y = MIN(y,min_y);
         }
-
-        cairo_line_to(priv->cr, x, y);
-
-        max_x = MAX(x,max_x);
-        min_x = MIN(x,min_x);
-        max_y = MAX(y,max_y);
-        min_y = MIN(y,min_y);
-    }
     cairo_stroke(priv->cr);
     rect.x = min_x - lw;
     rect.y = min_y - lw;
@@ -2313,34 +2306,18 @@ osm_gps_map_get_bbox (OsmGpsMap *map, coord_t *pt1, coord_t *pt2)
     }
 }
 
-void
-osm_gps_map_set_mapcenter (OsmGpsMap *map, float latitude, float longitude, int zoom)
+static void _update_screen_pos(OsmGpsMap *map)
 {
-    osm_gps_map_set_center (map, latitude, longitude);
-    osm_gps_map_set_zoom (map, zoom);
-}
-
-void
-osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
-{
-    int pixel_x, pixel_y;
     OsmGpsMapPrivate *priv;
 
     g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
+    
+    priv->map_x = lon2pixel(priv->map_zoom, priv->center_rlon) - priv->viewport_width / 2;
+    priv->map_y = lat2pixel(priv->map_zoom, priv->center_rlat) - priv->viewport_height / 2;
 
-    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-
-    priv->center_rlat = deg2rad(latitude);
-    priv->center_rlon = deg2rad(longitude);
-    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_LATITUDE]);
-
-    // pixel_x,y, offsets
-    pixel_x = lon2pixel(priv->map_zoom, priv->center_rlon);
-    pixel_y = lat2pixel(priv->map_zoom, priv->center_rlat);
-
-    priv->map_x = pixel_x - priv->viewport_width/2;
-    priv->map_y = pixel_y - priv->viewport_height/2;
+    /* g_debug("Zoom changed from %d to %d factor:%f x:%d", */
+    /*         zoom_old, priv->map_zoom, factor, priv->map_x); */
 
     if (!priv->idle_map_redraw)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
@@ -2349,43 +2326,59 @@ osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
     g_signal_emit_by_name(map, "changed");
 }
 
+static gboolean _set_center(OsmGpsMap *map, float rlat, float rlon)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), FALSE);
+
+    if (rlat == map->priv->center_rlat && rlon == map->priv->center_rlon)
+        return FALSE;
+    
+    map->priv->center_rlat = rlat;
+    map->priv->center_rlon = rlon;
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_LATITUDE]);
+
+    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+
+    return TRUE;
+}
+
+static gboolean _set_zoom(OsmGpsMap *map, int zoom)
+{
+    int zoom_old;
+    OsmGpsMapPrivate *priv;
+
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), FALSE);
+    priv = map->priv;
+
+    if (zoom == priv->map_zoom)
+        return FALSE;
+
+    zoom_old = priv->map_zoom;
+    //constrain zoom min_zoom -> max_zoom
+    priv->map_zoom = CLAMP(zoom, priv->min_zoom, priv->max_zoom);
+    /* adjust gps precision indicator */
+    priv->ui_gps_point_outer_radius *= pow(2, priv->map_zoom-zoom_old);
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_ZOOM]);
+
+    return TRUE;
+}
+
+void
+osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
+{
+    if (_set_center(map, deg2rad(latitude), deg2rad(longitude)))
+        _update_screen_pos(map);
+}
+
 int 
 osm_gps_map_set_zoom (OsmGpsMap *map, int zoom)
 {
-    int zoom_old;
-    double factor = 0.0;
-    int width_center, height_center;
-    OsmGpsMapPrivate *priv;
-
     g_return_val_if_fail (OSM_IS_GPS_MAP (map), 0);
-    priv = map->priv;
 
-    if (zoom != priv->map_zoom)
-    {
-        width_center  = priv->viewport_width / 2;
-        height_center = priv->viewport_height / 2;
+    if (_set_zoom(map, zoom))
+        _update_screen_pos(map);
 
-        zoom_old = priv->map_zoom;
-        //constrain zoom min_zoom -> max_zoom
-        priv->map_zoom = CLAMP(zoom, priv->min_zoom, priv->max_zoom);
-
-        priv->map_x = lon2pixel(priv->map_zoom, priv->center_rlon) - width_center;
-        priv->map_y = lat2pixel(priv->map_zoom, priv->center_rlat) - height_center;
-
-        factor = pow(2, priv->map_zoom-zoom_old);
-        g_debug("Zoom changed from %d to %d factor:%f x:%d",
-                zoom_old, priv->map_zoom, factor, priv->map_x);
-
-        /* adjust gps precision indicator */
-        priv->ui_gps_point_outer_radius *= factor;
-
-        if (!priv->idle_map_redraw)
-            priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-
-        g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_ZOOM]);
-        g_signal_emit_by_name(map, "changed");
-    }
-    return priv->map_zoom;
+    return map->priv->map_zoom;
 }
 
 int
@@ -2400,6 +2393,55 @@ osm_gps_map_zoom_out (OsmGpsMap *map)
 {
     g_return_val_if_fail (OSM_IS_GPS_MAP (map), 0);
     return osm_gps_map_set_zoom(map, map->priv->map_zoom-1);
+}
+
+void
+osm_gps_map_set_mapcenter (OsmGpsMap *map, float latitude, float longitude, int zoom)
+{
+    gboolean update;
+
+    update = _set_center(map, deg2rad(latitude), deg2rad(longitude));
+    update = _set_zoom(map, zoom) || update;
+    if (update)
+        _update_screen_pos(map);
+}
+
+void
+osm_gps_map_adjust_to (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right)
+{
+    gboolean update;
+    float dlon, lon0, lat0;
+    int zoom_lon, zoom_lat, size;
+
+    g_return_if_fail(OSM_IS_GPS_MAP (map) && top_left && bottom_right);
+
+    dlon = bottom_right->rlon - top_left->rlon;
+    lon0 = (top_left->rlon + bottom_right->rlon) * 0.5f;
+    if (bottom_right->rlon < top_left->rlon) {
+        dlon += 2 * M_PI;
+        lon0 += (lon0 > 0)?-M_PI:M_PI;
+    }
+    lat0 = (top_left->rlat + bottom_right->rlat) * 0.5f;
+    g_message("Variations are dlat = %g x dlon = %g",
+              top_left->rlat - bottom_right->rlat, dlon);
+    g_message("Center is      lat0 = %g x lon0 = %g", lat0, lon0);
+
+    size = (int)(2. * M_PI * map->priv->viewport_width / TILESIZE / dlon);
+    g_message("Fit lon zoom to %d", size);
+    for (zoom_lon = 0; size > 1; zoom_lon++)
+        size = (size >> 1);
+
+    size = (int)(2. * M_PI * map->priv->viewport_height / TILESIZE /
+                 (atanh(sin(bottom_right->rlat)) - atanh(sin(top_left->rlat))));
+    g_message("Fit lat zoom to %d", size);
+    for (zoom_lat = 0; size > 1; zoom_lat++)
+        size = (size >> 1);
+
+    g_message("Set fitting zoom from %d x %d", zoom_lat, zoom_lon);
+    update = _set_center(map, lat0, lon0);
+    update = _set_zoom(map, MIN(zoom_lat, zoom_lon)) || update;
+    if (update)
+        _update_screen_pos(map);
 }
 
 void
@@ -2518,12 +2560,11 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     //If trip marker add to list of gps points.
     if (priv->record_trip_history) {
         if (!priv->trip_history)
-            priv->trip_history = g_new0(track_seg_t, 1);
-        track_point_t *tp = g_new0(track_point_t,1);
-        tp->coord.rlat = priv->gps->rlat;
-        tp->coord.rlon = priv->gps->rlon;
-        tp->next = priv->trip_history->track_point;
-        priv->trip_history->track_point = tp;
+            priv->trip_history = track_seg_new();
+        track_point_t tp;
+        tp.coord.rlat = priv->gps->rlat;
+        tp.coord.rlon = priv->gps->rlon;
+        g_array_append_vals(priv->trip_history->track_points, &tp, 1);
     }
 
     // dont draw anything if we are dragging
@@ -2643,7 +2684,7 @@ osm_gps_map_get_scale(OsmGpsMap *map)
     g_return_val_if_fail (OSM_IS_GPS_MAP (map), OSM_GPS_MAP_INVALID);
     priv = map->priv;
 
-    return osm_gps_map_get_scale_at_point(priv->map_zoom, priv->center_rlat, priv->center_rlon);
+    return osm_gps_map_get_scale_at_lat(priv->map_zoom, priv->center_rlat);
 }
 
 cairo_surface_t*

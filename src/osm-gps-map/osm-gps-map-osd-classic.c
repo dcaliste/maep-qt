@@ -2331,10 +2331,8 @@ osm_gps_map_osd_classic_init(OsmGpsMap *map)
                      G_CALLBACK(onZoom), osd_classic);
 #endif
 #ifdef OSD_COORDINATES
-    g_signal_connect(G_OBJECT(map), "notify::map-x",
+    g_signal_connect(G_OBJECT(map), "notify::latitude",
                      G_CALLBACK(onLatLon), osd_classic);
-    g_signal_connect(G_OBJECT(map), "notify::map-y",
-                     G_CALLBACK(onLatLon), osd_classic);    
 #endif
     return osd_classic; 
 }

@@ -613,14 +613,23 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       g_message("Reparenting.");
       track->setParent(this);
 
-      if (track->get())
-        osm_gps_map_add_track(map, track->get());
-
       if (!track->getSource().isEmpty())
         gconf_set_string(GCONF_KEY_TRACK_PATH, track->getSource().toLocal8Bit().data());
     }
 
   emit trackChanged(track != NULL);
+
+  if (track && track->get())
+    {
+      coord_t top_left, bottom_right;
+
+      /* Set track for map. */
+      osm_gps_map_add_track(map, track->get());
+
+      /* Adjust map zoom and location according to track bounding box. */
+      track_bounding_box(track->get(), &top_left, &bottom_right);
+      osm_gps_map_adjust_to(map, &top_left, &bottom_right);
+    }
 }
 void Maep::GpsMap::gpsToTrack()
 {

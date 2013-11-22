@@ -42,12 +42,13 @@ typedef struct track_point_s {
   float hr;          // heart rate
   float cad;         // cadence
   time_t time;
-  struct track_point_s *next;
+  /* struct track_point_s *next; */
 } track_point_t;
 
 /* a segment is a series of points */
 typedef struct track_seg_s {
-  track_point_t *track_point;
+  GArray *track_points;
+  /* track_point_t *track_point; */
   struct track_seg_s *next;
 } track_seg_t;
 
@@ -61,10 +62,18 @@ typedef struct track_s {
 /* the state of the track handler */
 typedef struct {
   track_t *track;
+
+  /* The currently edited segment, or NULL if not any. */
   track_seg_t *current_seg;
+
+  /* Track need to be saved when dirty. */
   gboolean dirty;
   guint timer_handler;
 
+  /* Bounding box of the track. */
+  coord_t bb_top_left, bb_bottom_right;
+
+  /* Ref counted object. */
   guint ref_count;
 } track_state_t;
 
@@ -75,6 +84,9 @@ enum {
   MAEP_TRACK_ERROR_XML,
   MAEP_TRACK_ERROR_EMPTY
 };
+
+track_seg_t* track_seg_new();
+void track_seg_free(track_seg_t *seg);
 
 track_state_t *track_state_new();
 
@@ -91,6 +103,8 @@ void track_point_new(track_state_t *track_state,
 
 int track_contents(track_state_t *track_state);
 int track_length(track_state_t *track_state);
+void track_bounding_box(track_state_t *track_state,
+                        coord_t *top_left, coord_t *bottom_right);
 
 G_END_DECLS
 
