@@ -31,7 +31,7 @@ BuildRequires: pkgconfig(libsoup-2.4)
 BuildRequires: pkgconfig(gconf-2.0)
 BuildRequires: pkgconfig(libxml-2.0)
 BuildRequires: pkgconfig(libcurl)
-
+BuildRequires: libjpeg-turbo-devel
 
 %description
 Maep is a tile based map utility for services like OpenStreetMap, Google maps
