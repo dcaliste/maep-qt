@@ -700,7 +700,7 @@ static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *
     GError *error;
 
     if (!strcmp(ext, "png")) {
-        cairo_image_surface_create_from_png(filename);
+        surf = cairo_image_surface_create_from_png(filename);
     } else {
         error = NULL;
         surf = maep_loader_jpeg_from_file(filename, &error);
@@ -715,7 +715,7 @@ static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *
 static cairo_surface_t* osm_gps_map_from_mem(const unsigned char *buffer,
                                              size_t len, const char *ext)
 {
-    cairo_surface_t *surf;
+    cairo_surface_t *surf = NULL;
     GError *error;
 
     if (!strcmp(ext, "png")) {
@@ -795,7 +795,7 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
                 cr_surf = osm_gps_map_from_mem(MSG_RESPONSE_BODY(msg),
                                                MSG_RESPONSE_LEN(msg),
                                                priv->image_format);
-            if (cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
+            if (cr_surf && cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
                 {
                     OsmCachedTile *tile = g_slice_new (OsmCachedTile);
                     tile->cr_surf = cr_surf;
@@ -942,7 +942,7 @@ osm_gps_map_load_cached_tile (OsmGpsMap *map, int zoom, int x, int y)
     else
     {
         cr_surf = osm_gps_map_from_file(filename, priv->image_format);
-        if (cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
+        if (cr_surf && cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
         {
             tile = g_slice_new (OsmCachedTile);
             tile->cr_surf = cr_surf;
