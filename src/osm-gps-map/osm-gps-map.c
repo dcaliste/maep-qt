@@ -37,6 +37,7 @@
 #include <libsoup/soup.h>
 #include <cairo.h>
 
+#include "img_loader.h"
 #include "converter.h"
 #include "osm-gps-map-types.h"
 #include "osm-gps-map.h"
@@ -693,6 +694,48 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
               modulo, area_x, area_y);
 }
 
+static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *ext)
+{
+    cairo_surface_t *surf;
+    GError *error;
+
+    if (!strcmp(ext, "png")) {
+        cairo_image_surface_create_from_png(filename);
+    } else {
+        error = NULL;
+        surf = maep_loader_jpeg_from_file(filename, &error);
+        if (error) {
+            g_warning("%s", error->message);
+            g_error_free(error);
+        }
+    }
+
+    return surf;
+}
+static cairo_surface_t* osm_gps_map_from_mem(const unsigned char *buffer,
+                                             size_t len, const char *ext)
+{
+    cairo_surface_t *surf;
+    GError *error;
+
+    if (!strcmp(ext, "png")) {
+        g_warning("PNG load from memory not implemented!");
+    } else {
+        error = NULL;
+#if JPEG_LIB_VERSION >= 80
+        surf = maep_loader_jpeg_from_mem(buffer, len, &error);
+        if (error) {
+            g_warning("%s", error->message);
+            g_error_free(error);
+        }
+#else
+        g_warning("JPEG load from memory not available!");
+#endif
+    }
+
+    return surf;
+}
+
 /* libsoup-2.2 and libsoup-2.4 use different ways to store the body data */
 #if USE_LIBSOUP22
 #define  soup_message_headers_append(a,b,c) soup_message_add_header(a,b,c)
@@ -747,24 +790,24 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
         if (dl->redraw)
         {
             if (priv->cache_dir && file_saved)
-            {
-                cr_surf = cairo_image_surface_create_from_png (dl->filename);
-                if (cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
-                    {
-                        OsmCachedTile *tile = g_slice_new (OsmCachedTile);
-                        tile->cr_surf = cr_surf;
-                        tile->redraw_cycle = priv->redraw_cycle;
-                        /* if the tile is already in the cache (it could be one
-                         * rendered from another zoom level), it will be
-                         * overwritten */
-                        g_hash_table_insert (priv->tile_cache, dl->filename, tile);
-                        /* NULL-ify dl->filename so that it won't be freed, as
-                         * we are using it as a key in the hash table */
-                        dl->filename = NULL;
-                    }
-            }
+                cr_surf = osm_gps_map_from_file(dl->filename, priv->image_format);
             else
-                g_warning("Load from memory not implemented.");
+                cr_surf = osm_gps_map_from_mem(MSG_RESPONSE_BODY(msg),
+                                               MSG_RESPONSE_LEN(msg),
+                                               priv->image_format);
+            if (cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
+                {
+                    OsmCachedTile *tile = g_slice_new (OsmCachedTile);
+                    tile->cr_surf = cr_surf;
+                    tile->redraw_cycle = priv->redraw_cycle;
+                    /* if the tile is already in the cache (it could be one
+                     * rendered from another zoom level), it will be
+                     * overwritten */
+                    g_hash_table_insert (priv->tile_cache, dl->filename, tile);
+                    /* NULL-ify dl->filename so that it won't be freed, as
+                     * we are using it as a key in the hash table */
+                    dl->filename = NULL;
+                }
             if (!priv->idle_map_redraw)
                 priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
         }
@@ -898,7 +941,7 @@ osm_gps_map_load_cached_tile (OsmGpsMap *map, int zoom, int x, int y)
     }
     else
     {
-        cr_surf = cairo_image_surface_create_from_png (filename);
+        cr_surf = osm_gps_map_from_file(filename, priv->image_format);
         if (cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
         {
             tile = g_slice_new (OsmCachedTile);
