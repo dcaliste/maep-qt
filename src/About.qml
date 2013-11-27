@@ -35,6 +35,10 @@ SilicaFlickable {
             text: "License"
             onClicked: { viewable = "license" }
         }
+        MenuItem {
+            text: "Miscelaneous"
+            onClicked: { viewable = "info" }
+        }
     }
 
     contentHeight: childrenRect.height
@@ -115,18 +119,90 @@ SilicaFlickable {
 	    anchors.top: lbl_title_license.bottom
         }
     }
+    Item {
+        id: item_info
+        opacity: 0
+        anchors.top: copyright.bottom
+	width: page.width
+        Label {
+	    id: lbl_title_bugs
+            text: "Report bugs"
+            color: Theme.secondaryHighlightColor
+            font.pixelSize: Theme.fontSizeMedium
+            anchors.topMargin: Theme.paddingSmall
+        }
+        Label {
+	    id: lbl_bugs
+            width: parent.width - Theme.paddingMedium * 2
+            text: "Please report bugs or feature requests via the Mæp " +
+	    "bug tracker. This bug tracker can directly be reached via " +
+	    "the following link:"
+            color: Theme.primaryColor
+            font.pixelSize: Theme.fontSizeExtraSmall
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignJustify
+	    anchors.horizontalCenter: parent.horizontalCenter
+	    anchors.top: lbl_title_bugs.bottom
+        }
+        Button {
+            id: bt_bugs
+            text: "Open bug tracker"
+            anchors.horizontalCenter: parent.horizontalCenter
+	    anchors.top: lbl_bugs.bottom
+            onClicked: { console.log("Open browser at :" + "https://github.com/dcaliste/maep-qt/issues") }
+        }
+        Label {
+	    id: lbl_title_donate
+            text: "Donate"
+            color: Theme.secondaryHighlightColor
+            font.pixelSize: Theme.fontSizeMedium
+            anchors.topMargin: Theme.paddingSmall
+	    anchors.top: bt_bugs.bottom
+        }
+        Label {
+	    id: lbl_donate
+            width: parent.width - Theme.paddingMedium * 2
+            text: "If you like Mæp and want to support its future development " +
+	    "please consider donating to the developer. You can either " +
+	    "donate via paypal to till@harbaum.org or you can just click " +
+            "the button below which will open the appropriate web page in " +
+            "your browser."
+            color: Theme.primaryColor
+            font.pixelSize: Theme.fontSizeExtraSmall
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignJustify
+	    anchors.horizontalCenter: parent.horizontalCenter
+	    anchors.top: lbl_title_donate.bottom
+        }
+        Button {
+            id: bt_donate
+            text: "Donate through Paypal"
+            anchors.horizontalCenter: parent.horizontalCenter
+	    anchors.top: lbl_donate.bottom
+            onClicked: { console.log("Open browser at :" + "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+        }
+    }
     states: [
 	State {
             name: "authors"
             when: viewable == "authors"
 	    PropertyChanges { target: item_authors; opacity: 1 }
 	    PropertyChanges { target: item_license; opacity: 0 }
+	    PropertyChanges { target: item_info;    opacity: 0 }
 	},
 	State {
             name: "license"
             when: viewable == "license"
 	    PropertyChanges { target: item_authors; opacity: 0 }
 	    PropertyChanges { target: item_license; opacity: 1 }
+	    PropertyChanges { target: item_info;    opacity: 0 }
+	},
+	State {
+            name: "info"
+            when: viewable == "info"
+	    PropertyChanges { target: item_authors; opacity: 0 }
+	    PropertyChanges { target: item_license; opacity: 0 }
+	    PropertyChanges { target: item_info;    opacity: 1 }
 	} ]
     transitions: Transition {
 	PropertyAnimation { property: "opacity"; duration: 1000 }
