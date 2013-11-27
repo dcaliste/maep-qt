@@ -6,7 +6,7 @@
 # RPM. To build, use the command: rpmbuild --clean -ba maep-qt.spec
 #
 
-Name: maep-qt
+Name: harbour-maep-qt
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
 Release: 1
