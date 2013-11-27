@@ -234,10 +234,10 @@ class GpsMap : public QQuickPaintedItem
 
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
 
-  Q_PROPERTY(QString version READ version)
-  Q_PROPERTY(QString compilation_date READ compilation_date)
-  Q_PROPERTY(QString authors READ authors)
-  Q_PROPERTY(QString license READ license)
+  Q_PROPERTY(QString version READ version CONSTANT)
+  Q_PROPERTY(QString compilation_date READ compilation_date CONSTANT)
+  Q_PROPERTY(QString authors READ authors CONSTANT)
+  Q_PROPERTY(QString license READ license CONSTANT)
 
  public:
 
