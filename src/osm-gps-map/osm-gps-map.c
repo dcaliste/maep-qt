@@ -2167,7 +2167,8 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
                http://openaerialmap.org/pipermail/talk_openaerialmap.org/2008-December/000055.html */
             return NULL;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
-            return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png";
+            return "http://otile1.mqcdn.com/tiles/1.0.0/osm/#Z/#X/#Y.png";
+            /* return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png"; */
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
             return "http://c.tile.opencyclemap.org/cycle/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
@@ -2213,13 +2214,13 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
     switch(source) {
         case OSM_GPS_MAP_SOURCE_NULL:
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
-        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
             return "png";
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
