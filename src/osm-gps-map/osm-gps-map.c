@@ -1866,14 +1866,14 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                      PROP_DOUBLE_PIXEL,
                                      properties[PROP_DOUBLE_PIXEL]);
 
-
+    properties[PROP_AUTO_CENTER] = g_param_spec_boolean ("auto-center",
+                                                         "auto center",
+                                                         "map auto center",
+                                                         TRUE,
+                                                         G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT);
     g_object_class_install_property (object_class,
                                      PROP_AUTO_CENTER,
-                                     g_param_spec_boolean ("auto-center",
-                                                           "auto center",
-                                                           "map auto center",
-                                                           TRUE,
-                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
+                                     properties[PROP_AUTO_CENTER]);
 
     g_object_class_install_property (object_class,
                                      PROP_RECORD_TRIP_HISTORY,
@@ -2054,15 +2054,17 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                        20,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
 
+    properties[PROP_MAP_SOURCE] = g_param_spec_uint ("map-source",
+                                                     "map source",
+                                                     "map source ID",
+                                                     OSM_GPS_MAP_SOURCE_NULL,          /* minimum property value */
+                                                     OSM_GPS_MAP_SOURCE_LAST,    /* maximum property value */
+                                                     OSM_GPS_MAP_SOURCE_LAST,
+                                                     G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT);
+
     g_object_class_install_property (object_class,
                                      PROP_MAP_SOURCE,
-                                     g_param_spec_uint ("map-source",
-                                                       "map source",
-                                                       "map source ID",
-                                                       0,          /* minimum property value */
-                                                       OSM_GPS_MAP_SOURCE_LAST,    /* maximum property value */
-                                                       OSM_GPS_MAP_SOURCE_LAST,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
+                                     properties[PROP_MAP_SOURCE]);
 
     g_object_class_install_property (object_class,
                                      PROP_IMAGE_FORMAT,
@@ -2215,11 +2217,11 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
             return "png";
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
-        case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
-        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID:
         case OSM_GPS_MAP_SOURCE_YAHOO_STREET:
