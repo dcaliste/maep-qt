@@ -182,6 +182,7 @@ ApplicationWindow
 		width: page.width
 		height: Theme.itemSizeMedium
 		z: map.z + 1
+                visible: !search.focus && !drawer.open
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"
