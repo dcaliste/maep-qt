@@ -110,12 +110,15 @@
 #undef  WITH_QT
 #endif
 
-/* #define OSD_DOUBLE_BUFFER */    // render osd/map together offscreen
+/* #define OSD_DOUBLE_BUFFER */    // render osd/map together
+                                   // offscreen
+/* #define OSD_CONTROLS */      // display a zooming plus other button
+                                // control panel on the bottom left.
 #define OSD_GPS_BUTTON       // display a GPS button
 #define OSD_NO_DPAD          // no direction arrows (map is panned)
-#define OSD_SOURCE_SEL       // display source selection tab
+/* #define OSD_SOURCE_SEL */       // display source selection tab
 #define OSD_BALLOON
-#define OSD_DOUBLEPIXEL      // allow pixel doubling from OSD
+/* #define OSD_DOUBLEPIXEL */      // allow pixel doubling from OSD
 #define OSD_HEARTRATE
 
 #endif // CONFIG_H

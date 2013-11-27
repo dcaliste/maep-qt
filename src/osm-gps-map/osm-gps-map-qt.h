@@ -213,7 +213,17 @@ private:
 class GpsMap : public QQuickPaintedItem
 {
   Q_OBJECT
+
+  Q_ENUMS(Source)
+
+  Q_PROPERTY(Source source READ source WRITE setSource NOTIFY sourceChanged)
+  Q_PROPERTY(bool double_pixel READ doublePixel WRITE setDoublePixel NOTIFY doublePixelChanged)
+
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
+  Q_PROPERTY(QGeoCoordinate gps_coordinate READ getGpsCoord NOTIFY gpsCoordinateChanged)
+
+  Q_PROPERTY(bool auto_center READ autoCenter WRITE setAutoCenter NOTIFY autoCenterChanged)
+
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
   Q_PROPERTY(Maep::GeonamesEntry *wiki_entry READ getWikiEntry NOTIFY wikiEntryChanged)
 
@@ -230,10 +240,38 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QString license READ license)
 
  public:
+
+  enum Source {
+    SOURCE_NULL,
+    SOURCE_OPENSTREETMAP,
+    SOURCE_OPENSTREETMAP_RENDERER,
+    SOURCE_OPENAERIALMAP,
+    SOURCE_MAPS_FOR_FREE,
+    SOURCE_OPENCYCLEMAP,
+    SOURCE_OSM_PUBLIC_TRANSPORT,
+    SOURCE_GOOGLE_STREET,
+    SOURCE_GOOGLE_SATELLITE,
+    SOURCE_GOOGLE_HYBRID,
+    SOURCE_VIRTUAL_EARTH_STREET,
+    SOURCE_VIRTUAL_EARTH_SATELLITE,
+    SOURCE_VIRTUAL_EARTH_HYBRID,
+    SOURCE_YAHOO_STREET,
+    SOURCE_YAHOO_SATELLITE,
+    SOURCE_YAHOO_HYBRID,
+    SOURCE_OSMC_TRAILS,
+
+    SOURCE_LAST};
+
   GpsMap(QQuickItem *parent = 0);
   ~GpsMap();
   inline QGeoCoordinate getCoord() const {
     return coordinate;
+  }
+  inline QGeoCoordinate getGpsCoord() const {
+    if (lastGps.isValid())
+      return lastGps.coordinate();
+    else
+      return QGeoCoordinate();
   }
   inline bool wikiStatus() {
     return wiki_enabled;
@@ -281,6 +319,24 @@ class GpsMap : public QQuickPaintedItem
     QTextStream in(&file);
     return in.readAll();
   }
+  inline bool autoCenter() {
+    gboolean set;
+    g_object_get(map, "auto-center", &set, NULL);
+    return set;
+  }
+  inline Source source() {
+    OsmGpsMapSource_t source;
+    g_object_get(map, "map-source", &source, NULL);
+    return (Source)source;
+  }
+  Q_INVOKABLE inline QString sourceLabel(Source id) const {
+    return QString(osm_gps_map_source_get_friendly_name((OsmGpsMapSource_t)id));
+  }
+  inline bool doublePixel() {
+    gboolean status;
+    g_object_get(map, "double-pixel", &status, NULL);
+    return status;
+  }
 
  protected:
   void paint(QPainter *painter);
@@ -291,7 +347,11 @@ class GpsMap : public QQuickPaintedItem
 
  signals:
   void mapChanged();
+  void sourceChanged(Source source);
+  void doublePixelChanged(bool status);
   void coordinateChanged();
+  void gpsCoordinateChanged();
+  void autoCenterChanged(bool status);
   void wikiStatusChanged(bool status);
   void wikiEntryChanged();
   void searchRequest();
@@ -301,6 +361,9 @@ class GpsMap : public QQuickPaintedItem
   void screenRotationChanged(bool status);
 
  public slots:
+  void setSource(Source source);
+  void setDoublePixel(bool status);
+  void setAutoCenter(bool status);
   void setScreenRotation(bool status);
   void setCoordinate(float lat, float lon);
   void setWikiStatus(bool status);
@@ -358,6 +421,7 @@ class GpsMap : public QQuickPaintedItem
   /* Screen display. */
   cairo_surface_t *surf;
   cairo_t *cr;
+  cairo_pattern_t *pat;
   QImage *img;
 
   /* GPS */

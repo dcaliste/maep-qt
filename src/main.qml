@@ -53,6 +53,15 @@ ApplicationWindow
                     }
                     onClicked: {orientationcheck.checked = !orientationcheck.checked}
                 }
+		MenuItem {
+		    TextSwitch {
+			id: pixelcheck
+			text: "Draw map double pixel"
+			checked: map.double_pixel
+	 		onCheckedChanged: { map.double_pixel = checked }
+		    }
+		    onClicked: { pixelcheck.checked = !pixelcheck.checked }
+		}
 	        MenuItem {
 	            TextSwitch {
 		        id: wikicheck
@@ -168,7 +177,63 @@ ApplicationWindow
                 }
 		onFocusChanged: { if (focus) { drawer.open = false } }
             }
-        }
+	    Row {
+		anchors.bottom: parent.bottom
+		width: page.width
+		height: Theme.itemSizeMedium
+		z: map.z + 1
+		IconButton {
+		    id: zoomout
+		    icon.source: "image://theme/icon-camera-zoom-wide"
+		    onClicked: { map.zoomOut() }
+		}
+                IconButton {
+		    id: zoomin
+                    icon.source: "image://theme/icon-camera-zoom-tele"
+		    onClicked: { map.zoomIn() }
+                }
+                IconButton {
+                    id: autocenter
+                    icon.source: "image://theme/icon-m-gps"
+                    anchors.rightMargin: Theme.paddingSmall
+                    anchors.leftMargin: Theme.paddingSmall
+		    enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+		    highlighted: map.auto_center
+		    onClicked: { map.auto_center = !map.auto_center }
+                }
+		ComboBox {
+		    id: sources
+		    property variant entries: [GpsMap.SOURCE_OPENSTREETMAP,
+                                               GpsMap.SOURCE_OPENSTREETMAP_RENDERER,
+					       GpsMap.SOURCE_OPENCYCLEMAP,
+                                               GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT,
+                                               GpsMap.SOURCE_GOOGLE_STREET,
+                                               GpsMap.SOURCE_VIRTUAL_EARTH_STREET,
+                                               GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE,
+                                               GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID]
+		    label: page.isPortrait ? "" : "source"
+		    currentIndex: entries.indexOf(map.source)
+		    menu: ContextMenu {
+			MenuItem { text: map.sourceLabel(sources.entries[0])
+                                   onClicked: map.source = sources.entries[0] }
+			MenuItem { text: map.sourceLabel(sources.entries[1])
+                                   onClicked: map.source = sources.entries[1] }
+                        MenuItem { text: map.sourceLabel(sources.entries[2])
+                                   onClicked: map.source = sources.entries[2] }
+                        MenuItem { text: map.sourceLabel(sources.entries[3])
+                                   onClicked: map.source = sources.entries[3] }
+                        MenuItem { text: map.sourceLabel(sources.entries[4])
+                                   onClicked: map.source = sources.entries[4] }
+                        MenuItem { text: map.sourceLabel(sources.entries[5])
+                                   onClicked: map.source = sources.entries[5] }
+                        MenuItem { text: map.sourceLabel(sources.entries[6])
+                                   onClicked: map.source = sources.entries[6] }
+                        MenuItem { text: map.sourceLabel(sources.entries[7])
+                                   onClicked: map.source = sources.entries[7] }
+		    }
+		}
+	    }
+	}
 
         SilicaListView {
             id: placeview
