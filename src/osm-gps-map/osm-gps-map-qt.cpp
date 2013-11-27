@@ -99,6 +99,9 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_source(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
 static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
                                   GSList *places, MaepSearchContext *wiki);
@@ -141,6 +144,12 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::latitude",
                            G_CALLBACK(osm_gps_map_qt_coordinate), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::auto-center",
+                           G_CALLBACK(osm_gps_map_qt_auto_center), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::double-pixel",
+                           G_CALLBACK(osm_gps_map_qt_double_pixel), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::map-source",
+                           G_CALLBACK(osm_gps_map_qt_source), this);
 
   g_free(path);
 
@@ -165,6 +174,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   surf = NULL;
   cr = NULL;
+  pat = NULL;
   img = NULL;
 
   forceActiveFocus();
@@ -212,6 +222,8 @@ Maep::GpsMap::~GpsMap()
     cairo_surface_destroy(surf);
   if (cr)
     cairo_destroy(cr);
+  if (pat)
+    cairo_pattern_destroy(pat);
   if (img)
     delete(img);
   if (gps)
@@ -237,6 +249,8 @@ Maep::GpsMap::~GpsMap()
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
 {
+  Q_UNUSED(map);
+
   widget->mapUpdate();
   widget->update();
 }
@@ -251,6 +265,7 @@ bool Maep::GpsMap::mapSized()
     {
       cairo_surface_destroy(surf);
       cairo_destroy(cr);
+      cairo_pattern_destroy(pat);
       delete(img);
       surf = NULL;
     }
@@ -259,6 +274,10 @@ bool Maep::GpsMap::mapSized()
     {
       surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width(), height());
       cr = cairo_create(surf);
+      pat = cairo_pattern_create_linear (0.0, height(),
+                                         0.0, height() - 100);
+      cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
+      cairo_pattern_add_color_stop_rgba (pat, 0, 0, 0, 0, 0);
       img = new QImage(cairo_image_surface_get_data(surf),
                        cairo_image_surface_get_width(surf),
                        cairo_image_surface_get_height(surf),
@@ -286,6 +305,17 @@ void Maep::GpsMap::mapUpdate()
 #ifdef ENABLE_OSD
   osd->draw(osd, cr);
 #endif
+
+  /* Remove the bottom part for a Sailfish toolbar. */
+  cairo_save(cr);
+  cairo_rectangle (cr, 0, cairo_image_surface_get_height(surf) - 100,
+                   cairo_image_surface_get_width(surf),
+                   cairo_image_surface_get_height(surf));
+  cairo_clip(cr);
+  cairo_set_operator (cr, CAIRO_OPERATOR_DEST_IN);
+  cairo_set_source (cr, pat);
+  cairo_paint (cr);
+  cairo_restore(cr);
 
   emit mapChanged();
 }
@@ -350,66 +380,64 @@ void Maep::GpsMap::keyPressEvent(QKeyEvent * event)
 
 void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
 {
-#ifdef ENABLE_OSD
-  /* pressed inside OSD control? */
-  int step;
-  osd_button_t but = 
-    osd->check(osd, TRUE, event->x(), event->y());
+// #ifdef ENABLE_OSD
+//   int step;
+//   osd_button_t but = 
+//     osd->check(osd, TRUE, event->x(), event->y());
   
-  dragging = FALSE;
+//   dragging = FALSE;
 
-  step = width() / OSM_GPS_MAP_SCROLL_STEP;
+//   step = width() / OSM_GPS_MAP_SCROLL_STEP;
 
-  if(but != OSD_NONE)
-    switch(but)
-      {
-      case OSD_UP:
-        osm_gps_map_scroll(map, 0, -step);
-        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-        return;
+//   if(but != OSD_NONE)
+//     switch(but)
+//       {
+//       case OSD_UP:
+//         osm_gps_map_scroll(map, 0, -step);
+//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+//         return;
 
-      case OSD_DOWN:
-        osm_gps_map_scroll(map, 0, +step);
-        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-        return;
+//       case OSD_DOWN:
+//         osm_gps_map_scroll(map, 0, +step);
+//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+//         return;
 
-      case OSD_LEFT:
-        osm_gps_map_scroll(map, -step, 0);
-        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-        return;
+//       case OSD_LEFT:
+//         osm_gps_map_scroll(map, -step, 0);
+//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+//         return;
                 
-      case OSD_RIGHT:
-        osm_gps_map_scroll(map, +step, 0);
-        g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-        return;
+//       case OSD_RIGHT:
+//         osm_gps_map_scroll(map, +step, 0);
+//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+//         return;
                 
-      case OSD_IN:
-        osm_gps_map_zoom_in(map);
-        return;
+//       case OSD_IN:
+//         osm_gps_map_zoom_in(map);
+//         return;
                 
-      case OSD_OUT:
-        osm_gps_map_zoom_out(map);
-        return;
+//       case OSD_OUT:
+//         osm_gps_map_zoom_out(map);
+//         return;
 
-      case OSD_GPS:
-        if (lastGps.isValid())
-          {
-            osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
-                                   lastGps.coordinate().longitude());
+//       case OSD_GPS:
+//         if (lastGps.isValid())
+//           {
+//             osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
+//                                    lastGps.coordinate().longitude());
 
-            /* re-enable centering */
-            g_object_set(map, "auto-center", TRUE, NULL);
-          }
-        return;
+//             g_object_set(map, "auto-center", TRUE, NULL);
+//           }
+//         return;
                 
-      default:
-        g_warning("Hey don't know what to do!");
-        /* all custom buttons are forwarded to the application */
-        // if(osd->cb)
-        //   osd->cb(but, osd->data);
-        return;
-      }
-#endif
+//       default:
+//         g_warning("Hey don't know what to do!");
+//         /* all custom buttons are forwarded to the application */
+//         // if(osd->cb)
+//         //   osd->cb(but, osd->data);
+//         return;
+//       }
+// #endif
   if (osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
                                event->x(), event->y(), TRUE))
     return;
@@ -439,6 +467,67 @@ void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
       mapUpdate();
       update();
     }
+}
+
+static void osm_gps_map_qt_source(Maep::GpsMap *widget,
+                                  GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  widget->sourceChanged(widget->source());
+}
+void Maep::GpsMap::setSource(Maep::GpsMap::Source value)
+{
+  Source orig;
+
+  orig = source();
+  if (orig == value)
+    return;
+
+  g_object_set(map, "map-source", (OsmGpsMapSource_t)value, NULL);
+}
+
+static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget,
+                                        GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  widget->doublePixelChanged(widget->doublePixel());
+}
+void Maep::GpsMap::setDoublePixel(bool status)
+{
+  gboolean orig;
+
+  orig = doublePixel();
+  if ((orig && status) || (!orig && !status))
+    return;
+
+  g_object_set(map, "double-pixel", status, NULL);
+}
+
+static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget,
+                                       GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  widget->autoCenterChanged(widget->autoCenter());
+}
+void Maep::GpsMap::setAutoCenter(bool status)
+{
+  bool set;
+
+  set = autoCenter();
+  if ((set && status) || (!set && !status))
+    return;
+
+  g_object_set(map, "auto-center", status, NULL);
+
+  if (status && lastGps.isValid())
+    osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
+                           lastGps.coordinate().longitude());
 }
 
 void Maep::GpsMap::setScreenRotation(bool status)
@@ -471,6 +560,8 @@ void Maep::GpsMap::setWikiEntry(const MaepGeonamesEntry *entry)
 
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki)
 {
+  Q_UNUSED(wiki);
+
   widget->setWikiEntry(entry);
 }
 
@@ -503,6 +594,8 @@ void Maep::GpsMap::setSearchResults(MaepSearchContextSource source, GSList *plac
 static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
                                   GSList *places, MaepSearchContext *wiki)
 {
+  Q_UNUSED(wiki);
+
   g_message("Got %d matching places.", g_slist_length(places));
   widget->setSearchResults(source, places);
 }
@@ -510,6 +603,8 @@ static void osm_gps_map_qt_places_failure(Maep::GpsMap *widget,
                                           MaepSearchContextSource source,
                                           GError *error, MaepSearchContext *wiki)
 {
+  Q_UNUSED(wiki);
+
   g_message("Got download error '%s'.", error->message);
   widget->setSearchResults(source, NULL);
 }
@@ -543,6 +638,8 @@ void Maep::GpsMap::setCoordinate(float lat, float lon)
 }
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map)
 {
+  Q_UNUSED(pspec);
+
   float lat, lon;
 
   g_object_get(G_OBJECT(map), "latitude", &lat, "longitude", &lon, NULL);
@@ -567,9 +664,9 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
   else
     track = 0.;
 
-  osm_gps_map_osd_enable_gps(osd, TRUE);
-
   lastGps = info;
+  emit gpsCoordinateChanged();
+
   osm_gps_map_draw_gps(map, info.coordinate().latitude(),
                        info.coordinate().longitude(), track);
 
@@ -580,8 +677,8 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 void Maep::GpsMap::positionLost()
 {
   lastGps = QGeoPositionInfo();
+  emit gpsCoordinateChanged();
 
-  osm_gps_map_osd_enable_gps(osd, FALSE);
   osm_gps_map_clear_gps(map);
 }
 

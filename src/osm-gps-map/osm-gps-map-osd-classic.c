@@ -1687,7 +1687,8 @@ osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y
         but = osd_nav_check(osd, state, x, y);
     }
 #endif
-        
+
+#ifdef OSD_CONTROLS        
     if(but == OSD_NONE) {
         gint mx = x - OSD_X;
         gint my = y - OSD_Y;
@@ -1711,6 +1712,7 @@ osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y
         if(but == OSD_NONE) 
             but = osd_check_zoom(mx, my);
     }
+#endif
 
 #ifdef OSD_BALLOON
     if(but == OSD_NONE) {
@@ -1944,6 +1946,7 @@ static void onZoom(GObject *gobject, GParamSpec *pspec, gpointer user_data)
 }
 #endif
 
+#ifdef OSD_CONTROLS
 static void
 osd_render_controls(osm_gps_map_osd_t *osd) 
 {
@@ -2038,6 +2041,7 @@ osd_render_controls(osm_gps_map_osd_t *osd)
     
     cairo_destroy(cr);
 }
+#endif
 
 static void
 osd_render(osm_gps_map_osd_t *osd) 
@@ -2047,7 +2051,9 @@ osd_render(osm_gps_map_osd_t *osd)
     /* The different OSD parts have to make sure that they don't */
     /* render unneccessarily often and thus waste CPU power */
 
+#ifdef OSD_CONTROLS
     osd_render_controls(osd);
+#endif
 
 #ifdef OSD_SOURCE_SEL
     osd_render_source_sel(osd, FALSE);
@@ -2079,12 +2085,14 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
     /* offscreen buffer is present and create it if not */
     if(!priv->controls.surface) {
         /* create overlay ... */
+#ifdef OSD_CONTROLS
         priv->controls.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, OSD_W+2, OSD_H+2);
 
         priv->controls.rendered = FALSE;
 #ifdef OSD_GPS_BUTTON
         priv->controls.gps_enabled = FALSE;
+#endif
 #endif
 
 #ifdef OSD_SOURCE_SEL
@@ -2197,6 +2205,7 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
     }
 #endif
 
+#ifdef OSD_CONTROLS
     x = OSD_X;
     if(x < 0)
         x += width - OSD_W;
@@ -2207,6 +2216,7 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
 
     cairo_set_source_surface(cr, priv->controls.surface, x, y);
     cairo_paint(cr);
+#endif
 
 #ifdef OSD_SOURCE_SEL
     if(!priv->source_sel.handler_id) {
@@ -2236,8 +2246,10 @@ osd_free(osm_gps_map_osd_t *osd)
 {
     osd_priv_t *priv = (osd_priv_t *)(osd->priv);
 
+#ifdef OSD_CONTROLS
     if (priv->controls.surface)
          cairo_surface_destroy(priv->controls.surface);
+#endif
 
 #ifdef OSD_SOURCE_SEL
     if(priv->source_sel.handler_id)
