@@ -373,8 +373,9 @@ ApplicationWindow
                 anchors.top: page.isPortrait ? coordinates.bottom : thumbnail.bottom
 	    }
 	    Button {
-		text: "View Wikipedia page"
-		onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }
+		text: "Open Wikipedia page"
+		/*onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }*/
+                onClicked: { Qt::openUrlExternally(map.wiki_entry.url) }
 		anchors.top: body.bottom
 		anchors.topMargin: page.isPortrait ? Theme.paddingLarge : Theme.paddingSmall
 		anchors.horizontalCenter: wikititle.horizontalCenter
