@@ -18,7 +18,7 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Maep 1.0
-import QtWebKit 3.0
+
 import QtPositioning 5.0
 import Qt.labs.folderlistmodel 1.0
 

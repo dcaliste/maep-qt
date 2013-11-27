@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Mæp
+Icon=harbour-maep-qt
+Exec=harbour-maep-qt
+Comment=Map browser with GPS capabilities
