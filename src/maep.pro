@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = maep-qt
+TARGET = harbour-maep-qt
 DEPENDPATH += .
 INCLUDEPATH += .
 CONFIG += link_pkgconfig
@@ -27,10 +27,10 @@ SOURCES += misc.c net_io.c geonames.c search.c track.c img_loader.c icon.c conve
 target.path = $$PREFIX/bin
 
 desktop.path = $$PREFIX/share/applications
-desktop.files = ../maep-qt.desktop
+desktop.files = ../data/harbour-maep-qt.desktop
 
 icon.path = $$PREFIX/share/icons/hicolor/86x86/apps
-icon.files = ../data/maep-qt.png
+icon.files = ../data/harbour-maep-qt.png
 
 qml.path = $$DEPLOYMENT_PATH
 qml.files = ../src/main.qml
