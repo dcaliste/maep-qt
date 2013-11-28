@@ -1,6 +1,9 @@
 #include "osm-gps-map/osm-gps-map-qt.h"
 
-#include <QApplication>
+#include <QGuiApplication>
+#ifdef HAS_BOOSTER
+#include <MDeclarativeCache>
+#endif
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QDir>
 #include <QQmlEngine>
@@ -13,17 +16,17 @@
 #endif
 
 namespace Maep {
-  QApplication *createApplication(int &argc, char **argv);
+  QGuiApplication *createApplication(int &argc, char **argv);
   QQuickView *createView(const QString &file);
   void showView(QQuickView* view);
 }
 
-QApplication *Maep::createApplication(int &argc, char **argv)
+QGuiApplication *Maep::createApplication(int &argc, char **argv)
 {
 #ifdef HAS_BOOSTER
     return MDeclarativeCache::qApplication(argc, argv);
 #else
-    return new QApplication(argc, argv);
+    return new QGuiApplication(argc, argv);
 #endif
 }
 QQuickView *Maep::createView(const QString &file)
@@ -91,7 +94,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   qmlRegisterType<Maep::GpsMap>("Maep", 1, 0, "GpsMap");
   qmlRegisterType<Maep::GpsMapCover>("Maep", 1, 0, "GpsMapCover");
 
-  QScopedPointer<QApplication> app(Maep::createApplication(argc, argv));
+  QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
 
   QScopedPointer<QQuickView> view(Maep::createView((isDesktop)?"main-nosilica.qml":"main.qml"));
