@@ -9,6 +9,7 @@
 #include <QQmlEngine>
 #include <QQuickView>
 #include <QQuickItem>
+#include <QQuickWindow>
 #else
 #include <QtDeclarative>
 #include <QDeclarativeView>
@@ -96,6 +97,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
   QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
+  QQuickWindow::setDefaultAlphaBuffer(true);
 
   QScopedPointer<QQuickView> view(Maep::createView((isDesktop)?"main-nosilica.qml":"main.qml"));
   Maep::showView(view.data());
