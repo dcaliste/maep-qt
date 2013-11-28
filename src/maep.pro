@@ -4,8 +4,15 @@ DEPENDPATH += .
 INCLUDEPATH += .
 CONFIG += link_pkgconfig
 PKGCONFIG += gobject-2.0 cairo libsoup-2.4 gconf-2.0 libxml-2.0 libcurl
-QT += quick positioning widgets #declarative
+QT += qml quick positioning #declarative
 LIBS += -ljpeg
+
+packagesExist(qdeclarative-boostable) {
+  DEFINES += HAS_BOOSTER
+  PKGCONFIG += qdeclarative-boostable
+} else {
+  warning("qdeclarative-boostable not available; startup times will be slower")
+}
 
 isEmpty(PREFIX)
 {
