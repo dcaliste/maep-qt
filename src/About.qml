@@ -28,16 +28,16 @@ SilicaFlickable {
 
     PullDownMenu {
         MenuItem {
-            text: "Authors"
-            onClicked: { viewable = "authors" }
+            text: "Miscelaneous"
+            onClicked: { viewable = "info" }
         }
         MenuItem {
             text: "License"
             onClicked: { viewable = "license" }
         }
         MenuItem {
-            text: "Miscelaneous"
-            onClicked: { viewable = "info" }
+            text: "Authors"
+            onClicked: { viewable = "authors" }
         }
     }
 
@@ -47,7 +47,7 @@ SilicaFlickable {
     PageHeader { id: title; title: "About Mæp" }
     Image {
         id: icon
-        source: "file:///usr/share/icons/hicolor/86x86/apps/maep-qt.png"
+        source: "file:///usr/share/icons/hicolor/86x86/apps/harbour-maep-qt.png"
         anchors.horizontalCenter: parent.horizontalCenter
 	anchors.top: title.bottom
     }
