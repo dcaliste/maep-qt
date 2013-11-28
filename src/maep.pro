@@ -7,9 +7,9 @@ PKGCONFIG += gobject-2.0 cairo libsoup-2.4 gconf-2.0 libxml-2.0 libcurl
 QT += qml quick positioning #declarative
 LIBS += -ljpeg
 
-packagesExist(qdeclarative-boostable) {
+packagesExist(qdeclarative5-boostable) {
   DEFINES += HAS_BOOSTER
-  PKGCONFIG += qdeclarative-boostable
+  PKGCONFIG += qdeclarative5-boostable
 } else {
   warning("qdeclarative-boostable not available; startup times will be slower")
 }
