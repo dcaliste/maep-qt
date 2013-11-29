@@ -149,7 +149,7 @@ SilicaFlickable {
             text: "Open bug tracker"
             anchors.horizontalCenter: parent.horizontalCenter
 	    anchors.top: lbl_bugs.bottom
-            onClicked: { Qt::openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
+            onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
         }
         Label {
 	    id: lbl_title_donate
@@ -179,7 +179,7 @@ SilicaFlickable {
             text: "Donate through Paypal"
             anchors.horizontalCenter: parent.horizontalCenter
 	    anchors.top: lbl_donate.bottom
-            onClicked: { Qt::openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+            onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
         }
     }
     states: [
