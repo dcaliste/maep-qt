@@ -337,6 +337,7 @@ class GpsMap : public QQuickPaintedItem
     g_object_get(map, "double-pixel", &status, NULL);
     return status;
   }
+  Q_INVOKABLE QString getCenteredTile(Maep::GpsMap::Source source) const;
 
  protected:
   void paint(QPainter *painter);

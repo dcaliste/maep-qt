@@ -215,22 +215,29 @@ ApplicationWindow
 		    label: page.isPortrait ? "" : "source"
 		    currentIndex: entries.indexOf(map.source)
 		    menu: ContextMenu {
-			MenuItem { text: map.sourceLabel(sources.entries[0])
-                                   Image { clip: true; fillMode: Image.Pad; source: "http://tile.openstreetmap.org/7/63/42.png"; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left }
+			MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[0])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[0]) } } }
                                    onClicked: map.source = sources.entries[0] }
-			MenuItem { text: map.sourceLabel(sources.entries[1])
+			MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[1])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[1]) } } }
                                    onClicked: map.source = sources.entries[1] }
-                        MenuItem { text: map.sourceLabel(sources.entries[2])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[2])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[2]) } } }
                                    onClicked: map.source = sources.entries[2] }
-                        MenuItem { text: map.sourceLabel(sources.entries[3])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[3])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[3]) } } }
                                    onClicked: map.source = sources.entries[3] }
-                        MenuItem { text: map.sourceLabel(sources.entries[4])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[4])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[4]) } } }
                                    onClicked: map.source = sources.entries[4] }
-                        MenuItem { text: map.sourceLabel(sources.entries[5])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[5])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[5]) } } }
                                    onClicked: map.source = sources.entries[5] }
-                        MenuItem { text: map.sourceLabel(sources.entries[6])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[6])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[6]) } } }
                                    onClicked: map.source = sources.entries[6] }
-                        MenuItem { text: map.sourceLabel(sources.entries[7])
+                        MenuItem { height: Theme.itemSizeMedium; text: map.sourceLabel(sources.entries[7])
+                                   Image { clip: true; fillMode: Image.Pad; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left; anchors.leftMargin: Theme.paddingSmall; onVisibleChanged: { if (visible) { source = map.getCenteredTile(sources.entries[7]) } } }
                                    onClicked: map.source = sources.entries[7] }
 		    }
 		}
@@ -376,7 +383,7 @@ ApplicationWindow
 	    Button {
 		text: "Open Wikipedia page"
 		/*onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }*/
-                onClicked: { Qt::openUrlExternally(map.wiki_entry.url) }
+                onClicked: { Qt.openUrlExternally(map.wiki_entry.url) }
 		anchors.top: body.bottom
 		anchors.topMargin: page.isPortrait ? Theme.paddingLarge : Theme.paddingSmall
 		anchors.horizontalCenter: wikititle.horizontalCenter
