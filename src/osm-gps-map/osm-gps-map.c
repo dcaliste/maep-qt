@@ -918,8 +918,8 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
 }
 
 gchar*
-osm_gps_map_get_cached_file(const gchar *cache_dir, const gchar* format,
-                               int zoom, int x, int y)
+get_cached_file(const gchar *cache_dir, const gchar* format,
+                int zoom, int x, int y)
 {
     gchar *filename;
     
@@ -935,6 +935,13 @@ osm_gps_map_get_cached_file(const gchar *cache_dir, const gchar* format,
         g_free(filename);
         return NULL;
     }
+}
+
+gchar*
+osm_gps_map_source_get_cached_file(OsmGpsMapSource_t source,
+                                   int zoom, int x, int y)
+{
+    return get_cached_file(osm_gps_map_source_get_image_format(source), zoom, x, y);
 }
 
 static OsmCachedTile *
@@ -981,9 +988,9 @@ osm_gps_map_find_bigger_tile (OsmGpsMap *map, int zoom, int x, int y,
     next_x = x / 2;
     next_y = y / 2;
 
-    filename = osm_gps_map_get_cached_file(map->priv->cache_dir,
-                                              map->priv->image_format,
-                                              next_zoom, next_x, next_y);
+    filename = get_cached_file(map->priv->cache_dir,
+                               map->priv->image_format,
+                               next_zoom, next_x, next_y);
     if (!filename)
         return osm_gps_map_find_bigger_tile (map, next_zoom, next_x, next_y,
                                              zoom_found);
@@ -1062,8 +1069,8 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
         return;
     }
 
-    filename = osm_gps_map_get_cached_file(priv->cache_dir, priv->image_format,
-                                           zoom, x, y);
+    filename = get_cached_file(priv->cache_dir, priv->image_format,
+                               zoom, x, y);
     gboolean needs_refresh = FALSE;
     if (filename) {
         g_debug("Found file %s", filename);
