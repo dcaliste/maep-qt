@@ -292,8 +292,10 @@ void Maep::GpsMap::mapUpdate()
 {
   cairo_surface_t *map_surf;
 
-  // cairo_set_source_rgb(cr, 1., 1., 1.);
-  // cairo_paint(cr);
+  cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
+  cairo_set_source_rgba(cr, 1., 1., 1., 0.);
+  cairo_paint(cr);
+  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 
   map_surf = osm_gps_map_get_surface(map);
   cairo_set_source_surface(cr, map_surf,
@@ -739,6 +741,37 @@ void Maep::GpsMap::gpsToTrack()
     }
 
   track_current->addPoint(lastGps);
+}
+QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
+{
+  gchar *cache_dir, *base, *file, *uri;
+  int zoom, x, y;
+  QString out;
+
+  g_object_get(G_OBJECT(map), "tile-cache-base", &base, NULL);
+  osm_gps_map_get_tile_xy_at(map, coordinate.latitude(), coordinate.longitude(),
+                             &zoom, &x, &y);
+  cache_dir = osm_gps_map_source_get_cache_dir((OsmGpsMapSource_t)source,
+                                               OSM_GPS_MAP_CACHE_FRIENDLY,
+                                               base);
+  g_free(base);
+
+  file = osm_gps_map_source_get_cached_file((OsmGpsMapSource_t)source,
+                                            cache_dir, zoom, x, y);
+  g_free(cache_dir);
+  if (file) {
+    g_message("Get cached file for source %d: %s.", source, file);
+    out = QString(file);
+    g_free(file);
+    return out;
+  }
+  
+  uri = osm_gps_map_source_get_tile_uri((OsmGpsMapSource_t)source,
+                                        zoom, x, y);
+  g_message("Get uri for source %d: %s.", source, uri);
+  out = QString(uri);
+  g_free(uri);
+  return out;
 }
 
 

@@ -105,12 +105,13 @@ const char* osm_gps_map_source_get_image_format     (OsmGpsMapSource_t source);
 int         osm_gps_map_source_get_min_zoom         (OsmGpsMapSource_t source);
 int         osm_gps_map_source_get_max_zoom         (OsmGpsMapSource_t source);
 gboolean    osm_gps_map_source_is_valid             (OsmGpsMapSource_t source);
-
-gchar*      osm_gps_map_get_tile_uri                (const gchar *uri, int uri_format,
-                                                     int max_zoom, int zoom,
-                                                     int x, int y);
-gchar*      osm_gps_map_get_cached_file             (const gchar *cache_dir,
-                                                     const gchar* format,
+gchar*      osm_gps_map_source_get_cache_dir        (OsmGpsMapSource_t source,
+                                                     const gchar *tile_dir,
+                                                     const gchar *base);
+gchar*      osm_gps_map_source_get_tile_uri         (OsmGpsMapSource_t source,
+                                                     int zoom, int x, int y);
+gchar*      osm_gps_map_source_get_cached_file      (OsmGpsMapSource_t source,
+                                                     const gchar *cache_dir,
                                                      int zoom, int x, int y);
 
 void        osm_gps_map_download_maps               (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_start, int zoom_end);
@@ -121,6 +122,9 @@ int         osm_gps_map_set_zoom                    (OsmGpsMap *map, int zoom);
 int         osm_gps_map_zoom_in                     (OsmGpsMap *map);
 int         osm_gps_map_zoom_out                    (OsmGpsMap *map);
 void        osm_gps_map_adjust_to                   (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right);
+void        osm_gps_map_get_tile_xy_at              (OsmGpsMap *map,
+                                                     float lat, float lon,
+                                                     int *zoom, int *x, int *y);
 void        osm_gps_map_add_track                   (OsmGpsMap *map, track_state_t *track);
 void        osm_gps_map_clear_tracks                (OsmGpsMap *map);
 void        osm_gps_map_add_image                   (OsmGpsMap *map, float latitude, float longitude, cairo_surface_t *image);
