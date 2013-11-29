@@ -216,6 +216,7 @@ ApplicationWindow
 		    currentIndex: entries.indexOf(map.source)
 		    menu: ContextMenu {
 			MenuItem { text: map.sourceLabel(sources.entries[0])
+                                   Image { clip: true; fillMode: Image.Pad; source: "http://tile.openstreetmap.org/7/63/42.png"; width: Theme.itemSizeMedium; height: Theme.itemSizeMedium; anchors.left: parent.left }
                                    onClicked: map.source = sources.entries[0] }
 			MenuItem { text: map.sourceLabel(sources.entries[1])
                                    onClicked: map.source = sources.entries[1] }

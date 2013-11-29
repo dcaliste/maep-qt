@@ -178,7 +178,6 @@ G_DEFINE_TYPE (OsmGpsMap, osm_gps_map, G_TYPE_OBJECT);
  */
 static gchar    *replace_string(const gchar *src, const gchar *from, const gchar *to);
 static void     inspect_map_uri(OsmGpsMap *map);
-static gchar    *replace_map_uri(OsmGpsMap *map, const gchar *uri, int zoom, int x, int y);
 static void     osm_gps_map_print_images (OsmGpsMap *map);
 static void     osm_gps_map_draw_gps_point (OsmGpsMap *map);
 #if USE_LIBSOUP22
@@ -349,10 +348,10 @@ inspect_map_uri(OsmGpsMap *map)
 
 }
 
-static gchar *
-replace_map_uri(OsmGpsMap *map, const gchar *uri, int zoom, int x, int y)
+gchar *
+osm_gps_map_get_tile_uri(const gchar *uri, int uri_format,
+                int max_zoom, int zoom, int x, int y)
 {
-    OsmGpsMapPrivate *priv = map->priv;
     char *url;
     unsigned int i;
     char location[22];
@@ -365,7 +364,7 @@ replace_map_uri(OsmGpsMap *map, const gchar *uri, int zoom, int x, int y)
         char *old;
 
         old = url;
-        switch(i & priv->uri_format)
+        switch(i & uri_format)
         {
             case URI_HAS_X:
                 s = g_strdup_printf("%d", x);
@@ -383,7 +382,7 @@ replace_map_uri(OsmGpsMap *map, const gchar *uri, int zoom, int x, int y)
                 //g_debug("FOUND " URI_MARKER_Z);
                 break;
             case URI_HAS_S:
-                s = g_strdup_printf("%d", priv->max_zoom-zoom);
+                s = g_strdup_printf("%d", max_zoom-zoom);
                 url = replace_string(url, URI_MARKER_S, s);
                 //g_debug("FOUND " URI_MARKER_S);
                 break;
@@ -721,8 +720,8 @@ static cairo_surface_t* osm_gps_map_from_mem(const unsigned char *buffer,
     if (!strcmp(ext, "png")) {
         g_warning("PNG load from memory not implemented!");
     } else {
-        error = NULL;
 #if JPEG_LIB_VERSION >= 80
+        error = NULL;
         surf = maep_loader_jpeg_from_mem(buffer, len, &error);
         if (error) {
             g_warning("%s", error->message);
@@ -844,8 +843,6 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
             return;
         }
     }
-
-
 }
 
 static void
@@ -856,7 +853,8 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
     tile_download_t *dl = g_new0(tile_download_t,1);
 
     //calculate the uri to download
-    dl->uri = replace_map_uri(map, priv->repo_uri, zoom, x, y);
+    dl->uri = osm_gps_map_get_tile_uri(priv->repo_uri, priv->uri_format,
+                              priv->max_zoom, zoom, x, y);
 
 #if USE_LIBSOUP22
     dl->session = priv->soup_session;
@@ -919,43 +917,48 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
     }
 }
 
-static OsmCachedTile *
-osm_gps_map_load_cached_tile (OsmGpsMap *map, int zoom, int x, int y)
+gchar*
+osm_gps_map_get_cached_file(const gchar *cache_dir, const gchar* format,
+                               int zoom, int x, int y)
 {
-    OsmGpsMapPrivate *priv = map->priv;
     gchar *filename;
-    OsmCachedTile *tile;
-    cairo_surface_t *cr_surf;
-
+    
     filename = g_strdup_printf("%s%c%d%c%d%c%d.%s",
-                priv->cache_dir, G_DIR_SEPARATOR,
+                cache_dir, G_DIR_SEPARATOR,
                 zoom, G_DIR_SEPARATOR,
                 x, G_DIR_SEPARATOR,
                 y,
-                priv->image_format);
+                format);
+    if (g_file_test(filename, G_FILE_TEST_EXISTS))
+        return filename;
+    else {
+        g_free(filename);
+        return NULL;
+    }
+}
+
+static OsmCachedTile *
+osm_gps_map_load_cached_tile (OsmGpsMap *map, const gchar *filename)
+{
+    OsmGpsMapPrivate *priv = map->priv;
+    OsmCachedTile *tile;
+    cairo_surface_t *cr_surf;
+    gchar *key;
 
     tile = g_hash_table_lookup (priv->tile_cache, filename);
-    if (tile)
-    {
-        g_free (filename);
-    }
-    else
+    if (!tile)
     {
         cr_surf = osm_gps_map_from_file(filename, priv->image_format);
         if (cr_surf && cairo_surface_status(cr_surf) == CAIRO_STATUS_SUCCESS)
         {
             tile = g_slice_new (OsmCachedTile);
             tile->cr_surf = cr_surf;
-            g_hash_table_insert (priv->tile_cache, filename, tile);
+            key = g_strdup(filename);
+            g_hash_table_insert (priv->tile_cache, key, tile);
             g_message("caching %s %p.", filename, (gpointer)cr_surf);
         }
-        else
-        {
-            g_message("issue with %s.", filename);
-            g_free (filename);
-        }
     }
-
+    
     /* set/update the redraw_cycle timestamp on the tile */
     if (tile)
     {
@@ -970,18 +973,28 @@ osm_gps_map_find_bigger_tile (OsmGpsMap *map, int zoom, int x, int y,
                               int *zoom_found)
 {
     OsmCachedTile *tile;
+    gchar *filename;
     int next_zoom, next_x, next_y;
 
     if (zoom == 0) return NULL;
     next_zoom = zoom - 1;
     next_x = x / 2;
     next_y = y / 2;
-    tile = osm_gps_map_load_cached_tile (map, next_zoom, next_x, next_y);
+
+    filename = osm_gps_map_get_cached_file(map->priv->cache_dir,
+                                              map->priv->image_format,
+                                              next_zoom, next_x, next_y);
+    if (!filename)
+        return osm_gps_map_find_bigger_tile (map, next_zoom, next_x, next_y,
+                                             zoom_found);
+
+    tile = osm_gps_map_load_cached_tile (map, filename);
+    g_free(filename);
     if (tile)
         *zoom_found = next_zoom;
     else
         tile = osm_gps_map_find_bigger_tile (map, next_zoom, next_x, next_y,
-                                               zoom_found);
+                                             zoom_found);
     return tile;
 }
 
@@ -1049,28 +1062,22 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
         return;
     }
 
-    filename = g_strdup_printf("%s%c%d%c%d%c%d.%s",
-                priv->cache_dir, G_DIR_SEPARATOR,
-                zoom, G_DIR_SEPARATOR,
-                x, G_DIR_SEPARATOR,
-                y,
-                priv->image_format);
-
+    filename = osm_gps_map_get_cached_file(priv->cache_dir, priv->image_format,
+                                           zoom, x, y);
     gboolean needs_refresh = FALSE;
-    if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+    if (filename) {
+        g_debug("Found file %s", filename);
         /* try to get file from internal cache first */
-        tile = osm_gps_map_load_cached_tile(map, zoom, x, y);
-        if (!tile) g_warning("cannot cache!!!");
+        tile = osm_gps_map_load_cached_tile(map, filename);
+        if (!tile) g_warning("cannot load and cache %s!!!", filename);
 
         needs_refresh = osm_gps_map_tile_age_exceeded(filename);
+        g_free(filename);
     }
 
     if(tile)
-    {
-        g_debug("Found tile %s", filename);
         osm_gps_map_blit_surface(map, tile->cr_surf, offset_x,offset_y,
                                  1, 0, 0);
-    }
 
     if(!tile || needs_refresh)
     {
@@ -1098,7 +1105,6 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
             }
         }
     }
-    g_free(filename);
 }
 
 static void
@@ -1110,88 +1116,40 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
     int offset_yn = 0;
     int offset_x;
     int offset_y;
+    int tilesize, zoom;
 
     g_debug("Fill tiles: %d,%d z:%d", priv->map_x, priv->map_y, priv->map_zoom);
+    tilesize = (priv->double_pixel)?TILESIZE * 2: TILESIZE;
+    zoom     = (priv->double_pixel)?priv->map_zoom - 1:priv->map_zoom;
 
-    if (priv->double_pixel)
-    {
-        offset_x = - priv->map_x % (TILESIZE*2);
-        offset_y = - priv->map_y % (TILESIZE*2);
-        if (offset_x > 0) offset_x -= (TILESIZE*2);
-        if (offset_y > 0) offset_y -= (TILESIZE*2);
+    offset_x = - priv->map_x % tilesize;
+    offset_y = - priv->map_y % tilesize;
+    if (offset_x > 0) offset_x -= tilesize;
+    if (offset_y > 0) offset_y -= tilesize;
 
-        offset_xn = offset_x + EXTRA_BORDER;
-        offset_yn = offset_y + EXTRA_BORDER;
+    offset_xn = offset_x + EXTRA_BORDER;
+    offset_yn = offset_y + EXTRA_BORDER;
 
-        tiles_nx = (priv->viewport_width  - offset_x) / (TILESIZE*2) + 1;
-        tiles_ny = (priv->viewport_height - offset_y) / (TILESIZE*2) + 1;
+    tiles_nx = (priv->viewport_width  - offset_x) / tilesize + 1;
+    tiles_ny = (priv->viewport_height - offset_y) / tilesize + 1;
 
-        tile_x0 =  floor((float)priv->map_x / (float)(TILESIZE*2));
-        tile_y0 =  floor((float)priv->map_y / (float)(TILESIZE*2));
-
-        for (i=tile_x0; i<(tile_x0+tiles_nx);i++)
-        {
-            for (j=tile_y0;  j<(tile_y0+tiles_ny); j++)
-            {
-                if( j<0 || i<0 || i>=exp(priv->map_zoom * M_LN2) || j>=exp(priv->map_zoom * M_LN2))
-                {
-                    cairo_rectangle(priv->cr, offset_xn, offset_yn,
-                                    TILESIZE*2, TILESIZE*2);
-                    cairo_set_source_rgb(priv->cr, 1., 1., 1.);
-                    cairo_fill(priv->cr);
-                }
-                else
-                {
-                    osm_gps_map_load_tile(map,
-                                          priv->map_zoom - 1,
-                                          i,j,
-                                          offset_xn,offset_yn);
-                }
-                offset_yn += TILESIZE*2;
-            }
-            offset_xn += TILESIZE*2;
-            offset_yn = offset_y + EXTRA_BORDER;
+    tile_x0 =  floor((float)priv->map_x / (float)tilesize);
+    tile_y0 =  floor((float)priv->map_y / (float)tilesize);
+    //TODO: implement wrap around
+    for (i=tile_x0; i<(tile_x0+tiles_nx);i++) {
+        for (j=tile_y0;  j<(tile_y0+tiles_ny); j++) {
+            if( j<0 || i<0 ||
+                i>=exp(priv->map_zoom * M_LN2) || j>=exp(priv->map_zoom * M_LN2)) {
+                cairo_rectangle(priv->cr, offset_xn, offset_yn,
+                                tilesize, tilesize);
+                cairo_set_source_rgb(priv->cr, 1., 1., 1.);
+                cairo_fill(priv->cr);
+            } else
+                osm_gps_map_load_tile(map, zoom, i,j, offset_xn, offset_yn);
+            offset_yn += tilesize;
         }
-    }
-    else
-    {
-        offset_x = - priv->map_x % TILESIZE;
-        offset_y = - priv->map_y % TILESIZE;
-        if (offset_x > 0) offset_x -= TILESIZE;
-        if (offset_y > 0) offset_y -= TILESIZE;
-
-        offset_xn = offset_x + EXTRA_BORDER;
+        offset_xn += tilesize;
         offset_yn = offset_y + EXTRA_BORDER;
-
-        tiles_nx = (priv->viewport_width  - offset_x) / TILESIZE + 1;
-        tiles_ny = (priv->viewport_height - offset_y) / TILESIZE + 1;
-
-        tile_x0 =  floor((float)priv->map_x / (float)TILESIZE);
-        tile_y0 =  floor((float)priv->map_y / (float)TILESIZE);
-        //TODO: implement wrap around
-        for (i=tile_x0; i<(tile_x0+tiles_nx);i++)
-        {
-            for (j=tile_y0;  j<(tile_y0+tiles_ny); j++)
-            {
-                if( j<0 || i<0 || i>=exp(priv->map_zoom * M_LN2) || j>=exp(priv->map_zoom * M_LN2))
-                {
-                    cairo_rectangle(priv->cr, offset_xn, offset_yn,
-                                    TILESIZE, TILESIZE);
-                    cairo_set_source_rgb(priv->cr, 1., 1., 1.);
-                    cairo_fill(priv->cr);
-                }
-                else
-                {
-                    osm_gps_map_load_tile(map,
-                                          priv->map_zoom,
-                                          i,j,
-                                          offset_xn,offset_yn);
-                }
-                offset_yn += TILESIZE;
-            }
-            offset_xn += TILESIZE;
-            offset_yn = offset_y + EXTRA_BORDER;
-        }
     }
 }
 
