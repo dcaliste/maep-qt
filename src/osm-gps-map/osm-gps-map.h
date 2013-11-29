@@ -106,6 +106,13 @@ int         osm_gps_map_source_get_min_zoom         (OsmGpsMapSource_t source);
 int         osm_gps_map_source_get_max_zoom         (OsmGpsMapSource_t source);
 gboolean    osm_gps_map_source_is_valid             (OsmGpsMapSource_t source);
 
+gchar*      osm_gps_map_get_tile_uri                (const gchar *uri, int uri_format,
+                                                     int max_zoom, int zoom,
+                                                     int x, int y);
+gchar*      osm_gps_map_get_cached_file             (const gchar *cache_dir,
+                                                     const gchar* format,
+                                                     int zoom, int x, int y);
+
 void        osm_gps_map_download_maps               (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_start, int zoom_end);
 void        osm_gps_map_get_bbox                    (OsmGpsMap *map, coord_t *pt1, coord_t *pt2);
 void        osm_gps_map_set_mapcenter               (OsmGpsMap *map, float latitude, float longitude, int zoom);

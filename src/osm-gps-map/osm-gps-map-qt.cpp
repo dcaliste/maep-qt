@@ -191,7 +191,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
       gps->startUpdates();
     }
   else
-    g_message("no source...");
+    g_message("no gps source...");
   lastGps = QGeoPositionInfo();
 
   track_capture = track;
