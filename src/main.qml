@@ -20,7 +20,6 @@ import Sailfish.Silica 1.0
 import Maep 1.0
 
 import QtPositioning 5.0
-import Qt.labs.folderlistmodel 1.0
 
 ApplicationWindow
 {
@@ -165,13 +164,17 @@ ApplicationWindow
                   width: page.width
                   height: page.height - header.height*/
 	        anchors.fill: parent
-                onSearchRequest: { search.focus = true; search.label = "Place search" }
+                onSearchRequest: { search.focus = true
+                                   search.label = "Place search" }
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
-                onSearchResults: { search.label = search_results.length + " place(s) found"
-			           busy.running = false
-				   placeview.model = search_results
-			           drawer.open = true }
+                onSearchResults: {
+                    search.label = search_results.length + " place(s) found"
+		    busy.running = false
+		    if (search_results.length > 0) {
+			placeview.model = search_results
+			drawer.open = true }
+		}
 	        Behavior on opacity {
                     FadeAnimation {}
                 }
@@ -311,9 +314,6 @@ ApplicationWindow
         SilicaListView {
             id: placeview
             anchors.fill: parent
-            /*header: DialogHeader {
-              title: "Select a place"
-              }*/
 
 	    PullDownMenu {
 	        MenuItem {
@@ -328,11 +328,6 @@ ApplicationWindow
 		    font.pixelSize: Theme.fontSizeSmall
                     onClicked: { drawer.open = false }
                 }
-            }
-
-	    ViewPlaceholder {
-                enabled: placeview.count == 0
-                text: "No result"
             }
 
             delegate: ListItem {
