@@ -290,34 +290,52 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
+  double w, h;
   cairo_surface_t *map_surf;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_set_source_rgba(cr, 1., 1., 1., 0.);
   cairo_paint(cr);
-  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 
   map_surf = osm_gps_map_get_surface(map);
   cairo_set_source_surface(cr, map_surf,
                            drag_mouse_dx - EXTRA_BORDER,
                            drag_mouse_dy - EXTRA_BORDER);
+  cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
   cairo_paint(cr);
   cairo_surface_destroy(map_surf);
 
 #ifdef ENABLE_OSD
+  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
   osd->draw(osd, cr);
 #endif
 
+  w = cairo_image_surface_get_width(surf);
+  h = cairo_image_surface_get_height(surf);
+
   /* Remove the bottom part for a Sailfish toolbar. */
   cairo_save(cr);
-  cairo_rectangle (cr, 0, cairo_image_surface_get_height(surf) - 100,
-                   cairo_image_surface_get_width(surf),
-                   cairo_image_surface_get_height(surf));
+  cairo_rectangle (cr, 0., h - 100., w, h);
   cairo_clip(cr);
   cairo_set_operator (cr, CAIRO_OPERATOR_DEST_IN);
   cairo_set_source (cr, pat);
-  cairo_paint (cr);
+  cairo_paint(cr);
   cairo_restore(cr);
+  /* Make top rounded corners. */
+  cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
+  cairo_move_to(cr, 0., 0.);
+  cairo_line_to(cr, 20., 0.);
+  cairo_arc_negative(cr, 20., 20., 20., 1.5 * G_PI, G_PI);
+  cairo_line_to(cr, 0., 0.);
+  cairo_set_source_rgb (cr, 1., 1., 1.);
+  cairo_fill(cr);
+
+  cairo_move_to(cr, w, 0.);
+  cairo_line_to(cr, w - 20., 0.);
+  cairo_arc(cr, w - 20., 20., 20., 1.5 * G_PI, 2. * G_PI);
+  cairo_line_to(cr, w, 0.);
+  cairo_set_source_rgb (cr, 1., 1., 1.);
+  cairo_fill(cr);
 
   emit mapChanged();
 }
