@@ -196,6 +196,12 @@ ApplicationWindow
                     icon.source: "image://theme/icon-camera-zoom-tele"
 		    onClicked: { map.zoomIn() }
                 }
+                Button {
+		    width: parent.width - zoomout.width - zoomin.width - autocenter.width
+                    text: map.sourceLabel(map.source)
+		    /*font.pixelSize: Theme.fontSizeSmall*/
+                    onClicked: { pageStack.push(sources) }
+                }
                 IconButton {
                     id: autocenter
                     icon.source: "image://theme/icon-m-gps"
@@ -205,109 +211,6 @@ ApplicationWindow
 		    highlighted: map.auto_center
 		    onClicked: { map.auto_center = !map.auto_center }
                 }
-		ComboBox {
-		    id: sources
-		    property variant entries: [GpsMap.SOURCE_OPENSTREETMAP,
-                                               GpsMap.SOURCE_OPENSTREETMAP_RENDERER,
-					       GpsMap.SOURCE_OPENCYCLEMAP,
-                                               GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT,
-                                               GpsMap.SOURCE_GOOGLE_STREET,
-                                               GpsMap.SOURCE_VIRTUAL_EARTH_STREET,
-                                               GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE,
-                                               GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID]
-		    label: page.isPortrait ? "" : "source"
-		    currentIndex: entries.indexOf(map.source)
-		    menu: ContextMenu {
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[0])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[0]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[0] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[1])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[1]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[1] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[2])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[2]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[2] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[3])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[3]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[3] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[4])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[4]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[4] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[5])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[5]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[5] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[6])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[6]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[6] }
-			MenuItem { height: Theme.itemSizeMedium
-                                   text: map.sourceLabel(sources.entries[7])
-                                   Image { clip: true; fillMode: Image.Pad
-                                           width: Theme.itemSizeMedium
-                                           height: Theme.itemSizeMedium
-                                           anchors.left: parent.left
-                                           anchors.leftMargin: Theme.paddingSmall
-                                           onVisibleChanged: {
-                                               if (visible) { source = map.getCenteredTile(sources.entries[7]) } } 
-                                         }
-                                   onClicked: map.source = sources.entries[7] }
-		    }
-		}
 	    }
 	}
 
@@ -379,6 +282,58 @@ ApplicationWindow
         }
     }
 
+    ListModel {
+        id: sourceModel
+	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP }
+	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP_RENDERER }
+	ListElement { source: GpsMap.SOURCE_OPENCYCLEMAP }
+        ListElement { source: GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT }
+        ListElement { source: GpsMap.SOURCE_GOOGLE_STREET }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID }
+    }
+
+    Component {
+        id: sources
+
+        Dialog {
+	    id: sourcedialog
+            allowedOrientations: page.allowedOrientations
+            
+            SilicaListView {
+                id: sourcelist
+                anchors.fill: parent
+
+                header:  DialogHeader {
+                    title: "Select a tile source"
+                }
+                model: sourceModel
+
+                delegate: ListItem {
+		    
+		    height: Theme.itemSizeMedium
+                    Label { text: map.sourceLabel(source)
+                            width: parent.width - img.width
+                            anchors.left: img.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            horizontalAlignment: Text.AlignHCenter }
+                    Image { id: img
+                            clip: true; fillMode: Image.Pad
+                            width: Theme.itemSizeMedium * 1.5
+                            height: Theme.itemSizeMedium
+                            anchors.left: parent.left
+                            anchors.leftMargin: Theme.paddingSmall
+                            onVisibleChanged: {
+                                if (visible) { source = map.getCenteredTile(model.source) } }
+                          }
+                    onClicked: { map.source = model.source; sourcedialog.accept() }
+                }
+	        VerticalScrollDecorator { flickable: sourcelist }
+            }
+        }
+    }
+            
     Component {
         id: wiki
 
