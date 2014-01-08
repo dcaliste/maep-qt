@@ -84,7 +84,7 @@ ApplicationWindow
                 MenuItem {
                     text: "Import track"
                     font.pixelSize: Theme.fontSizeSmall
-	            color: Theme.secondaryHighlightColor
+	            /*color: Theme.secondaryHighlightColor*/
                     onClicked: { var dialog = pageStack.push(trackopen)
 		                 dialog.accepted.connect(
                                      function() {
@@ -96,14 +96,14 @@ ApplicationWindow
                     text: "Export track"
                     visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.secondaryHighlightColor
+                    /*color: Theme.secondaryHighlightColor*/
                     onClicked: pageStack.push(tracksave, { track: map.track })
                 }
                 MenuItem {
                     text: "Clear track"
                     visible: map.track != undefined
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.secondaryHighlightColor
+                    /*color: Theme.secondaryHighlightColor*/
                     onClicked: map.setTrack()
                 }
 		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
@@ -235,19 +235,39 @@ ApplicationWindow
 
             delegate: ListItem {
 		
-		contentHeight: Theme.itemSizeSmall * 0.75
+		contentHeight: Theme.itemSizeSmall
+                Image {
+                    id: img_go
+                    source: "image://theme/icon-m-right"
+                    anchors.right: parent.right
+                    anchors.leftMargin: Theme.paddingSmall
+                    anchors.rightMargin: Theme.paddingSmall
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 		Label {
-                    text: model.name + ", " + model.country
+                    text: model.name
 		    font.pixelSize: Theme.fontSizeSmall
-		    anchors.fill: parent
+                    anchors.leftMargin: Theme.paddingSmall
+                    anchors.left: parent.left
+                    anchors.right: img_go.left
+                    anchors.top: parent.top
+                    anchors.topMargin: Theme.paddingMedium
 		    color: highlighted ? Theme.highlightColor : Theme.primaryColor
+		}
+		Label {
+                    text: model.country
+		    font.pixelSize: Theme.fontSizeExtraSmall
+                    anchors.leftMargin: Theme.paddingLarge
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+		    color: highlighted ? Theme.highlightColor : Theme.secondaryColor
 		}
 		Label {
 		    property real dist: map.coordinate.distanceTo(model.coordinate)
 		    font.pixelSize: Theme.fontSizeExtraSmall
 		    text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
 		    color: Theme.secondaryColor
-		    anchors.right: parent.right
+		    anchors.right: img_go.left
 		    anchors.bottom: parent.bottom
 		}
 	        onClicked: { search.text = model.name
