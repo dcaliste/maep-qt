@@ -3,4 +3,5 @@ Type=Application
 Name=Mæp
 Icon=harbour-maep-qt
 Exec=harbour-maep-qt
+X-Nemo-Application-Type=silica-qt5
 Comment=Map browser with GPS capabilities
