@@ -116,16 +116,19 @@ ApplicationWindow
 
             Row {
                 width: parent.width
+                height: Theme.itemSizeMedium
 	        spacing: 0 /*Theme.paddingSmall*/
                 TextField {
                     id: search
                     width: parent.width - maep.width
+                    height: parent.height
                     placeholderText: "Enter a place name"
 	            label: "Place search"
 		    anchors.verticalCenter: parent.verticalCenter
 		    EnterKey.text: "search"
 		    EnterKey.onClicked: {
-		        busy.running = true
+                        busy.visible = true
+                        search_icon.visible = false
 		        map.focus = true
 		        drawer.open = false
 			placeview.model = null
@@ -133,17 +136,31 @@ ApplicationWindow
 		    }
 		    onFocusChanged: { if (focus) { selectAll() } }
                 }
-	        BusyIndicator {
-	   	    id: busy
-                    running: false
-                    visible: true
-                    size: BusyIndicatorSize.Small
-                    anchors.verticalCenter: parent.verticalCenter
+                Item {
+                    anchors.right: maep.left
+                    height: parent.height
+                    width: search_icon.width
+	            BusyIndicator {
+	   	        id: busy
+                        visible: false
+                        running: visible
+                        size: BusyIndicatorSize.Small
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    IconButton {
+                        id: search_icon
+                        icon.source: drawer.open ? "image://theme/icon-m-clear" : "image://theme/icon-m-down"
+                        visible: false
+                        onClicked: drawer.open = !drawer.open
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
                 PageHeader {
                     id: maep
                     width: 130
                     title: "Mæp"
+                    anchors.right: parent.right
                 }
             }
         }
@@ -170,7 +187,8 @@ ApplicationWindow
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: {
                     search.label = search_results.length + " place(s) found"
-		    busy.running = false
+		    busy.visible = false
+                    search_icon.visible = true
 		    if (search_results.length > 0) {
 			placeview.model = search_results
 			drawer.open = true }
@@ -247,6 +265,7 @@ ApplicationWindow
 		Label {
                     text: model.name
 		    font.pixelSize: Theme.fontSizeSmall
+                    truncationMode: TruncationMode.Fade
                     anchors.leftMargin: Theme.paddingSmall
                     anchors.left: parent.left
                     anchors.right: img_go.left

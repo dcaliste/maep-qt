@@ -89,7 +89,7 @@ SilicaFlickable {
         Label {
 	    id: lbl_title_authors
             text: "Authors"
-            color: Theme.secondaryHighlightColor
+            color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
             anchors.topMargin: Theme.paddingSmall
         }
@@ -108,7 +108,7 @@ SilicaFlickable {
         Label {
 	    id: lbl_title_license
             text: "License"
-            color: Theme.secondaryHighlightColor
+            color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
             anchors.topMargin: Theme.paddingSmall
         }
@@ -127,7 +127,7 @@ SilicaFlickable {
         Label {
 	    id: lbl_title_bugs
             text: "Report bugs"
-            color: Theme.secondaryHighlightColor
+            color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
             anchors.topMargin: Theme.paddingSmall
         }
@@ -154,7 +154,7 @@ SilicaFlickable {
         Label {
 	    id: lbl_title_donate
             text: "Donate"
-            color: Theme.secondaryHighlightColor
+            color: Theme.highlightColor
             font.pixelSize: Theme.fontSizeMedium
             anchors.topMargin: Theme.paddingSmall
 	    anchors.top: bt_bugs.bottom
