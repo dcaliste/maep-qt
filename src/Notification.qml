@@ -28,7 +28,7 @@ Item {
 	color: Theme.highlightColor
 	anchors.left: parent.left
 	anchors.right: parent.right
-	height: childrenRect.height
+	/*height: childrenRect.height*/
 	y: -height
 	opacity: 0
 	z: 10
@@ -37,6 +37,7 @@ Item {
 	    anchors.centerIn: parent
 	    color: Theme.primaryColor
 	    font.pixelSize: Theme.fontSizeExtraSmall
+            Component.onCompleted: banner_rect.height = height
 	}
 	states: [
 	    State {

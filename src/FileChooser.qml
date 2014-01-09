@@ -64,7 +64,11 @@ Item {
 	id: chooser_header
 	Column {
 	    width: parent ? parent.width: undefined
-	    Loader { sourceComponent: chooser_item.title; anchors.right: parent.right }
+	    Loader {
+                sourceComponent: chooser_item.title
+                anchors.right: parent.right
+                width: parent.width
+            }
 	    Row {
 		width: parent.width
 	        TextField {
@@ -133,26 +137,40 @@ Item {
             text: "No files"
         }
 	delegate: ListItem {
-	    contentHeight: Theme.itemSizeSmall * 0.75
+	    contentHeight: Theme.itemSizeSmall
 	    Image {
 		id: chooser_icon
 		source: fileIsDir ? "image://theme/icon-m-folder" : "image://theme/icon-m-document"
 		//visible: fileIsDir
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.paddingSmall
+                anchors.rightMargin: Theme.paddingSmall
+                anchors.verticalCenter: parent.verticalCenter
 	    }
 	    Label {
                 text: fileName
+                truncationMode: TruncationMode.Fade
 		font.pixelSize: Theme.fontSizeSmall
-		anchors.fill: parent
-		anchors.leftMargin: chooser_icon.width + Theme.paddingSmall
+                anchors.topMargin: Theme.paddingSmall
+                anchors.right: parent.right
+		anchors.left: chooser_icon.right
 		color: highlighted ? Theme.highlightColor : Theme.primaryColor
 	    }
 	    Label {
 		font.pixelSize: Theme.fontSizeExtraSmall
 		text: formatter.formatDate(fileModified, Formatter.Timepoint) + " - " + formatter.formatFileSize(fileSize)
 		color: Theme.secondaryColor
-		anchors.right: parent.right
+		anchors.right: img_go.left
 		anchors.bottom: parent.bottom
 	    }
+            Image {
+                id: img_go
+                source: "image://theme/icon-m-right"
+                anchors.right: parent.right
+                anchors.leftMargin: Theme.paddingSmall
+                anchors.rightMargin: Theme.paddingSmall
+                anchors.verticalCenter: parent.verticalCenter
+            }
 	    onClicked: { fileIsDir ? folderModel.folder = filePath : selection = filePath }
 	}
     }
