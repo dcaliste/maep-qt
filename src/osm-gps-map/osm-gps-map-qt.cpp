@@ -673,7 +673,7 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 {
   float track;
 
-  g_message("position is %f %f\n", info.coordinate().latitude(),
+  g_message("position is %f %f", info.coordinate().latitude(),
             info.coordinate().longitude());
   if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
     g_object_set(map, "gps-track-highlight-radius",
@@ -682,7 +682,8 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
   if (info.hasAttribute(QGeoPositionInfo::Direction))
     track = info.attribute(QGeoPositionInfo::Direction);
   else
-    track = 0.;
+    track = OSM_GPS_MAP_INVALID;
+  g_message("heading is %g", track);
 
   lastGps = info;
   emit gpsCoordinateChanged();
@@ -744,8 +745,8 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       osm_gps_map_add_track(map, track->get());
 
       /* Adjust map zoom and location according to track bounding box. */
-      track_bounding_box(track->get(), &top_left, &bottom_right);
-      osm_gps_map_adjust_to(map, &top_left, &bottom_right);
+      if (track_bounding_box(track->get(), &top_left, &bottom_right))
+        osm_gps_map_adjust_to(map, &top_left, &bottom_right);
     }
 }
 void Maep::GpsMap::gpsToTrack()

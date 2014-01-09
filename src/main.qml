@@ -150,7 +150,7 @@ ApplicationWindow
                     }
                     IconButton {
                         id: search_icon
-                        icon.source: drawer.open ? "image://theme/icon-m-clear" : "image://theme/icon-m-down"
+                        icon.source: drawer.open ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
                         visible: false
                         onClicked: drawer.open = !drawer.open
                         anchors.verticalCenter: parent.verticalCenter
