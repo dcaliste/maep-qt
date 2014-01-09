@@ -62,8 +62,8 @@ struct _MaepWikiContextPrivate
 #define ICON_SIZE      32
 #else
 #ifdef SAILFISH
-#define ICON_SIZE_STR "32"
-#define ICON_SIZE      32
+#define ICON_SIZE_STR "48"
+#define ICON_SIZE      48
 #else
 #define ICON_SIZE_STR "24"
 #define ICON_SIZE      24
@@ -371,7 +371,7 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
 #ifndef SAILFISH
 #define BALLOON_FONT 12.0
 #else
-#define BALLOON_FONT 20.0
+#define BALLOON_FONT 32.0
 #endif
 #else
 #ifndef MAEMO5
