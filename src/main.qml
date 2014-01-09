@@ -114,10 +114,9 @@ ApplicationWindow
 	    height: Theme.itemSizeMedium //childrenRect.height
             contentHeight: childrenRect.height
 
-            Row {
+            Item {
                 width: parent.width
                 height: Theme.itemSizeMedium
-	        spacing: 0 /*Theme.paddingSmall*/
                 TextField {
                     id: search
                     width: parent.width - maep.width
