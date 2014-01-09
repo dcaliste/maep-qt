@@ -103,8 +103,8 @@ void track_point_new(track_state_t *track_state,
 
 int track_contents(track_state_t *track_state);
 int track_length(track_state_t *track_state);
-void track_bounding_box(track_state_t *track_state,
-                        coord_t *top_left, coord_t *bottom_right);
+gboolean track_bounding_box(track_state_t *track_state,
+                            coord_t *top_left, coord_t *bottom_right);
 
 G_END_DECLS
 

@@ -586,10 +586,18 @@ int track_length(track_state_t *track_state) {
   return len;
 }
 
-void track_bounding_box(track_state_t *track_state,
-                        coord_t *top_left, coord_t *bottom_right)
+gboolean track_bounding_box(track_state_t *track_state,
+                            coord_t *top_left, coord_t *bottom_right)
 {
-  g_return_if_fail(track_state);
+  gboolean valid;
+
+  g_return_val_if_fail(track_state, FALSE);
+
+  if (track_state->bb_top_left.rlat == G_MAXFLOAT ||
+      track_state->bb_top_left.rlon == G_MAXFLOAT ||
+      track_state->bb_bottom_right.rlat == -G_MAXFLOAT ||
+      track_state->bb_bottom_right.rlon == -G_MAXFLOAT)
+    return FALSE;
 
   g_message("Track, top left coord is %g x %g",
             track_state->bb_top_left.rlat, track_state->bb_top_left.rlon);
@@ -599,6 +607,8 @@ void track_bounding_box(track_state_t *track_state,
             track_state->bb_bottom_right.rlat, track_state->bb_bottom_right.rlon);
   if (bottom_right)
     *bottom_right = track_state->bb_bottom_right;
+
+  return TRUE;
 }
 
 
