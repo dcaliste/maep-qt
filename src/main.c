@@ -47,9 +47,6 @@
 #include <locale.h>
 #include <libintl.h>
 
-#include <gconf/gconf.h>
-#include <gconf/gconf-client.h>
-
 #include "osm-gps-map-gtk.h"
 #include "osm-gps-map-osd-classic.h"
 #include "converter.h"
@@ -63,44 +60,31 @@
 /* default values */
 #define MAP_SOURCE  OSM_GPS_MAP_SOURCE_OPENCYCLEMAP
 
-#define PROXY_KEY  "/system/http_proxy/"
-
 
 /* we need to tell the map widget about possible network proxies */
 /* so the network transfer can pass these */
 static const char *get_proxy_uri(void) {
+  const char *result = NULL;
   static char proxy_buffer[64] = "";
   
   /* use environment settings if preset (e.g. for scratchbox) */
   const char *proxy = g_getenv("http_proxy");
   if(proxy) return proxy;
 
-  GConfClient *gconf_client = gconf_client_get_default();
+  struct proxy_config *config = proxy_config_get();
 
-  /* ------------- get proxy settings -------------------- */
-  if(gconf_client_get_bool(gconf_client, 
-			   PROXY_KEY "use_http_proxy", NULL)) {
-
-    /* we can savely ignore things like "ignore_hosts" since we */
-    /* are pretty sure not inside the net of one of our map renderers */
-    /* (unless the user works at google :-) */
-      
-    /* get basic settings */
-    char *host = 
-      gconf_client_get_string(gconf_client, PROXY_KEY "host", NULL);
-    if(host) {
-      int port =
-	gconf_client_get_int(gconf_client, PROXY_KEY "port", NULL);
+  if (config->host) {
+      // TODO: support proxy authentication
 
       snprintf(proxy_buffer, sizeof(proxy_buffer),
-	       "http://%s:%u", host, port);
+              "http://%s:%u", config->host, config->port);
 
-      g_free(host);
-    }
-    return proxy_buffer;
+      result = proxy_buffer;
   }
 
-  return NULL;
+  proxy_config_free(config);
+
+  return result;
 }
 
 /* the gconf keys the map state will be stored under */
