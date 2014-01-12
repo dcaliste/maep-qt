@@ -28,9 +28,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <gconf/gconf.h>
-#include <gconf/gconf-client.h>
-
 static GQuark error_quark = NULL;
 GQuark net_io_get_quark()
 {
@@ -171,55 +168,23 @@ static size_t mem_write(void *ptr, size_t size, size_t nmemb,
   return nmemb;
 }
 
-#define PROXY_KEY  "/system/http_proxy/"
+void net_io_set_proxy(CURL *curl)
+{
+    struct proxy_config *config = proxy_config_get();
 
-void net_io_set_proxy(CURL *curl) {
+    if (config->host) {
+        curl_easy_setopt(curl, CURLOPT_PROXY, config->host);
+        curl_easy_setopt(curl, CURLOPT_PROXYPORT, config->port);
 
-#if 1
-#warning "http_proxy not evaluated yet!"
-#else
-  /* get proxy settings */
-  static char proxy_buffer[64] = "";
-  
-  /* use environment settings if preset (e.g. for scratchbox) */
-  const char *proxy = g_getenv("http_proxy");
-  if(proxy) return proxy;
-#endif
-
-  GConfClient *gconf_client = gconf_client_get_default();
-
-  /* ------------- get proxy settings -------------------- */
-  if(gconf_client_get_bool(gconf_client, 
-		   PROXY_KEY "use_http_proxy", NULL)) {
-    g_message("thread: using proxy.");
-    /* get basic settings */
-    char *host = 
-      gconf_client_get_string(gconf_client, PROXY_KEY "host", NULL);
-    if(host) {
-      int port =
-	gconf_client_get_int(gconf_client, PROXY_KEY "port", NULL);
-
-      curl_easy_setopt(curl, CURLOPT_PROXY, host);
-      curl_easy_setopt(curl, CURLOPT_PROXYPORT, port);
-      g_free(host);
-
-      if(gconf_client_get_bool(gconf_client, 
-	       PROXY_KEY "use_authentication", NULL)) {
-    
-	char *user = gconf_client_get_string(gconf_client, 
-		     PROXY_KEY "authentication_user", NULL);
-	char *pass = gconf_client_get_string(gconf_client, 
-		     PROXY_KEY "authentication_password", NULL);
-
-	char *cred = g_strdup_printf("%s:%s", user, pass);
-	curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
-	g_free(cred);
-
-	if(pass) g_free(pass);
-	if(user) g_free(user);
-      }
+        if (config->username) {
+            char *cred = g_strdup_printf("%s:%s", config->username,
+                    config->password);
+            curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
+            g_free(cred);
+        }
     }
-  }
+
+    proxy_config_free(config);
 }
 
 static gboolean net_io_idle_cb(gpointer data) {

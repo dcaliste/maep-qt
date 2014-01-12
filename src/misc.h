@@ -37,6 +37,19 @@ gfloat gconf_get_float(const char *key, gfloat default_value);
 
 char *url_encode(const char *str);
 
+struct proxy_config {
+    // Host is NULL if no proxy should be used
+    gchar *host;
+    int port;
+
+    // Username is NULL if no auth should be used
+    gchar *username;
+    gchar *password;
+};
+
+struct proxy_config *proxy_config_get();
+void proxy_config_free(struct proxy_config *config);
+
 #ifdef WITH_GTK
 #include <gtk/gtk.h>
 GtkWidget *notebook_new(void);
