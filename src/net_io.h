@@ -22,6 +22,8 @@
 
 #include <glib.h>
 
+G_BEGIN_DECLS
+
 typedef struct {
   char *ptr;
   int len;
@@ -45,8 +47,11 @@ typedef void* net_io_t;
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem);
 #endif
 
+void net_io_init();
+void net_io_finalize();
 net_io_t net_io_download_async(char *url, net_io_cb, gpointer data);
 void net_io_cancel_async(net_io_t io);
 
+G_END_DECLS
 
 #endif // NET_IO_H

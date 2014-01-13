@@ -18,7 +18,7 @@
 #include "osm-gps-map-qt.h"
 #include "osm-gps-map.h"
 #undef WITH_GTK
-#include "misc.h"
+#include "net_io.h"
 
 #include <QPainter>
 
@@ -155,6 +155,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   g_free(path);
 
+  net_io_init();
   osd = osm_gps_map_osd_classic_init(map);
   wiki = maep_wiki_context_new();
   wiki_enabled = wikipedia;
@@ -220,6 +221,7 @@ Maep::GpsMap::~GpsMap()
   if (wiki_entry)
     delete(wiki_entry);
   g_object_unref(search);
+  net_io_finalize();
 
   if (surf)
     cairo_surface_destroy(surf);

@@ -92,6 +92,15 @@ static char *http_message(int id) {
   return NULL;
 }
 
+void net_io_init()
+{
+  curl_global_init(CURL_GLOBAL_NOTHING);
+}
+void net_io_finalize()
+{
+  curl_global_cleanup();
+}
+
 #ifdef WITH_GTK
 static gint dialog_destroy_event(GtkWidget *widget, gpointer data) {
   /* set cancel flag */
@@ -258,6 +267,9 @@ static void *worker_thread(void *ptr) {
     /* prepare target memory */
     request->result.data.ptr = NULL;
     request->result.data.len = 0;
+
+    /* In case Curl is causing stack fault on long jumps. */
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 
     curl_easy_setopt(curl, CURLOPT_URL, request->url);
       
