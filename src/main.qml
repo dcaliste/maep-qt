@@ -187,9 +187,9 @@ ApplicationWindow
                 onSearchResults: {
                     search.label = search_results.length + " place(s) found"
 		    busy.visible = false
-                    search_icon.visible = true
 		    if (search_results.length > 0) {
 			placeview.model = search_results
+                        search_icon.visible = true
 			drawer.open = true }
 		}
 	        Behavior on opacity {
