@@ -31,6 +31,7 @@
 #define GCONF_KEY_TRACK_CAPTURE "track_capture_enabled"
 #define GCONF_KEY_TRACK_PATH "track_path"
 #define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
+#define GCONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
 
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
@@ -122,6 +123,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
+  bool gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
 
   path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
 
@@ -180,14 +182,15 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   forceActiveFocus();
   setAcceptedMouseButtons(Qt::LeftButton);
 
+  gpsRefreshRate_ = gpsRefresh;
   gps = QGeoPositionInfoSource::createDefaultSource(this);
-  if (gps)
+  if (gps && gpsRefreshRate_ > 0)
     {
       connect(gps, SIGNAL(positionUpdated(QGeoPositionInfo)),
               this, SLOT(positionUpdate(QGeoPositionInfo)));
       connect(gps, SIGNAL(updateTimeout()),
               this, SLOT(positionLost()));
-      gps->setUpdateInterval(1000);
+      gps->setUpdateInterval(gpsRefreshRate_);
       gps->startUpdates();
     }
   else
@@ -244,6 +247,8 @@ Maep::GpsMap::~GpsMap()
 
   gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, screenRotation);
 
+  gconf_set_bool(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
+
   g_object_unref(map);
 }
 
@@ -277,7 +282,7 @@ bool Maep::GpsMap::mapSized()
       pat = cairo_pattern_create_linear (0.0, height(),
                                          0.0, height() - 100);
       cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
-      cairo_pattern_add_color_stop_rgba (pat, 0, 0, 0, 0, 0);
+      cairo_pattern_add_color_stop_rgba (pat, 0, 0, 0, 0, 0.3);
       img = new QImage(cairo_image_surface_get_data(surf),
                        cairo_image_surface_get_width(surf),
                        cairo_image_surface_get_height(surf),
@@ -701,6 +706,22 @@ void Maep::GpsMap::positionLost()
   emit gpsCoordinateChanged();
 
   osm_gps_map_clear_gps(map);
+}
+void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
+{
+  if (gpsRefreshRate_ == rate)
+    return;
+
+  gpsRefreshRate_ = rate;
+  emit gpsRefreshRateChanged(rate);
+
+  if (rate == 0 && gps)
+    {
+      gps->stopUpdates();
+      osm_gps_map_clear_gps(map);
+    }
+  else if (gps)
+    gps->setUpdateInterval(rate);
 }
 
 void Maep::GpsMap::setTrackCapture(bool status)

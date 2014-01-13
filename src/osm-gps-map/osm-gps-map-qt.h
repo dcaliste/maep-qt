@@ -234,6 +234,8 @@ class GpsMap : public QQuickPaintedItem
 
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
 
+  Q_PROPERTY(unsigned int gps_refresh_rate READ gpsRefreshRate WRITE setGpsRefreshRate NOTIFY gpsRefreshRateChanged)
+
   Q_PROPERTY(QString version READ version CONSTANT)
   Q_PROPERTY(QString compilation_date READ compilation_date CONSTANT)
   Q_PROPERTY(QString authors READ authors CONSTANT)
@@ -338,6 +340,9 @@ class GpsMap : public QQuickPaintedItem
     return status;
   }
   Q_INVOKABLE QString getCenteredTile(Maep::GpsMap::Source source) const;
+  inline unsigned int gpsRefreshRate() {
+    return gpsRefreshRate_;
+  }
 
  protected:
   void paint(QPainter *painter);
@@ -360,6 +365,7 @@ class GpsMap : public QQuickPaintedItem
   void trackCaptureChanged(bool status);
   void trackChanged(bool available);
   void screenRotationChanged(bool status);
+  void gpsRefreshRateChanged(unsigned int rate);
 
  public slots:
   void setSource(Source source);
@@ -381,6 +387,7 @@ class GpsMap : public QQuickPaintedItem
   void positionLost();
   void setTrackCapture(bool status);
   void setTrack(Maep::Track *track = NULL);
+  void setGpsRefreshRate(unsigned int rate);
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -426,6 +433,7 @@ class GpsMap : public QQuickPaintedItem
   QImage *img;
 
   /* GPS */
+  unsigned int gpsRefreshRate_;
   QGeoPositionInfoSource *gps;
   QGeoPositionInfo lastGps;
 
