@@ -525,7 +525,7 @@ ApplicationWindow
                 saveMode: true
 		title: DialogHeader { title: "Save current track" }
 		onSelectionChanged: { overwrite(selection) }
-		onEntryChanged: { save(selection) }
+		onEntryChanged: { save(entry) }
 	    }
 	}
     }

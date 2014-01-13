@@ -490,6 +490,7 @@ gboolean track_write(track_state_t *track_state, const char *name, GError **erro
 
   track_save_tracks(track_state->track, root_node);
 
+  g_message("Going to save track to '%s'.", name);
   xmlSaveFormatFileEnc(name, doc, "UTF-8", 1);
   xmlFreeDoc(doc);
   /*
