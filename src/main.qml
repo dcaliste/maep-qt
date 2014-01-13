@@ -119,7 +119,7 @@ ApplicationWindow
                 height: Theme.itemSizeMedium
                 TextField {
                     id: search
-                    width: parent.width - maep.width
+                    width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
                     height: parent.height
                     placeholderText: "Enter a place name"
 	            label: "Place search"
@@ -202,6 +202,7 @@ ApplicationWindow
 		width: page.width
 		height: Theme.itemSizeMedium
 		z: map.z + 1
+                anchors.bottomMargin: -Theme.paddingMedium
                 visible: !search.focus && !drawer.open
 		IconButton {
 		    id: zoomout
