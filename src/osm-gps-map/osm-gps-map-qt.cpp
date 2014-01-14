@@ -716,6 +716,7 @@ void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
   if (gpsRefreshRate_ == rate)
     return;
 
+  g_message("set GPS refresh rate to %d.", rate);
   restart = (gpsRefreshRate_ == 0);
   gpsRefreshRate_ = rate;
   emit gpsRefreshRateChanged(rate);

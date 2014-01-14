@@ -43,6 +43,10 @@ ApplicationWindow
                     onClicked: pageStack.push(aboutpage)
                 }
                 MenuItem {
+                    text: "Settings"
+                    onClicked: pageStack.push(settingspage)
+                }
+                MenuItem {
                     TextSwitch {
                         id: orientationcheck
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -52,15 +56,6 @@ ApplicationWindow
                     }
                     onClicked: {orientationcheck.checked = !orientationcheck.checked}
                 }
-		MenuItem {
-		    TextSwitch {
-			id: pixelcheck
-			text: "Draw map double pixel"
-			checked: map.double_pixel
-	 		onCheckedChanged: { map.double_pixel = checked }
-		    }
-		    onClicked: { pixelcheck.checked = !pixelcheck.checked }
-		}
 	        MenuItem {
 	            TextSwitch {
 		        id: wikicheck
@@ -569,6 +564,16 @@ ApplicationWindow
                 date: map.compilation_date
                 authors: map.authors
                 license: map.license
+            }
+        }
+    }
+
+    Component {
+        id: settingspage
+        Page {
+            anchors.fill: parent
+            Settings {
+                anchors.fill: parent
             }
         }
     }
