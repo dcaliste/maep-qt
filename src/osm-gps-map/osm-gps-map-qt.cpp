@@ -123,7 +123,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
-  bool gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
+  int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
 
   path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
 
@@ -249,7 +249,7 @@ Maep::GpsMap::~GpsMap()
 
   gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, screenRotation);
 
-  gconf_set_bool(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
+  gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
   g_object_unref(map);
 }
@@ -711,9 +711,12 @@ void Maep::GpsMap::positionLost()
 }
 void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
 {
+  bool restart;
+
   if (gpsRefreshRate_ == rate)
     return;
 
+  restart = (gpsRefreshRate_ == 0);
   gpsRefreshRate_ = rate;
   emit gpsRefreshRateChanged(rate);
 
@@ -723,7 +726,11 @@ void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
       osm_gps_map_clear_gps(map);
     }
   else if (gps)
-    gps->setUpdateInterval(rate);
+    {
+      gps->setUpdateInterval(rate);
+      if (restart)
+        gps->startUpdates();
+    }
 }
 
 void Maep::GpsMap::setTrackCapture(bool status)
