@@ -27,6 +27,14 @@ Item {
     property string entry
     property bool saveMode: false
 
+    function getEntry() {
+        if (chooser_entry.acceptableInput) {
+            return folderModel.folder + "/" + chooser_entry.text
+        } else {
+            return ""
+        }
+    }
+
     FolderListModel {
 	id: folderModel
         folder: StandardPaths.documents
@@ -41,8 +49,8 @@ Item {
 	function dirname() {
 	    var url = parentFolder.toString()
 	    if (url == "file:///home") {
-		return "file:///media"
-	    } else if (url == "file:///") {
+		return "file:///run/user/100000/media/sdcard"
+	    } else if (url == "file:///run/user/100000/media") {
 		return "file:///home/nemo"
 	    } else {
 		return url
@@ -152,7 +160,7 @@ Item {
                 truncationMode: TruncationMode.Fade
 		font.pixelSize: Theme.fontSizeSmall
                 anchors.topMargin: Theme.paddingSmall
-                anchors.right: parent.right
+                anchors.right: img_go.left
 		anchors.left: chooser_icon.right
 		color: highlighted ? Theme.highlightColor : Theme.primaryColor
 	    }

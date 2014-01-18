@@ -513,6 +513,8 @@ ApplicationWindow
                         if (url.length > 0) {
                             chooser.folder = url.substring(0, url.lastIndexOf("/"))
                         } else { chooser.folder = StandardPaths.documents } }
+            onAccepted: { url = chooser.getEntry();
+                          if (url.length > 0) {track.toFile(url)} }
 	    RemorsePopup { id: remorse }
 	    FileChooser {
 		id: chooser
