@@ -481,6 +481,7 @@ void Maep::GpsMap::mouseReleaseEvent(QMouseEvent *event)
       osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
       drag_mouse_dx = 0;
       drag_mouse_dy = 0;
+      g_object_set(map, "auto-center", FALSE, NULL);
     }
   osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
                            event->x(), event->y(), FALSE);
@@ -550,11 +551,10 @@ void Maep::GpsMap::setAutoCenter(bool status)
   if ((set && status) || (!set && !status))
     return;
 
-  g_object_set(map, "auto-center", status, NULL);
-
   if (status && lastGps.isValid())
     osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
                            lastGps.coordinate().longitude());
+  g_object_set(map, "auto-center", status, NULL);
 }
 
 void Maep::GpsMap::setScreenRotation(bool status)
