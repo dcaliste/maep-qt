@@ -2251,7 +2251,7 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
         case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
             return;
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
-            *notice = "Google Maps - ©2014 Google";
+            *notice = "©2014 Google";
             *url    = "http://www.google.com/intl/fr_fr/help/legalnotices_maps.html";
             return;
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
@@ -2260,7 +2260,7 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID:
-            *notice = "©2013 Nokia ©2014 Microsoft Corporation";
+            *notice = "©2014 Microsoft Corporation";
             *url    = "http://windows.microsoft.com:80/en-gb/windows-live/microsoft-services-agreement";
             return;
         case OSM_GPS_MAP_SOURCE_YAHOO_STREET:
