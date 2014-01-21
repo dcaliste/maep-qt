@@ -55,6 +55,7 @@ SilicaFlickable {
                 minimumValue: 0.
                 maximumValue: 10.
                 stepSize: 1.
+                label: "GPS refresh rate"
                 value: map.gps_refresh_rate / 1000.
                 valueText: (value > 0) ? value + " s" : "No update"
                 onValueChanged: { map.gps_refresh_rate = value * 1000 }
