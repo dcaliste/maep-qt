@@ -2217,6 +2217,62 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
     return NULL;
 }
 
+void
+osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
+                                      const gchar **notice, const gchar **url)
+{
+    g_return_if_fail(notice && url);
+
+    *notice = NULL;
+    *url = NULL;
+    switch(source)
+    {
+        case OSM_GPS_MAP_SOURCE_NULL:
+            return;
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+            *notice = "© OpenStreetMap contributors";
+            *url    = "http://www.openstreetmap.org/copyright";
+            return;
+        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
+            return;
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
+            *notice = "Tiles Courtesy of MapQuest";
+            *url    = "http://www.mapquest.com/";
+            return;
+        case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+            *notice = "© OpenCycleMap";
+            *url    = "http://www.opencyclemap.org/";
+            return;
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+            *notice = "CC-BY-SA license (© by MeMomaps)";
+            *url    = "http://memomaps.de";
+            return;
+        case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
+        case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
+            return;
+        case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+            *notice = "Google Maps - ©2014 Google";
+            *url    = "http://www.google.com/intl/fr_fr/help/legalnotices_maps.html";
+            return;
+        case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE:
+            return;
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID:
+            *notice = "©2013 Nokia ©2014 Microsoft Corporation";
+            *url    = "http://windows.microsoft.com:80/en-gb/windows-live/microsoft-services-agreement";
+            return;
+        case OSM_GPS_MAP_SOURCE_YAHOO_STREET:
+        case OSM_GPS_MAP_SOURCE_YAHOO_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_YAHOO_HYBRID:
+            return;
+        case OSM_GPS_MAP_SOURCE_LAST:
+        default:
+            return;
+    }
+}
+
 const char *
 osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
 {

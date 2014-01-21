@@ -339,29 +339,64 @@ ApplicationWindow
                 id: sourcelist
                 anchors.fill: parent
 
-                header:  DialogHeader {
-                    title: "Select a tile source"
+                header: Column {
+                    width: parent.width
+                    DialogHeader {
+                        title: "Select a tile source"
+                    }
+                    Label {
+                        width: parent.width - 2 * Theme.paddingLarge
+                        text: "Long tap to display options"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.secondaryColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
                 }
                 model: sourceModel
 
                 delegate: ListItem {
-		    
-		    height: Theme.itemSizeMedium
-                    Label { text: map.sourceLabel(source)
-                            width: parent.width - img.width
-                            anchors.left: img.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            horizontalAlignment: Text.AlignHCenter }
+                    id: listItem
+		    menu: contextMenu
+		    contentHeight: Theme.itemSizeMedium
+                    Label {
+                        text: map.sourceLabel(source)
+                        width: parent.width - img.width
+                        anchors.left: img.right
+                        anchors.top: parent.top
+                        anchors.topMargin: Theme.paddingMedium
+                        horizontalAlignment: Text.AlignHCenter
+                        color: listItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+                    }
+                    Label {
+                        color: Theme.secondaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        text: "© OpenStreetMap contributors"
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.paddingSmall
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Theme.paddingMedium
+                    }
                     Image { id: img
                             clip: true; fillMode: Image.Pad
                             width: Theme.itemSizeMedium * 1.5
-                            height: Theme.itemSizeMedium
+                            height: Theme.itemSizeMedium - Theme.paddingSmall
                             anchors.left: parent.left
                             anchors.leftMargin: Theme.paddingSmall
+                            anchors.verticalCenter: parent.verticalCenter
                             onVisibleChanged: {
                                 if (visible) { source = map.getCenteredTile(model.source) } }
                           }
                     onClicked: { map.source = model.source; sourcedialog.accept() }
+
+                    Component {
+                        id: contextMenu
+                        ContextMenu {
+                            MenuItem {
+                                text: "Open map copyright in browser"
+                                onClicked: Qt.openUrlExternally("toto")
+                            }
+                        }
+                    }
                 }
 	        VerticalScrollDecorator { flickable: sourcelist }
             }

@@ -334,6 +334,16 @@ class GpsMap : public QQuickPaintedItem
   Q_INVOKABLE inline QString sourceLabel(Source id) const {
     return QString(osm_gps_map_source_get_friendly_name((OsmGpsMapSource_t)id));
   }
+  Q_INVOKABLE inline QString sourceCopyrightNotice(Source id) const {
+    const gchar *notice, *url;
+    osm_gps_map_source_get_repo_copyright((OsmGpsMapSource_t)id, &notice, &url);
+    return QString(notice);
+  }
+  Q_INVOKABLE inline QString sourceCopyrightUrl(Source id) const {
+    const gchar *notice, *url;
+    osm_gps_map_source_get_repo_copyright((OsmGpsMapSource_t)id, &notice, &url);
+    return QString(url);
+  }
   inline bool doublePixel() {
     gboolean status;
     g_object_get(map, "double-pixel", &status, NULL);
