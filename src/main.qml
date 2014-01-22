@@ -370,7 +370,7 @@ ApplicationWindow
                     Label {
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall
-                        text: "© OpenStreetMap contributors"
+                        text: map.sourceCopyrightNotice(source)
                         anchors.right: parent.right
                         anchors.rightMargin: Theme.paddingSmall
                         anchors.bottom: parent.bottom
@@ -393,7 +393,7 @@ ApplicationWindow
                         ContextMenu {
                             MenuItem {
                                 text: "Open map copyright in browser"
-                                onClicked: Qt.openUrlExternally("toto")
+                                onClicked: Qt.openUrlExternally(map.sourceCopyrightUrl(source))
                             }
                         }
                     }

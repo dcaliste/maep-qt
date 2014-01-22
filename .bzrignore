@@ -1,3 +1,4 @@
 *.svn*
 tmp*
 autom4te*
+*.rpm
