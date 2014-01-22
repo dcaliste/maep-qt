@@ -1,6 +1,6 @@
 /*
  * FileChooser.qml
- * Copyright (C) Damien Caliste 2013 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
  *
  * FileChooser.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -33,6 +33,65 @@ Item {
         } else {
             return ""
         }
+    }
+
+    Column {
+	id: chooser_header
+	width: chooser_item.width
+	Loader {
+            sourceComponent: chooser_item.title
+            anchors.right: parent.right
+            width: parent.width
+        }
+	Row {
+	    width: parent.width
+	    TextField {
+		id: chooser_entry
+		width: parent.width - chooser_adddir.width
+		placeholderText: "enter a new file name"
+		validator: RegExpValidator { regExp: /^[^/]+$/ }
+		inputMethodHints: Qt.ImhNoPredictiveText
+		EnterKey.text: "save"
+		EnterKey.onClicked: { if (acceptableInput) { chooser_item.entry = folderModel.folder + "/" + text } }
+	    }
+	    IconButton {
+		id: chooser_adddir
+		icon.source: "image://theme/icon-m-folder"
+		enabled: chooser_entry.acceptableInput
+		onClicked: {  }
+	    }
+	    visible: chooser_item.saveMode
+	}
+	Label {
+	    width: parent.width
+	    visible: chooser_item.saveMode
+	    text: "or select an existing one"
+	    font.pixelSize: Theme.fontSizeSmall
+	    color: Theme.secondaryColor
+	    horizontalAlignment: Text.AlignHCenter
+	}
+	Row {
+	    id: chooser_head
+	    height: Theme.itemSizeSmall
+	    width: parent.width
+	    IconButton {
+		id: chooser_back
+		icon.source: "image://theme/icon-header-back"
+		enabled: folderModel.dirname().length > 0
+		onClicked: { folderModel.navigateUp() }
+	    }
+	    Button {
+		width: parent.width - chooser_back.width - chooser_options.width
+		text: folderModel.basename()
+		visible: folderModel.dirname().length > 0
+		enabled: false
+	    }
+	    IconButton {
+		id: chooser_options
+		icon.source: "image://theme/icon-m-levels"
+		onClicked: { chooser_controls.open = !chooser_controls.open }
+	    }
+	}
     }
 
     FolderListModel {
@@ -68,69 +127,14 @@ Item {
 	id: chooser_title
 	Label { text: "Select a file" }
     }
-    Component {
-	id: chooser_header
-	Column {
-	    width: parent ? parent.width: undefined
-	    Loader {
-                sourceComponent: chooser_item.title
-                anchors.right: parent.right
-                width: parent.width
-            }
-	    Row {
-		width: parent.width
-	        TextField {
-		    id: chooser_entry
-		    width: parent.width - chooser_adddir.width
-		    placeholderText: "enter a new file name"
-		    validator: RegExpValidator { regExp: /^[^/]+$/ }
-		    inputMethodHints: Qt.ImhNoPredictiveText
-		    EnterKey.text: "save"
-		    EnterKey.onClicked: { if (acceptableInput) { chooser_item.entry = folderModel.folder + "/" + text } }
-	        }
-		IconButton {
-		    id: chooser_adddir
-		    icon.source: "image://theme/icon-m-folder"
-		    enabled: chooser_entry.acceptableInput
-		    onClicked: {  }
-		}
-		visible: chooser_item.saveMode
-	    }
-	    Label {
-		width: parent.width
-		visible: chooser_item.saveMode
-		text: "or select an existing one"
-		font.pixelSize: Theme.fontSizeSmall
-		color: Theme.secondaryColor
-		horizontalAlignment: Text.AlignHCenter
-	    }
-	    Row {
-		id: chooser_head
-		height: Theme.itemSizeSmall
-		width: parent.width
-		IconButton {
-		    id: chooser_back
-		    icon.source: "image://theme/icon-header-back"
-		    enabled: folderModel.dirname().length > 0
-		    onClicked: { folderModel.navigateUp() }
-		}
-		Button {
-		    width: parent.width - chooser_back.width - chooser_options.width
-		    text: folderModel.basename()
-		    visible: folderModel.dirname().length > 0
-		    enabled: false
-		}
-		IconButton {
-		    id: chooser_options
-		    icon.source: "image://theme/icon-m-levels"
-		    onClicked: { chooser_controls.open = !chooser_controls.open }
-		}
-	    }
-	}
-    }
     SilicaListView {
 	id: chooser_list
-	header: chooser_header
+        header: Item {
+            id: header
+            width: chooser_header.width
+            height: chooser_header.height
+            Component.onCompleted: chooser_header.parent = header
+        }
 	anchors {
 	    fill: parent
 	    rightMargin: page.isPortrait ? 0 : chooser_controls.visibleSize

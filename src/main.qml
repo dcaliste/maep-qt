@@ -1,6 +1,6 @@
 /*
  * main.qml
- * Copyright (C) Damien Caliste 2013 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
  *
  * main.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -548,7 +548,7 @@ ApplicationWindow
                         if (url.length > 0) {
                             chooser.folder = url.substring(0, url.lastIndexOf("/"))
                         } else { chooser.folder = StandardPaths.documents } }
-            onAccepted: { url = chooser.getEntry();
+            onAccepted: { var url = chooser.getEntry();
                           if (url.length > 0) {track.toFile(url)} }
 	    RemorsePopup { id: remorse }
 	    FileChooser {
