@@ -53,15 +53,15 @@ rm -rf %{buildroot}
 cd tmp
 %qmake5_install
 # Copy here the blacklisted libraries
-install -d %{buildroot}/usr/share/%{name}/lib
-install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libgio-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libgobject-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libgconf-2.so.4 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libxml2.so.2 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libQt5Positioning.so.5 %{buildroot}/usr/share/%{name}/lib/
+#install -d %{buildroot}/usr/share/%{name}/lib
+#install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libgio-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libgobject-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libgconf-2.so.4 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libxml2.so.2 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libQt5Positioning.so.5 %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
