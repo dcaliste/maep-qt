@@ -1,6 +1,6 @@
 /*
  * about.qml
- * Copyright (C) Damien Caliste 2013 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
  *
  * about.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -74,7 +74,7 @@ SilicaFlickable {
     Label {
         id: copyright
         width: parent.width
-        text: "Copyright 2009-2013"
+        text: "Copyright 2009-2014"
         color: Theme.primaryColor
         font.pixelSize: Theme.fontSizeSmall
         horizontalAlignment: Text.AlignHCenter
