@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 
-static GQuark error_quark = NULL;
+static GQuark error_quark = 0;
 GQuark net_io_get_quark()
 {
   if (!error_quark)
@@ -62,6 +62,7 @@ static struct http_message_s {
 typedef struct {
   gint refcount;       /* reference counter for master and worker thread */ 
 
+  struct proxy_config *proxy;
   char *url, *user;
   gboolean cancel;
   float progress;
@@ -151,6 +152,7 @@ static void request_free(net_io_request_t *request) {
   }
 
   //  printf("no references left, freeing request\n");
+  if(request->proxy) proxy_config_free(request->proxy);
   if(request->url)  g_free(request->url);
   if(request->user) g_free(request->user);
 
@@ -177,23 +179,19 @@ static size_t mem_write(void *ptr, size_t size, size_t nmemb,
   return nmemb;
 }
 
-void net_io_set_proxy(CURL *curl)
+static void set_proxy(CURL *curl, const struct proxy_config *config)
 {
-    struct proxy_config *config = proxy_config_get();
+  if (config->host) {
+    curl_easy_setopt(curl, CURLOPT_PROXY, config->host);
+    curl_easy_setopt(curl, CURLOPT_PROXYPORT, config->port);
 
-    if (config->host) {
-        curl_easy_setopt(curl, CURLOPT_PROXY, config->host);
-        curl_easy_setopt(curl, CURLOPT_PROXYPORT, config->port);
-
-        if (config->username) {
-            char *cred = g_strdup_printf("%s:%s", config->username,
-                    config->password);
-            curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
-            g_free(cred);
-        }
+    if (config->username) {
+      char *cred = g_strdup_printf("%s:%s", config->username,
+                                   config->password);
+      curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, cred);
+      g_free(cred);
     }
-
-    proxy_config_free(config);
+  }
 }
 
 static gboolean net_io_idle_cb(gpointer data) {
@@ -242,7 +240,7 @@ static void *worker_thread(void *ptr) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mem_write);
 
     /* g_message("thread: set proxy"); */
-    /* net_io_set_proxy(curl); */
+    set_proxy(curl, request->proxy);
 
     /* set user name and password for the authentication */
     g_message("thread: set username if any");
@@ -354,6 +352,7 @@ static gboolean net_io_do(GtkWidget *parent, net_io_request_t *request) {
 gboolean net_io_download(GtkWidget *parent, char *url, char **mem) {
   net_io_request_t *request = g_new0(net_io_request_t, 1);
 
+  request->proxy = proxy_config_get();
   request->url = g_strdup(url);
 
   gboolean result = net_io_do(parent, request);
@@ -389,6 +388,7 @@ static gboolean net_io_do_async(net_io_request_t *request) {
 net_io_t net_io_download_async(char *url, net_io_cb cb, gpointer data) {
   net_io_request_t *request = g_new0(net_io_request_t, 1);
 
+  request->proxy = proxy_config_get();
   request->url = g_strdup(url);
   request->cb = cb;
   request->data = data;
