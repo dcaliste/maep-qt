@@ -27,6 +27,7 @@
 #include "geonames.h"
 #include "net_io.h"
 #include "misc.h"
+#include "config.h"
 
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
@@ -258,7 +259,7 @@ void maep_geonames_entry_list_free(GSList *list) {
 /* ------------- end of freeing ------------------ */
 
 #define MAX_RESULT 25
-#define GEONAMES  "http://ws.geonames.org/"
+#define GEONAMES  "http://api.geonames.org/"
 #define GEONAMES_SEARCH "geonames_search"
 
 typedef struct 
@@ -334,7 +335,7 @@ void maep_geonames_entry_request(coord_t *pt1, coord_t *pt2,
   /* build complete url for request */
   char *url = g_strdup_printf(
       GEONAMES "wikipediaBoundingBox?"
-      "north=%s&south=%s&west=%s&east=%s&lang=%s&maxRows=%u", 
+      "north=%s&south=%s&west=%s&east=%s&lang=%s&maxRows=%u&username=" PACKAGE, 
       str[0], str[1], str[2], str[3], lang, MAX_RESULT);
 
   /* start download in background */
@@ -361,7 +362,7 @@ void maep_geonames_place_request(const gchar *request,
   char *encoded_phrase = url_encode(request);
   char *url = g_strdup_printf(
 	      GEONAMES "search?q=%s&maxRows=%u&lang=%s"
-	      "&isNameRequired=1&featureClass=P",
+	      "&isNameRequired=1&featureClass=P&username=" PACKAGE,
 
 	      encoded_phrase, MAX_RESULT, lang);
   g_free(encoded_phrase);
