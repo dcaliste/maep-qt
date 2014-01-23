@@ -135,6 +135,49 @@ gfloat gconf_get_float(const char *m_key, gfloat def_value) {
   return ret;
 }
 
+
+struct proxy_config *proxy_config_get()
+{
+    struct proxy_config *config = g_new0(struct proxy_config, 1);
+
+    // TODO: As fallback, get proxy from environment ("http_proxy")
+    // TODO: On Sailfish, get proxy settings from Qt or ConnMan(?)
+
+    GConfClient *gconf_client = gconf_client_get_default();
+#define PROXY_KEY  "/system/http_proxy/"
+    if (gconf_client_get_bool(gconf_client,
+                PROXY_KEY "use_http_proxy", NULL)) {
+        g_message("thread: using proxy.");
+
+        /* basic settings */
+        config->host = gconf_client_get_string(gconf_client, PROXY_KEY "host", NULL);
+        config->port = gconf_client_get_int(gconf_client, PROXY_KEY "port", NULL);
+
+        /* authentication settings */
+        if(gconf_client_get_bool(gconf_client,
+                    PROXY_KEY "use_authentication", NULL)) {
+            config->username = gconf_client_get_string(gconf_client,
+                    PROXY_KEY "authentication_user", NULL);
+            config->password = gconf_client_get_string(gconf_client,
+                    PROXY_KEY "authentication_password", NULL);
+        }
+    }
+#undef PROXY_KEY
+
+    return config;
+}
+
+void proxy_config_free(struct proxy_config *config)
+{
+    if (config) {
+        g_free(config->host);
+        g_free(config->username);
+        g_free(config->password);
+        g_free(config);
+    }
+}
+
+
 static const char *data_paths[] = {
   "~/." APP,                 // in home directory
   DATADIR ,                  // final installation path (e.g. /usr/share/maep)
