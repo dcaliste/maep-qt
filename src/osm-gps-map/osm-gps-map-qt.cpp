@@ -688,6 +688,9 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
                        osm_gps_map_get_scale(map)), NULL);
   if (info.hasAttribute(QGeoPositionInfo::Direction))
     track = info.attribute(QGeoPositionInfo::Direction);
+  else if (lastGps.isValid())
+    /* Approximate heading with last known position */
+    track = lastGps.coordinate().azimuthTo(info.coordinate());
   else
     track = OSM_GPS_MAP_INVALID;
   g_message("heading is %g", track);
