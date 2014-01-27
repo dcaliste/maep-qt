@@ -7,6 +7,11 @@
 #
 
 Name: harbour-maep-qt
+
+# Harbour requirements.
+#%define __provides_exclude_from ^%{_datadir}/.*$
+#%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libgconf-2.*|libxml2.*|libQt5Positioning.*|libdl.*|libdbus-glib-1.*|libpixman-1.*|libfontconfig.*|libfreetype.*|libxcb-shm.*|libxcb-render.*|libxcb.*|libXrender.*|libX11.*|libXau.*|libexpat.*$
+
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
 Release: 1
@@ -57,11 +62,21 @@ cd tmp
 #install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
 #install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
 #install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libgio-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libgobject-2.0.so.0 %{buildroot}/usr/share/%{name}/lib/
 #install -m 644 -p /usr/lib/libgconf-2.so.4 %{buildroot}/usr/share/%{name}/lib/
 #install -m 644 -p /usr/lib/libxml2.so.2 %{buildroot}/usr/share/%{name}/lib/
 #install -m 644 -p /usr/lib/libQt5Positioning.so.5 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /lib/libdl.so.2 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libdbus-glib-1.so.2 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libfontconfig.so.1 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libxcb-shm.so.0 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libxcb-render.so.0 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libxcb.so.1 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libXrender.so.1 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libX11.so.6 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libXau.so.6 %{buildroot}/usr/share/%{name}/lib/
+#install -m 644 -p /usr/lib/libexpat.so.1 %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
