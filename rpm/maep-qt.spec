@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
-Release: 1
+Release: 10
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -84,3 +84,49 @@ cd tmp
 /usr/share/icons
 /usr/share/%{name}
 /usr/bin
+
+%changelog
+* Mon Jan 27 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-10
+- use the new api.geonames.org (in between, ws.geonames.org has reappered again) ;
+- use an approximation to display the direction when GPS is used, waiting for a Qt bug being fixed and get this information from GPS directly.
+
+* Wed Jan 22 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-9
+- auto centering is correctly working (i.e. tapping on the GPS icon highlight it and the map is auto-centered, and moving the map by hand cancel it).
+- accept in the export dialog of a track by swyping or tapping on the header works as expected.
+- use a correct user-agent to download tiles (maep-libsoup/1.3.7 instead of a browser-like one).
+- display the copyright for each map in the source selection dialog, add also a link to the full copyright page for each map.
+
+* Tue Jan 14 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-8
+- correct a bug not activating the GPS, introduced in 1.3.7-7.
+
+* Mon Jan 13 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-7
+- import / export layout are now OK.
+- properly save the exported track.
+- try to correct a crashing bug after searching for something (an issue in Curl in fact).
+- use bigger icons for wikipedia data.
+- use a lighter gradient for the bottom toolbar and shift a bit the icons of the toolbar to the bottom.
+- use a gconf parameter to change the GPS refresh rate (a parameter page to change this in the UI should appear next).
+
+* Thu Jan 09 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-6
+- the source selector is now working.
+- when tracking is enabled, the map do not zoom anymore to the entire earth when one get the first GPS fix.
+- the auto-center button is working, but still a bit difficult to activate…
+- a button has been added near the search field to reopen the last search results and results appear in a larger item size for big fingers !
+
+* Mon Dec 02 2013 - Damien Caliste <dcaliste@free.fr> 1.3.7-5
+- The source selection and the zoom is now done via Sailfish styled controls at the bottom of the map, using a gradient transparency to the background image as background.
+- The top of the map area has rounded corner.
+- Mapquest is used as rendering for OSM II.
+- Port the missing bug and donate pages in the about section.
+- Open links in the desktop browser instead of inside Mæp.
+- Correct the spurious fog effect on the cover.
+- Use previews in the source selection.
+- Rename everything to validate harbour rules on naming.
+
+* Mon Nov 25 2013 - Damien Caliste <dcaliste@free.fr> 1.3.7-3
+- JPG (google and virtual earth sattelite) tiles are back.
+- filechooser for Import / export of tracks.
+- about window.
+- thanks to Thomas Perl, some corrections on packaging.
+- bug of pull down menu below the map corrected.
+- bug of map resize on device rotated (maybe) fixed.
