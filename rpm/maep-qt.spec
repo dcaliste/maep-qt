@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
-Release: 10
+Release: 11
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -86,6 +86,9 @@ cd tmp
 /usr/bin
 
 %changelog
+* Thu Mar 06 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-11
+- correct a memory leak in the OSD rendering code.
+
 * Mon Jan 27 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-10
 - use the new api.geonames.org (in between, ws.geonames.org has reappered again) ;
 - use an approximation to display the direction when GPS is used, waiting for a Qt bug being fixed and get this information from GPS directly.
