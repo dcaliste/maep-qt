@@ -2083,9 +2083,9 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
 
     /* OSD itself uses some off-screen rendering, so check if the */
     /* offscreen buffer is present and create it if not */
-    if(!priv->controls.surface) {
         /* create overlay ... */
 #ifdef OSD_CONTROLS
+    if(!priv->controls.surface) {
         priv->controls.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, OSD_W+2, OSD_H+2);
 
@@ -2093,41 +2093,52 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
 #ifdef OSD_GPS_BUTTON
         priv->controls.gps_enabled = FALSE;
 #endif
+        /* ... and render it */
+        osd_render_controls(osd);
+    }
 #endif
 
 #ifdef OSD_SOURCE_SEL
+    if(!priv->source_sel.surface) {
         /* the initial OSD state is alway not-expanded */
         priv->source_sel.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
                                            OSD_S_W+2, OSD_S_H+2);
         priv->source_sel.rendered = FALSE;
+        osd_render_source_sel(osd, FALSE);
+    }
 #endif
 
 #ifdef OSD_SCALE
+    if(!priv->scale.surface) {
         priv->scale.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
                                        OSD_SCALE_W, OSD_SCALE_H);
         priv->scale.zoom = -1;
+        osd_render_scale(osd);
+    }
 #endif
 
 #ifdef OSD_CROSSHAIR
+    if(!priv->crosshair.surface) {
         priv->crosshair.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
                                        OSD_CROSSHAIR_W, OSD_CROSSHAIR_H);
         priv->crosshair.rendered = FALSE;         
+        osd_render_crosshair(osd);
+    }
 #endif
 
 #ifdef OSD_COORDINATES
+    if(!priv->coordinates.surface) {
         priv->coordinates.surface = 
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
                                        OSD_COORDINATES_W, OSD_COORDINATES_H);
 
         priv->coordinates.lat = priv->coordinates.lon = OSM_GPS_MAP_INVALID;
-#endif
-
-        /* ... and render it */
-        osd_render(osd);
+        osd_render_coordinates(osd);
     }
+#endif
 
     // now draw this onto the original context 
     gint x, y;
