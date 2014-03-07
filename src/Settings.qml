@@ -72,6 +72,37 @@ SilicaFlickable {
                 horizontalAlignment: Text.AlignJustify
 	        anchors.horizontalCenter: parent.horizontalCenter
             }
+
+        Item {
+            width: parent.width
+            height: childrenRect.height
+            Slider {
+                id: autosave
+                width: parent.width
+
+                minimumValue: 0.
+                maximumValue: 15.
+                stepSize: 1.
+                label: "Track autosave rate"
+                value: map.track_autosave_rate / 60.
+                valueText: (value > 0) ? value + " min." : "On demand"
+                onValueChanged: { map.track_autosave_rate = value * 60 }
+            }
+            Label {
+                anchors.top: refresh.bottom
+                width: parent.width - 6 * Theme.paddingLarge
+
+                text: "Time between two track dumps on disk." +
+                " If set to 0, tracks are saved only on demand." +
+                " Autosaving a track without providing a filename" +
+                " will result to the track being saved in" +
+                " $HOME/.local/share/maep/track.gpx"
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignJustify
+	        anchors.horizontalCenter: parent.horizontalCenter
+            }
         }
     }
 }

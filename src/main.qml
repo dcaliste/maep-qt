@@ -171,6 +171,7 @@ ApplicationWindow
 
             GpsMap {
                 id: map
+                property int track_autosave_rate: 300
                 /*anchors.top: header.bottom
                   width: page.width
                   height: page.height - header.height*/
@@ -191,6 +192,8 @@ ApplicationWindow
                     FadeAnimation {}
                 }
 		onFocusChanged: { if (focus) { drawer.open = false } }
+                track.autosavePeriod: track_autosave_rate
+                track.characteristicsChanged: console.log(length + " " + duration)
             }
 	    Row {
 		anchors.bottom: parent.bottom

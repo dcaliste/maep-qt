@@ -66,12 +66,15 @@ typedef struct {
   /* The currently edited segment, or NULL if not any. */
   track_seg_t *current_seg;
 
-  /* Track need to be saved when dirty. */
-  gboolean dirty;
+  /* Timer for autosaving. */
+  gchar *path;
   guint timer_handler;
 
   /* Bounding box of the track. */
   coord_t bb_top_left, bb_bottom_right;
+
+  /* Total length of the track in meters. */
+  gfloat metricLength;
 
   /* Ref counted object. */
   guint ref_count;
@@ -93,8 +96,11 @@ track_state_t *track_state_new();
 track_state_t* track_state_ref(track_state_t *track_state);
 void track_state_unref(track_state_t *track_state);
 
-track_state_t *track_read(const char *filename, gboolean autosave, GError **error);
+track_state_t *track_read(const char *filename, GError **error);
 gboolean track_write(track_state_t *track_state, const char *name, GError **error);
+gboolean track_set_autosave_period(track_state_t *track_state, guint elaps);
+const gchar* track_get_autosave_path(track_state_t *track_state);
+gboolean track_set_autosave_path(track_state_t *track_state, const gchar *path);
 
 void track_point_new(track_state_t *track_state,
                      float latitude, float longitude,
@@ -105,6 +111,8 @@ int track_contents(track_state_t *track_state);
 int track_length(track_state_t *track_state);
 gboolean track_bounding_box(track_state_t *track_state,
                             coord_t *top_left, coord_t *bottom_right);
+gfloat track_metric_length(track_state_t *track_state);
+guint track_duration(track_state_t *track_state);
 
 G_END_DECLS
 

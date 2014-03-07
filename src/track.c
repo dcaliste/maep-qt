@@ -49,8 +49,8 @@
 #error "Tree not enabled in libxml"
 #endif
 
-static void track_state_save(track_state_t *track_state);
 static void track_state_update_bb(track_state_t *track_state);
+static void track_state_update_length(track_state_t *track_state);
 
 #ifdef USE_MAEMO
 #ifdef MAEMO5
@@ -124,11 +124,8 @@ static void track_free(track_t *trk) {
 static void track_state_free(track_state_t *track_state) {
 
   /* stop running timeout timer if present */
-  if(track_state->timer_handler) {
-    g_message("TRACK: removing timeout\n");
-    g_source_remove(track_state->timer_handler);
-    track_state->timer_handler = 0;
-  }
+  track_set_autosave_period(track_state, 0);
+  track_set_autosave_path(track_state, NULL);
 
   track_t *track = track_state->track;
   while(track) {
@@ -360,14 +357,73 @@ static track_state_t *track_parse_doc(xmlDocPtr doc) {
 }
 
 static gboolean track_autosave(gpointer data) {
-  g_message("TRACK: autosave\n");
+  track_state_t *track_state = (track_state_t*)data;
+  GError *error;
 
-  track_state_save((track_state_t *)data);
+  g_message("TRACK: autosave to '%s'.\n", track_state->path);
 
-  return FALSE;
+  /* make sure directory exists */
+  gchar *dirname = g_path_get_dirname(track_state->path);
+  g_mkdir_with_parents(dirname, 0700);
+  g_free(dirname);
+
+  error = (GError*)0;
+  track_write(track_state, track_state->path, &error);
+  if (error)
+    {
+      g_warning("%s", error->message);
+      g_error_free(error);
+    }
+  
+  return TRUE;
 }
 
-track_state_t *track_read(const char *filename, gboolean autosave, GError **error) {
+gboolean track_set_autosave_period(track_state_t *track_state, guint elaps)
+{
+  g_return_val_if_fail(track_state, FALSE);
+
+  if (track_state->timer_handler) {
+    g_source_remove(track_state->timer_handler);
+    track_state->timer_handler = 0;
+  }
+
+  if (elaps > 0) {
+    g_message("TRACK: adding timeout\n");
+    if (!track_state->path)
+      track_state->path = build_path();
+#if GLIB_MINOR_VERSION > 13
+    track_state->timer_handler = g_timeout_add_seconds(elaps, track_autosave, track_state);
+#else
+    track_state->timer_handler = g_timeout_add(elaps*1000, track_autosave, track_state);
+#endif
+  }
+
+  return TRUE;
+}
+const gchar* track_get_autosave_path(track_state_t *track_state)
+{
+  g_return_val_if_fail(track_state, NULL);
+
+  return track_state->path;
+}
+gboolean track_set_autosave_path(track_state_t *track_state, const gchar *path)
+{
+  g_return_val_if_fail(track_state, FALSE);
+
+  if (track_state->path)
+    g_free(track_state->path);
+  track_state->path = NULL;
+
+  if (path && path[0])
+    track_state->path = g_strdup(path);
+
+  if (track_state->timer_handler && !track_state->path)
+    track_state->path = build_path();
+
+  return TRUE;
+}
+
+track_state_t *track_read(const char *filename, GError **error) {
   xmlDoc *doc = NULL;
 
   LIBXML_TEST_VERSION;
@@ -390,18 +446,7 @@ track_state_t *track_read(const char *filename, gboolean autosave, GError **erro
     return NULL;
   }
   track_state_update_bb(track_state);
-
-  if(!track_state->dirty && autosave) {
-    g_message("TRACK: adding timeout\n");
-
-    g_assert(!track_state->timer_handler);
-#if GLIB_MINOR_VERSION > 13
-    track_state->timer_handler = g_timeout_add_seconds(5, track_autosave, track_state);
-#else
-    track_state->timer_handler = g_timeout_add(5*1000, track_autosave, track_state);
-#endif
-    track_state->dirty = TRUE;
-  }
+  track_state_update_length(track_state);
 
   return track_state;
 }
@@ -500,39 +545,7 @@ gboolean track_write(track_state_t *track_state, const char *name, GError **erro
    */
   /* xmlCleanupParser(); */
 
-  track_state->dirty = FALSE;
-
-  if(track_state->timer_handler) {
-    g_source_remove(track_state->timer_handler);
-    track_state->timer_handler = 0;
-  }
   return TRUE;
-}
-
-static void 
-track_state_save(track_state_t *track_state) {
-  char *path = build_path();
-
-  /* if there's no track state, remove any file already present */
-  if(!track_state) {
-    remove(path);
-    g_free(path);
-    return;
-  }
-
-  if(!track_state->dirty) {
-    g_free(path);
-    return;
-  }
-
-  /* make sure directory exists */
-  gchar *dirname = g_path_get_dirname(path);
-  g_mkdir_with_parents(dirname, 0700);
-  g_free(dirname);
-
-  track_write(track_state, path, NULL);
-  
-  g_free(path);
 }
 
 track_state_t* track_state_ref(track_state_t *track_state)
@@ -587,11 +600,35 @@ int track_length(track_state_t *track_state) {
   return len;
 }
 
+gfloat track_metric_length(track_state_t *track_state) {
+  g_return_val_if_fail(track_state, 0.f);
+  
+  return track_state->metricLength;
+}
+
+guint track_duration(track_state_t *track_state) {
+  track_t *track;
+  track_seg_t *seg;
+  track_point_t *start, *stop;
+
+  g_return_val_if_fail(track_state, 0);
+
+  if (!track_state->track ||
+      !track_state->track->track_seg ||
+      !track_state->track->track_seg->track_points->len == 0)
+    return 0;
+
+  start = &g_array_index(track_state->track->track_seg->track_points, track_point_t, 0);
+  for(track = track_state->track; track && track->next; track = track->next);
+  for(seg = track->track_seg; seg && seg->next && seg->next->track_points->len > 0; seg = seg->next);
+  stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
+
+  return stop - start;
+}
+
 gboolean track_bounding_box(track_state_t *track_state,
                             coord_t *top_left, coord_t *bottom_right)
 {
-  gboolean valid;
-
   g_return_val_if_fail(track_state, FALSE);
 
   if (track_state->bb_top_left.rlat == G_MAXFLOAT ||
@@ -644,6 +681,58 @@ static void track_state_update_bb(track_state_t *track_state)
   }
 }
 
+/* http://mathforum.org/library/drmath/view/51722.html */
+static float get_distance(float lat1, float lon1, float lat2, float lon2) {
+  float aob = acos(cos(lat1) * cos(lat2) * cos(lon2 - lon1) +
+		   sin(lat1) * sin(lat2));
+
+  return(aob * 6371000.0);     /* great circle radius in meters */
+}
+
+static gfloat _seg_add_point(track_seg_t *seg, track_point_t *new_point)
+{
+  track_point_t *prev;
+
+  g_array_append_vals(seg->track_points, new_point, 1);
+  /* Calculate distance between previous point and new one. */
+  if (seg->track_points->len > 1)
+    {
+      prev = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 2);
+      return ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
+                              new_point->coord.rlat, new_point->coord.rlon));
+    }
+  else
+    return 0.f;
+}
+
+static void track_state_update_length(track_state_t *track_state)
+{
+  guint i;
+  track_point_t *prev, *cur;
+
+  if(track_state) {
+    track_state->metricLength = 0.f;
+    track_t *track = track_state->track;
+    while(track) {
+      track_seg_t *seg = track->track_seg;
+      while(seg) {
+        if (seg->track_points->len > 0)
+          prev = &g_array_index(seg->track_points, track_point_t, 0);
+        for (i = 1; i < seg->track_points->len; i++)
+          {
+            cur = &g_array_index(seg->track_points, track_point_t, i);
+            track_state->metricLength +=
+              ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
+                               cur->coord.rlat, cur->coord.rlon));
+            prev = cur;
+          }
+	seg = seg->next;
+      }
+      track = track->next;
+    }
+  }
+}
+
 static track_seg_t* _get_new_segment(track_state_t *track_state)
 {
   g_return_val_if_fail(track_state, NULL);
@@ -662,12 +751,6 @@ static track_seg_t* _get_new_segment(track_state_t *track_state)
     track->name = g_strdup(str);
   }
 
-  if(!track_state->dirty) {
-    g_assert(!track_state->timer_handler);
-    track_state->timer_handler = g_timeout_add(60*5*1000, track_autosave, track_state);
-    track_state->dirty = TRUE;
-  }
-    
   g_message("track: no active segment, starting new one");
     
   track_seg_t *seg;
@@ -722,7 +805,7 @@ void track_point_new(track_state_t *track_state,
     seg = track_state->current_seg = _get_new_segment(track_state);
   
   g_message("gps: creating new point");
-  g_array_append_vals(seg->track_points, &new_point, 1);
+  track_state->metricLength += _seg_add_point(seg, &new_point);
 
   /* Updating bounding box. */
   track_state_update_bb0(track_state, &new_point);

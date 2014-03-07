@@ -171,6 +171,10 @@ private:
 class Track: public QObject
 {
   Q_OBJECT
+  Q_PROPERTY(unsigned int autosavePeriod READ getAutosavePeriod WRITE setAutosavePeriod NOTIFY autosavePeriodChanged)
+  Q_PROPERTY(QString path READ getPath NOTIFY pathChanged)
+  Q_PROPERTY(qreal length READ getLength NOTIFY characteristicsChanged)
+  Q_PROPERTY(unsigned int duration READ getDuration NOTIFY characteristicsChanged)
 
 public:
   Q_INVOKABLE inline Track(track_state_t *track = NULL,
@@ -181,6 +185,7 @@ public:
     else
       track = track_state_new();
     this->track = track;
+    autosavePeriod = 0;
   }
   inline ~Track()
   {
@@ -189,25 +194,39 @@ public:
   inline track_state_t* get() const {
     return track;
   }
-  inline QString getSource() const {
+  inline QString getPath() const {
     return source;
   }
   Q_INVOKABLE inline bool isEmpty() {
     return track_length(track) == 0;
   }
+  inline unsigned int getAutosavePeriod() {
+    return autosavePeriod;
+  }
+  inline qreal getLength() {
+    return (qreal)track_metric_length(track);
+  }
+  inline unsigned int getDuration() {
+    return (unsigned int)track_duration(track);
+  }
 
 signals:
   void fileError(const QString &errorMsg);
+  void autosavePeriodChanged(unsigned int value);
+  void pathChanged();
+  void characteristicsChanged(qreal length, unsigned int duration);
 
 public slots:
   void set(track_state_t *track);
   bool set(const QString &filename);
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
+  bool setAutosavePeriod(unsigned int value);
 
 private:
   track_state_t *track;
   QString source;
+  unsigned int autosavePeriod;
 };
 
 class GpsMap : public QQuickPaintedItem

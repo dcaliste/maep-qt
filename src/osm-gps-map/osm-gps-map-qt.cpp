@@ -57,11 +57,13 @@ bool Maep::Track::set(const QString &filename)
   GError *error;
 
   error = NULL;
-  t = track_read(filename.toLocal8Bit().data(), FALSE, &error);
+  t = track_read(filename.toLocal8Bit().data(), &error);
   if (t)
     {
       set(t);
       source = filename;
+      track_set_autosave_path(track, source.toLocal8Bit().data());
+      emit pathChanged();
       return true;
     }
   if (error)
@@ -83,19 +85,43 @@ bool Maep::Track::toFile(const QString &filename)
       emit fileError(QString(error->message));
       g_error_free(error);
     }
+  else
+    {
+      source = filename;
+      track_set_autosave_path(track, source.toLocal8Bit().data());
+      emit pathChanged();
+    }
   return res;
 }
 void Maep::Track::addPoint(QGeoPositionInfo &info)
 {
   QGeoCoordinate coord = info.coordinate();
   qreal speed;
+  float length;
 
   speed = 0.;
   if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
     speed = info.attribute(QGeoPositionInfo::GroundSpeed);
 
+  length = track_metric_length(track);
   track_point_new(track, coord.latitude(), coord.longitude(), coord.altitude(),
                   speed, 0., 0.);
+
+  // Emit characteristics only every 50 meters.
+  if (length / 50 != track_metric_length(track) / 50)
+    emit characteristicsChanged((qreal)track_metric_length(track),
+                                (unsigned int)track_duration(track));
+}
+bool Maep::Track::setAutosavePeriod(unsigned int value)
+{
+  bool ret;
+
+  autosavePeriod = value;
+  ret = track_set_autosave_period(track, (guint)value);
+  if (ret)
+    emit autosavePeriodChanged(value);
+
+  return ret;
 }
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
@@ -765,8 +791,8 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       g_message("Reparenting.");
       track->setParent(this);
 
-      if (!track->getSource().isEmpty())
-        gconf_set_string(GCONF_KEY_TRACK_PATH, track->getSource().toLocal8Bit().data());
+      if (!track->getPath().isEmpty())
+        gconf_set_string(GCONF_KEY_TRACK_PATH, track->getPath().toLocal8Bit().data());
     }
 
   emit trackChanged(track != NULL);
