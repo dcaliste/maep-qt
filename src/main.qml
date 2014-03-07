@@ -171,7 +171,8 @@ ApplicationWindow
 
             GpsMap {
                 id: map
-                property int track_autosave_rate: 300
+                property Conf conf: Conf {  }
+                property int track_autosave_rate: conf.getInt("track_autosave_period", 300)
                 /*anchors.top: header.bottom
                   width: page.width
                   height: page.height - header.height*/
@@ -192,6 +193,10 @@ ApplicationWindow
                     FadeAnimation {}
                 }
 		onFocusChanged: { if (focus) { drawer.open = false } }
+                onTrack_autosave_rateChanged: {
+                    if (track) { track.autosavePeriod = track_autosave_rate }
+                    conf.setInt("track_autosave_period", track_autosave_rate)
+                }
                 onTrackChanged: if (track) { track.autosavePeriod = track_autosave_rate
                                              track.characteristicsChanged.connect(function(length, duration) {console.log(length + " " + duration)}) }
             }

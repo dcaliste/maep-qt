@@ -53,11 +53,19 @@ public:
       ret = QString(fallback);
     return ret;
   }
+  Q_INVOKABLE inline int getInt(const QString &key, const int fallback) const
+  {
+    return gconf_get_int(key.toLocal8Bit().data(), fallback);
+  }
 
 public slots:
   inline void setString(const QString &key, const QString &value)
   {
     gconf_set_string(key.toLocal8Bit().data(), value.toLocal8Bit().data());
+  }
+  inline void setInt(const QString &key, const int value)
+  {
+    gconf_set_int(key.toLocal8Bit().data(), value);
   }
 };
 
