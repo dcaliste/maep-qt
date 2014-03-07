@@ -100,12 +100,16 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
   float length;
   guint duration;
 
+#ifndef NAN
+#define NAN (0.0/0.0)
+#endif
+
   speed = 0.;
   if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
     speed = info.attribute(QGeoPositionInfo::GroundSpeed);
 
   track_point_new(track, coord.latitude(), coord.longitude(), coord.altitude(),
-                  speed, 0., 0.);
+                  speed, NAN, NAN);
 
   emit characteristicsChanged((qreal)track_metric_length(track),
                               (unsigned int)track_duration(track));
