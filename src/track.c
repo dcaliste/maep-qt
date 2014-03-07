@@ -388,7 +388,7 @@ gboolean track_set_autosave_period(track_state_t *track_state, guint elaps)
   }
 
   if (elaps > 0) {
-    g_message("TRACK: adding timeout every %ds.\n", elaps);
+    g_message("Track: adding timeout every %ds.", elaps);
     if (!track_state->path)
       track_state->path = build_path();
 #if GLIB_MINOR_VERSION > 13
@@ -615,7 +615,7 @@ guint track_duration(track_state_t *track_state) {
 
   if (!track_state->track ||
       !track_state->track->track_seg ||
-      !track_state->track->track_seg->track_points->len == 0)
+      track_state->track->track_seg->track_points->len == 0)
     return 0;
 
   start = &g_array_index(track_state->track->track_seg->track_points, track_point_t, 0);
@@ -682,10 +682,10 @@ static void track_state_update_bb(track_state_t *track_state)
   }
 }
 
-/* http://mathforum.org/library/drmath/view/51722.html */
+/* http://www.movable-type.co.uk/scripts/latlong.html */
 static float get_distance(float lat1, float lon1, float lat2, float lon2) {
-  float aob = acos(cos(lat1) * cos(lat2) * cos(lon2 - lon1) +
-		   sin(lat1) * sin(lat2));
+  float aob = acos(CLAMP(cos(lat1) * cos(lat2) * cos(lon2 - lon1) +
+                         sin(lat1) * sin(lat2), -1.f, +1.f));
 
   return(aob * 6371000.0);     /* great circle radius in meters */
 }

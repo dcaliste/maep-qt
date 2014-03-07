@@ -108,7 +108,7 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
                   speed, 0., 0.);
 
   // Emit characteristics only every 50 meters.
-  if (length / 50 != track_metric_length(track) / 50)
+  if ((int)length / 50 != (int)track_metric_length(track) / 50)
     emit characteristicsChanged((qreal)track_metric_length(track),
                                 (unsigned int)track_duration(track));
 }
