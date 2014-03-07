@@ -98,19 +98,17 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
   QGeoCoordinate coord = info.coordinate();
   qreal speed;
   float length;
+  guint duration;
 
   speed = 0.;
   if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
     speed = info.attribute(QGeoPositionInfo::GroundSpeed);
 
-  length = track_metric_length(track);
   track_point_new(track, coord.latitude(), coord.longitude(), coord.altitude(),
                   speed, 0., 0.);
 
-  // Emit characteristics only every 50 meters.
-  if ((int)length / 50 != (int)track_metric_length(track) / 50)
-    emit characteristicsChanged((qreal)track_metric_length(track),
-                                (unsigned int)track_duration(track));
+  emit characteristicsChanged((qreal)track_metric_length(track),
+                              (unsigned int)track_duration(track));
 }
 bool Maep::Track::setAutosavePeriod(unsigned int value)
 {
