@@ -623,8 +623,8 @@ guint track_duration(track_state_t *track_state) {
   for(seg = track->track_seg; seg && seg->next && seg->next->track_points->len > 0; seg = seg->next);
   stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
 
-  g_message("Track: get duration %d %d.", start, stop);
-  return stop - start;
+  g_message("Track: get duration %d %d -> %d.", start->time, stop->time);
+  return stop->time - start->time;
 }
 
 gboolean track_bounding_box(track_state_t *track_state,
