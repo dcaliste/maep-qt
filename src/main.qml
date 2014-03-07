@@ -192,8 +192,8 @@ ApplicationWindow
                     FadeAnimation {}
                 }
 		onFocusChanged: { if (focus) { drawer.open = false } }
-                track.autosavePeriod: track_autosave_rate
-                track.characteristicsChanged: console.log(length + " " + duration)
+                onTrackChanged: if (track) { track.autosavePeriod = track_autosave_rate
+                                             track.characteristicsChanged.connect(function(length, duration) {console.log(length + " " + duration)}) }
             }
 	    Row {
 		anchors.bottom: parent.bottom

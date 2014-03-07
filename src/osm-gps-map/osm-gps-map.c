@@ -604,7 +604,7 @@ osm_gps_map_print_images (OsmGpsMap *map)
     rect.y = min_y + EXTRA_BORDER;
     rect.width = max_x - min_x;
     rect.height = max_y - min_y;
-    g_message("dirty is %p", priv->dirty);
+    g_debug("dirty is %p", priv->dirty);
     cairo_region_union_rectangle(priv->dirty, &rect);
 }
 
@@ -702,9 +702,9 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
     cairo_restore(priv->cr);
     /* cairo_set_source_rgb(priv->cr, 0., 0., 0.); */
     /* cairo_stroke(priv->cr); */
-    g_message("Blit surface %p(%p) at %dx%d x%d %dx%d.",
-              (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y,
-              modulo, area_x, area_y);
+    g_debug("Blit surface %p(%p) at %dx%d x%d %dx%d.",
+            (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y,
+            modulo, area_x, area_y);
 }
 
 static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *ext)
@@ -1316,7 +1316,7 @@ osm_gps_map_redraw (OsmGpsMap *map)
 
     osm_gps_map_fill_tiles_pixel(map);
 
-    g_message("dirty is %p.", (gpointer)priv->dirty);
+    g_debug("dirty is %p.", (gpointer)priv->dirty);
     osm_gps_map_print_tracks(map);
     osm_gps_map_draw_gps_point(map);
     osm_gps_map_print_images(map);

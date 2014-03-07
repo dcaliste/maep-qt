@@ -72,7 +72,8 @@ SilicaFlickable {
                 horizontalAlignment: Text.AlignJustify
 	        anchors.horizontalCenter: parent.horizontalCenter
             }
-
+        }
+        
         Item {
             width: parent.width
             height: childrenRect.height
@@ -89,11 +90,10 @@ SilicaFlickable {
                 onValueChanged: { map.track_autosave_rate = value * 60 }
             }
             Label {
-                anchors.top: refresh.bottom
+                anchors.top: autosave.bottom
                 width: parent.width - 6 * Theme.paddingLarge
 
-                text: "Time between two track dumps on disk." +
-                " If set to 0, tracks are saved only on demand." +
+                text: "Time between two automatic track dumps on disk." +
                 " Autosaving a track without providing a filename" +
                 " will result to the track being saved in" +
                 " $HOME/.local/share/maep/track.gpx"

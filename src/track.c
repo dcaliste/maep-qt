@@ -388,7 +388,7 @@ gboolean track_set_autosave_period(track_state_t *track_state, guint elaps)
   }
 
   if (elaps > 0) {
-    g_message("TRACK: adding timeout\n");
+    g_message("TRACK: adding timeout every %ds.\n", elaps);
     if (!track_state->path)
       track_state->path = build_path();
 #if GLIB_MINOR_VERSION > 13
@@ -623,6 +623,7 @@ guint track_duration(track_state_t *track_state) {
   for(seg = track->track_seg; seg && seg->next && seg->next->track_points->len > 0; seg = seg->next);
   stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
 
+  g_message("Track: get duration %d %d.", start, stop);
   return stop - start;
 }
 
@@ -804,7 +805,7 @@ void track_point_new(track_state_t *track_state,
   if (!seg)
     seg = track_state->current_seg = _get_new_segment(track_state);
   
-  g_message("gps: creating new point");
+  g_message("gps: creating new point %g", track_state->metricLength);
   track_state->metricLength += _seg_add_point(seg, &new_point);
 
   /* Updating bounding box. */
