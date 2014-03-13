@@ -349,13 +349,13 @@ void Maep::GpsMap::mapUpdate()
   h = cairo_image_surface_get_height(surf);
 
   /* Remove the bottom part for a Sailfish toolbar. */
-  cairo_save(cr);
-  cairo_rectangle (cr, 0., h - 100., w, h);
-  cairo_clip(cr);
-  cairo_set_operator (cr, CAIRO_OPERATOR_DEST_IN);
-  cairo_set_source (cr, pat);
-  cairo_paint(cr);
-  cairo_restore(cr);
+  // cairo_save(cr);
+  // cairo_rectangle (cr, 0., h - 100., w, h);
+  // cairo_clip(cr);
+  // cairo_set_operator (cr, CAIRO_OPERATOR_DEST_IN);
+  // cairo_set_source (cr, pat);
+  // cairo_paint(cr);
+  // cairo_restore(cr);
   /* Make top rounded corners. */
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_move_to(cr, 0., 0.);
