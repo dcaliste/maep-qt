@@ -68,6 +68,7 @@ typedef struct {
 
   /* Timer for autosaving. */
   gchar *path;
+  gboolean dirty;
   guint timer_handler;
 
   /* Bounding box of the track. */

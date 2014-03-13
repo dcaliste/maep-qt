@@ -360,6 +360,9 @@ static gboolean track_autosave(gpointer data) {
   track_state_t *track_state = (track_state_t*)data;
   GError *error;
 
+  if (!track_state_t->dirty)
+    return TRUE;
+
   g_message("TRACK: autosave to '%s'.\n", track_state->path);
 
   /* make sure directory exists */
@@ -544,6 +547,7 @@ gboolean track_write(track_state_t *track_state, const char *name, GError **erro
    * This should not be called if parsing is to be used again.
    */
   /* xmlCleanupParser(); */
+  track_state->dirty = FALSE;
 
   return TRUE;
 }
@@ -623,7 +627,7 @@ guint track_duration(track_state_t *track_state) {
   for(seg = track->track_seg; seg && seg->next && seg->next->track_points->len > 0; seg = seg->next);
   stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
 
-  g_message("Track: get duration %d %d.", start->time, stop->time);
+  /* g_message("Track: get duration %d %d.", start->time, stop->time); */
   return stop->time - start->time;
 }
 
@@ -806,6 +810,7 @@ void track_point_new(track_state_t *track_state,
     seg = track_state->current_seg = _get_new_segment(track_state);
   
   g_message("gps: creating new point %g", track_state->metricLength);
+  track_state->dirty = TRUE;
   track_state->metricLength += _seg_add_point(seg, &new_point);
 
   /* Updating bounding box. */
