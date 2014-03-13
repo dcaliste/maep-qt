@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
-Release: 11
+Release: 12
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -86,6 +86,12 @@ cd tmp
 /usr/bin
 
 %changelog
+* Thu Mar 13 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-12
+- implement track ength and duration measurements.
+- correct the autosave functionality for tracks.
+- add a setting for autosave period.
+- add a bottom drawer to display track information.
+
 * Thu Mar 06 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-11
 - correct a memory leak in the OSD rendering code.
 
