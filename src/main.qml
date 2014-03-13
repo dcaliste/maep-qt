@@ -77,29 +77,9 @@ ApplicationWindow
                     onClicked: {trackcheck.checked = !trackcheck.checked}
                 }
                 MenuItem {
-                    text: "Import track"
-                    font.pixelSize: Theme.fontSizeSmall
-	            /*color: Theme.secondaryHighlightColor*/
-                    onClicked: { var dialog = pageStack.push(trackopen)
-		                 dialog.accepted.connect(
-                                     function() {
-                                         if (!dialog.track.isEmpty()) {
-                                             map.setTrack(dialog.track) }
-                                     } ) }
-                }
-                MenuItem {
-                    text: "Export track"
-                    visible: map.track != undefined
-                    font.pixelSize: Theme.fontSizeSmall
-                    /*color: Theme.secondaryHighlightColor*/
-                    onClicked: pageStack.push(tracksave, { track: map.track })
-                }
-                MenuItem {
-                    text: "Clear track"
-                    visible: map.track != undefined
-                    font.pixelSize: Theme.fontSizeSmall
-                    /*color: Theme.secondaryHighlightColor*/
-                    onClicked: map.setTrack()
+                    text: drawer_background.sourceComponent == trackview && drawer.open ? "Close track management" : "Track management"
+                    //font.pixelSize: Theme.fontSizeSmall
+                    onClicked: drawer_background.sourceComponent == trackview && drawer.open ? drawer.disable(trackview) : drawer.enable(trackview)
                 }
 		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
             }
@@ -121,14 +101,14 @@ ApplicationWindow
 		    anchors.verticalCenter: parent.verticalCenter
 		    EnterKey.text: "search"
 		    EnterKey.onClicked: {
-                        busy.visible = true
+                        drawer.disable(placelist)
+			//placeview.model = null
                         search_icon.visible = false
+                        busy.visible = true
 		        map.focus = true
-		        drawer.open = false
-			placeview.model = null
                         map.setSearchRequest(text)
 		    }
-		    onFocusChanged: { if (focus) { selectAll() } }
+		    onFocusChanged: { if (focus) { selectAll(); drawer.disable(trackview) } }
                 }
                 Item {
                     anchors.right: maep.left
@@ -144,9 +124,10 @@ ApplicationWindow
                     }
                     IconButton {
                         id: search_icon
-                        icon.source: drawer.open ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+                        property bool opened: drawer.open && drawer_background.sourceComponent == placelist
+                        icon.source: opened ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
                         visible: false
-                        onClicked: drawer.open = !drawer.open
+                        onClicked: opened ? drawer.disable(placelist):drawer.enable(placelist)
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -160,14 +141,27 @@ ApplicationWindow
         }
         Drawer {
  	    id: drawer
+            function enable(child) {
+                drawer_background.sourceComponent = child
+                drawer.open = true
+            }
+            function disable(child) {
+                if (drawer_background.sourceComponent == child) {
+                    drawer.open = false
+                }
+            }
             z: -1
             anchors.top: header.bottom
             width: page.width
             height: page.height - header.height
 
-            dock: page.isPortrait ? Dock.Top : Dock.Left
+            dock: page.isPortrait ? drawer_background.sourceComponent == trackview ? Dock.Bottom : Dock.Top : Dock.Left
+            backgroundSize: dock == Dock.Left ? width / 3 : drawer_background.sourceComponent == trackview ? height / 3 : height / 2
 
-            background: placeview
+            background: Loader {
+                id: drawer_background
+                anchors.fill: parent
+                }
 
             GpsMap {
                 id: map
@@ -185,9 +179,9 @@ ApplicationWindow
                     search.label = search_results.length + " place(s) found"
 		    busy.visible = false
 		    if (search_results.length > 0) {
-			placeview.model = search_results
+			//placeview.model = search_results
                         search_icon.visible = true
-			drawer.open = true }
+                        drawer.enable(placelist)}
 		}
 	        Behavior on opacity {
                     FadeAnimation {}
@@ -197,16 +191,18 @@ ApplicationWindow
                     if (track) { track.autosavePeriod = track_autosave_rate }
                     conf.setInt("track_autosave_period", track_autosave_rate)
                 }
-                onTrackChanged: if (track) { track.autosavePeriod = track_autosave_rate
-                                             track.characteristicsChanged.connect(function(length, duration) {console.log(length + " " + duration)}) }
+                onTrackChanged: if (track) {
+                    track.autosavePeriod = track_autosave_rate
+                }
             }
 	    Row {
+                id: map_controls
 		anchors.bottom: parent.bottom
 		width: page.width
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
-                visible: !search.focus && !drawer.open
+                visible: !search.focus && (drawer_background.sourceComponent == trackview || !drawer.open)
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"
@@ -233,70 +229,233 @@ ApplicationWindow
 		    onClicked: { map.auto_center = !map.auto_center }
                 }
 	    }
+            OpacityRampEffect {
+                enabled: map_controls.visible
+                offset: 1. - Theme.itemSizeMedium / map.height
+                slope: map.height / Theme.itemSizeMedium
+                direction: 2
+                sourceItem: map
+            }
 	}
 
-        SilicaListView {
-            id: placeview
-            anchors.fill: parent
+        Component {
+            id: placelist
+            SilicaListView {
+                id: placeview
+                anchors.fill: parent
 
-	    PullDownMenu {
-	        MenuItem {
-		    text: "Cancel search"
-		    font.pixelSize: Theme.fontSizeSmall
-		    onClicked: { drawer.open = false }
-	        }
-	    }
-	    PushUpMenu {
-                MenuItem {
-                    text: "Cancel search"
-		    font.pixelSize: Theme.fontSizeSmall
-                    onClicked: { drawer.open = false }
-                }
-            }
+                model: map.search_results
 
-            delegate: ListItem {
-		
-		contentHeight: Theme.itemSizeSmall
-                Image {
-                    id: img_go
-                    source: "image://theme/icon-m-right"
-                    anchors.right: parent.right
-                    anchors.leftMargin: Theme.paddingSmall
-                    anchors.rightMargin: Theme.paddingSmall
-                    anchors.verticalCenter: parent.verticalCenter
+                delegate: ListItem {
+		    
+		    contentHeight: Theme.itemSizeSmall
+                    Image {
+                        id: img_go
+                        source: "image://theme/icon-m-right"
+                        anchors.right: parent.right
+                        anchors.leftMargin: Theme.paddingSmall
+                        anchors.rightMargin: Theme.paddingSmall
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+		    Label {
+                        text: model.name
+		        font.pixelSize: Theme.fontSizeSmall
+                        truncationMode: TruncationMode.Fade
+                        anchors.leftMargin: Theme.paddingSmall
+                        anchors.left: parent.left
+                        anchors.right: img_go.left
+                        anchors.top: parent.top
+                        anchors.topMargin: Theme.paddingMedium
+		        color: highlighted ? Theme.highlightColor : Theme.primaryColor
+		    }
+		    Label {
+                        text: model.country
+		        font.pixelSize: Theme.fontSizeExtraSmall
+                        anchors.leftMargin: Theme.paddingLarge
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+		        color: highlighted ? Theme.highlightColor : Theme.secondaryColor
+		    }
+		    Label {
+		        property real dist: map.coordinate.distanceTo(model.coordinate)
+		        font.pixelSize: Theme.fontSizeExtraSmall
+		        text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
+		        color: Theme.secondaryColor
+		        anchors.right: img_go.left
+		        anchors.bottom: parent.bottom
+		    }
+	            onClicked: { search.text = model.name
+	    		         drawer.open = false
+			         map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
                 }
-		Label {
-                    text: model.name
-		    font.pixelSize: Theme.fontSizeSmall
-                    truncationMode: TruncationMode.Fade
-                    anchors.leftMargin: Theme.paddingSmall
-                    anchors.left: parent.left
-                    anchors.right: img_go.left
-                    anchors.top: parent.top
-                    anchors.topMargin: Theme.paddingMedium
-		    color: highlighted ? Theme.highlightColor : Theme.primaryColor
-		}
-		Label {
-                    text: model.country
-		    font.pixelSize: Theme.fontSizeExtraSmall
-                    anchors.leftMargin: Theme.paddingLarge
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-		    color: highlighted ? Theme.highlightColor : Theme.secondaryColor
-		}
-		Label {
-		    property real dist: map.coordinate.distanceTo(model.coordinate)
-		    font.pixelSize: Theme.fontSizeExtraSmall
-		    text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
-		    color: Theme.secondaryColor
-		    anchors.right: img_go.left
-		    anchors.bottom: parent.bottom
-		}
-	        onClicked: { search.text = model.name
-	    		     drawer.open = false
-			     map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) } 
+	        VerticalScrollDecorator { flickable: placeview }
             }
-	    VerticalScrollDecorator { flickable: placeview }
+        }
+
+        Component {
+            id: trackview
+            SilicaFlickable {
+                id: trackitem
+                anchors.fill: parent
+                contentHeight: map.track ? trackdata.height : drawer.backgroundSize
+                
+                PushUpMenu {
+                    MenuItem {
+                        text: "Clear track"
+                        visible: map.track
+		        onClicked: remorse.execute("Clear current track", map.setTrack)
+                    }
+                    MenuItem {
+                        text: "Export track"
+                        visible: map.track
+                        font.pixelSize: Theme.fontSizeSmall
+                        onClicked: pageStack.push(tracksave, { track: map.track })
+                    }
+                    MenuItem {
+                        text: "Import track"
+                        onClicked: { var dialog = pageStack.push(trackopen)
+		                     dialog.accepted.connect(
+                                         function() {
+                                             if (!dialog.track.isEmpty()) {
+                                                 map.setTrack(dialog.track) }
+                                         } ) }
+                    }
+                }
+
+	        RemorsePopup { id: remorse }
+                
+                Column {
+                    id: trackdata
+                    visible: map.track
+                    width: parent.width
+                    spacing: Theme.paddingSmall
+                    Item {
+                        width: parent.width - 2 * Theme.paddingLarge
+                        height: track_title.height
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        Column {
+                            id: track_title
+                            width: parent.width - track_save.width
+                            Label {
+	                        function basename(url) {
+                                    return url.substring(url.lastIndexOf("/") + 1)
+                                }
+                                color: Theme.highlightColor
+                                font.pixelSize: Theme.fontSizeMedium
+                                text: (map.track)?(map.track.path.length > 0)?basename(map.track.path):"unsaved track":"no track"
+                                truncationMode: TruncationMode.Fade
+                                width: parent.width
+                            }
+                            Label {
+	                        function dirname(url) {
+                                    return url.substring(0, url.lastIndexOf("/"))
+                                }
+                                color: Theme.secondaryColor
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                text: (map.track) ? (map.track.path.length > 0) ? "in " + dirname(map.track.path):"Use the sync button to export":""
+                                horizontalAlignment: Text.AlignRight
+                                truncationMode: TruncationMode.Fade
+                                width: parent.width - Theme.paddingMedium
+                                anchors.right: parent.right
+                            }
+                        }
+                        IconButton {
+                            id: track_save
+                            anchors.right: parent.right
+                            anchors.verticalCenter: track_title.verticalCenter
+		            icon.source: map.track ? "image://theme/icon-m-sync" : "image://theme/icon-m-folder"
+		            enabled: map.track
+		            onClicked: if (map.track && map.track.path.length == 0) {
+                                pageStack.push(tracksave, { track: map.track })
+                            } else {
+                                map.track.toFile(map.track.path)
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: Theme.paddingMedium
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignRight
+                            font.pixelSize: Theme.fontSizeSmall
+                            text: "length"
+                        }
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignLeft
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.highlightColor
+		            text: if (map.track) { (map.track.length >= 1000) ? (map.track.length / 1000).toFixed(1) + " km" : map.track.length.toFixed(0) + " m"} else ""
+                        }
+                    }
+                    Row {
+                        spacing: Theme.paddingMedium
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignRight
+                            font.pixelSize: Theme.fontSizeSmall
+                            text: "duration"
+                        }
+                        Label {
+                            function duration(time) {
+                                if (time < 60) {
+                                    return time + " s"
+                                } else if (time < 3600) {
+                                    var m = Math.floor(time / 60)
+                                    var s = time - m * 60
+                                    return  m + " m " + s + " s"
+                                } else {
+                                    var h = Math.floor(time / 3600)
+                                    var m = Math.floor((time - h * 3600) / 60)
+                                    var s = time - h * 3600 - m * 60
+                                    return h + " h " + m + " m " + s + " s"
+                                }
+                            }
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignLeft
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.highlightColor
+                            text: if (map.track) { duration(map.track.duration) } else ""
+                        }
+                    }
+                    Row {
+                        spacing: Theme.paddingMedium
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignRight
+                            font.pixelSize: Theme.fontSizeSmall
+                            text: "average speed"
+                        }
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignLeft
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.highlightColor
+                            text: map.track && map.track.duration > 0?(map.track.length / map.track.duration * 3.6).toFixed(2) + " km/h":"not available"
+                        }
+                    }
+                }
+	        Label {
+                    id: trackholder
+                    visible: !map.track
+                    anchors.fill:parent
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "No track"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeLarge
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: { var dialog = pageStack.push(trackopen)
+		                     dialog.accepted.connect(
+                                         function() {
+                                             if (!dialog.track.isEmpty()) {
+                                                 map.setTrack(dialog.track) }
+                                         } ) }
+                    }
+                }
+	        VerticalScrollDecorator { flickable: trackitem }
+            }
         }
     }
 
