@@ -360,7 +360,7 @@ static gboolean track_autosave(gpointer data) {
   track_state_t *track_state = (track_state_t*)data;
   GError *error;
 
-  if (!track_state_t->dirty)
+  if (!track_state->dirty)
     return TRUE;
 
   g_message("TRACK: autosave to '%s'.\n", track_state->path);
