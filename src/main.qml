@@ -300,15 +300,13 @@ ApplicationWindow
                 contentHeight: map.track ? trackdata.height : drawer.backgroundSize
                 
                 PushUpMenu {
-                    MenuItem {
+                    visible: map.track
+                    /*MenuItem {
                         text: "Clear track"
-                        visible: map.track
 		        onClicked: remorse.execute("Clear current track", map.setTrack)
-                    }
+                    }*/
                     MenuItem {
                         text: "Export track"
-                        visible: map.track
-                        font.pixelSize: Theme.fontSizeSmall
                         onClicked: pageStack.push(tracksave, { track: map.track })
                     }
                     MenuItem {
@@ -329,13 +327,20 @@ ApplicationWindow
                     visible: map.track
                     width: parent.width
                     spacing: Theme.paddingSmall
-                    Item {
-                        width: parent.width - 2 * Theme.paddingLarge
+                    Row {
+                        width: parent.width - 2 * Theme.paddingMedium
                         height: track_title.height
+                        spacing: Theme.paddingSmall
                         anchors.horizontalCenter: parent.horizontalCenter
+                        IconButton {
+                            id: track_clear
+                            anchors.verticalCenter: track_title.verticalCenter
+		            icon.source: "image://theme/icon-m-clear"
+		            onClicked: remorse.execute("Clear current track", map.setTrack)
+                        }
                         Column {
                             id: track_title
-                            width: parent.width - track_save.width
+                            width: parent.width - track_save.width - track_clear.width
                             Label {
 	                        function basename(url) {
                                     return url.substring(url.lastIndexOf("/") + 1)
@@ -361,10 +366,8 @@ ApplicationWindow
                         }
                         IconButton {
                             id: track_save
-                            anchors.right: parent.right
                             anchors.verticalCenter: track_title.verticalCenter
-		            icon.source: map.track ? "image://theme/icon-m-sync" : "image://theme/icon-m-folder"
-		            enabled: map.track
+		            icon.source: "image://theme/icon-m-sync"
 		            onClicked: if (map.track && map.track.path.length == 0) {
                                 pageStack.push(tracksave, { track: map.track })
                             } else {
@@ -378,23 +381,7 @@ ApplicationWindow
                             width: trackitem.width / 2
                             horizontalAlignment: Text.AlignRight
                             font.pixelSize: Theme.fontSizeSmall
-                            text: "length"
-                        }
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignLeft
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.highlightColor
-		            text: if (map.track) { (map.track.length >= 1000) ? (map.track.length / 1000).toFixed(1) + " km" : map.track.length.toFixed(0) + " m"} else ""
-                        }
-                    }
-                    Row {
-                        spacing: Theme.paddingMedium
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            text: "duration"
+                            text: "length (duration)"
                         }
                         Label {
                             function duration(time) {
@@ -415,9 +402,25 @@ ApplicationWindow
                             horizontalAlignment: Text.AlignLeft
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.highlightColor
-                            text: if (map.track) { duration(map.track.duration) } else ""
+		            text: if (map.track) { (map.track.length >= 1000) ? (map.track.length / 1000).toFixed(1) + " km (" + duration(map.track.duration) + ")" : map.track.length.toFixed(0) + " m (" + duration(map.track.duration) + ")"} else ""
                         }
                     }
+                    /*Row {
+                        spacing: Theme.paddingMedium
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignRight
+                            font.pixelSize: Theme.fontSizeSmall
+                            text: "duration"
+                        }
+                        Label {
+                            width: trackitem.width / 2
+                            horizontalAlignment: Text.AlignLeft
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.highlightColor
+                            text: if (map.track) { duration(map.track.duration) } else ""
+                        }
+                    }*/
                     Row {
                         spacing: Theme.paddingMedium
                         Label {
@@ -435,23 +438,52 @@ ApplicationWindow
                         }
                     }
                 }
-	        Label {
+                Item {
                     id: trackholder
                     visible: !map.track
-                    anchors.fill:parent
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    text: "No track"
-                    color: Theme.highlightColor
-                    font.pixelSize: Theme.fontSizeLarge
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: { var dialog = pageStack.push(trackopen)
-		                     dialog.accepted.connect(
-                                         function() {
-                                             if (!dialog.track.isEmpty()) {
-                                                 map.setTrack(dialog.track) }
-                                         } ) }
+                    anchors.fill: parent
+                    Column {
+                        width: parent.width - 2 * Theme.paddingMedium
+                        anchors.centerIn: parent
+                        spacing: Theme.paddingLarge
+	                Label {
+                            text: "No track"
+                            color: Theme.highlightColor
+                            font.pixelSize: Theme.fontSizeLarge
+                        }
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            IconButton {
+                                icon.source: "image://theme/icon-m-gps"
+                                enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+                                onClicked: map.track_capture = true
+                            }
+                            Button {
+                                text: "capture GPS position"
+                                enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+                                onClicked: map.track_capture = true
+                            }
+                        }
+                        Row {
+                            id: load_item
+                            function importTrack() {
+                                var dialog = pageStack.push(trackopen)
+		                dialog.accepted.connect(
+                                    function() {
+                                        if (!dialog.track.isEmpty()) {
+                                            map.setTrack(dialog.track) }
+                                    } )
+                            }
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            IconButton {
+                                icon.source: "image://theme/icon-m-folder"
+                                onClicked: load_item.importTrack()
+                            }
+                            Button {
+                                text: "import"
+                                onClicked: load_item.importTrack()
+                            }
+                        }
                     }
                 }
 	        VerticalScrollDecorator { flickable: trackitem }
