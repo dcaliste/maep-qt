@@ -376,7 +376,7 @@ ApplicationWindow
                             Label {
                                 color: Theme.secondaryColor
                                 font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? "acquired the " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Timepoint):""
+                                text: (map.track) ? "acquired the " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Datepoint):""
                                 horizontalAlignment: Text.AlignRight
                                 truncationMode: TruncationMode.Fade
                                 width: parent.width - Theme.paddingMedium

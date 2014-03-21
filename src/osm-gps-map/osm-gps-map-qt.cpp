@@ -219,6 +219,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
               this, SLOT(positionUpdate(QGeoPositionInfo)));
       connect(gps, SIGNAL(updateTimeout()),
               this, SLOT(positionLost()));
+      g_message("Start gps with rate at %d", gpsRefreshRate_);
       gps->setUpdateInterval(gpsRefreshRate_);
       gps->startUpdates();
     }
@@ -779,8 +780,6 @@ void Maep::GpsMap::setTrackCapture(bool status)
 
 void Maep::GpsMap::setTrack(Maep::Track *track)
 {
-  bool addLastGPS;
-
   osm_gps_map_clear_tracks(map);
 
   g_message("Set track %p (track parent is %p)", track,
@@ -789,7 +788,6 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
   if (track_current && track_current->parent() == this)
     delete(track_current);
 
-  addLastGPS = false;
   if (track)
     {
       g_message("Reparenting.");
@@ -803,7 +801,7 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       track = new Maep::Track();
       g_message("Regenerate a new track.");
       track->setParent(this);
-      addLastGPS = true;
+      track->addPoint(lastGps);
     }
   track_current = track;
 
@@ -819,9 +817,6 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       /* Adjust map zoom and location according to track bounding box. */
       if (track_bounding_box(track->get(), &top_left, &bottom_right))
         osm_gps_map_adjust_to(map, &top_left, &bottom_right);
-
-      if (addLastGPS)
-        track->addPoint(lastGps);
     }
 }
 void Maep::GpsMap::gpsToTrack()
@@ -830,11 +825,11 @@ void Maep::GpsMap::gpsToTrack()
     {
       Maep::Track *track = new Maep::Track();
       track->setParent(this);
-
+      track->addPoint(lastGps);
       setTrack(track);
     }
-
-  track_current->addPoint(lastGps);
+  else
+    track_current->addPoint(lastGps);
 }
 QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
 {

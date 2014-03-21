@@ -655,7 +655,9 @@ gboolean track_bounding_box(track_state_t *track_state,
   if (track_state->bb_top_left.rlat == G_MAXFLOAT ||
       track_state->bb_top_left.rlon == G_MAXFLOAT ||
       track_state->bb_bottom_right.rlat == -G_MAXFLOAT ||
-      track_state->bb_bottom_right.rlon == -G_MAXFLOAT)
+      track_state->bb_bottom_right.rlon == -G_MAXFLOAT ||
+      (track_state->bb_top_left.rlat == track_state->bb_bottom_right.rlat &&
+       track_state->bb_top_left.rlon == track_state->bb_bottom_right.rlon))
     return FALSE;
 
   g_message("Track, top left coord is %g x %g",
