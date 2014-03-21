@@ -97,8 +97,6 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
 {
   QGeoCoordinate coord = info.coordinate();
   qreal speed;
-  float length;
-  guint duration;
 
 #ifndef NAN
 #define NAN (0.0/0.0)
@@ -326,7 +324,7 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
-  double w, h;
+  double w; //, h;
   cairo_surface_t *map_surf;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
@@ -347,7 +345,7 @@ void Maep::GpsMap::mapUpdate()
 #endif
 
   w = cairo_image_surface_get_width(surf);
-  h = cairo_image_surface_get_height(surf);
+  //h = cairo_image_surface_get_height(surf);
 
   /* Remove the bottom part for a Sailfish toolbar. */
   // cairo_save(cr);

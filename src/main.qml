@@ -210,7 +210,7 @@ ApplicationWindow
 	    Row {
                 id: map_controls
 		anchors.bottom: parent.bottom
-		width: page.width
+		width: parent.width
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
@@ -313,17 +313,18 @@ ApplicationWindow
                 
                 PushUpMenu {
                     visible: map.track
-                    /*MenuItem {
-                        text: "Clear track"
-		        onClicked: remorse.execute("Clear current track", map.setTrack)
-                    }*/
                     MenuItem {
-                        text: "Export track"
-                        onClicked: pageStack.push(tracksave, { track: map.track })
+                        text: "Upload track to OSM"
+                        enabled: false
+                        //onClicked: pageStack.push(tracksave, { track: map.track })
                     }
                     MenuItem {
                         text: "Import track"
                         onClicked: page.importTrack()
+                    }
+                    MenuItem {
+                        text: "Export track"
+                        onClicked: pageStack.push(tracksave, { track: map.track })
                     }
 		    onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
                 }
@@ -376,7 +377,7 @@ ApplicationWindow
                             Label {
                                 color: Theme.secondaryColor
                                 font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? "acquision date " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Timepoint):""
+                                text: (map.track) ? "acquision: " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.TimepointRelative):""
                                 horizontalAlignment: Text.AlignRight
                                 truncationMode: TruncationMode.Fade
                                 width: parent.width - Theme.paddingMedium
@@ -453,7 +454,7 @@ ApplicationWindow
                             horizontalAlignment: Text.AlignLeft
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.highlightColor
-                            text: map.track && map.track.duration > 0?(map.track.length / map.track.duration * 3.6).toFixed(2) + " km/h":"not available"
+                            text: map.track && map.track.duration > 0 ? (map.track.length / map.track.duration * 3.6).toFixed(2) + " km/h":"not available"
                         }
                     }
                 }
@@ -535,10 +536,71 @@ ApplicationWindow
 	id: coverPage
 	property bool active: status == Cover.Active
         GpsMapCover {
+            id: coverMap
             width: parent.width
             height: parent.height
             map: map
 	    status: coverPage.active
+        }
+        OpacityRampEffect {
+            enabled: map.track
+            offset: 1. - (coverTrack.childrenRect.height + Theme.paddingLarge) / coverMap.height
+            slope: coverMap.height / (coverTrack.childrenRect.height + 2 * Theme.paddingLarge)
+            direction: 3
+            sourceItem: coverMap
+        }
+        Column {
+            id: coverTrack
+            visible: map.track
+            anchors.top: parent.top
+            width: parent.width
+            Label {
+                function duration(time) {
+                    if (time < 60) {
+                        return time + " s"
+                    } else if (time < 3600) {
+                        var m = Math.floor(time / 60)
+                        var s = time - m * 60
+                        return  m + " m " + s + " s"
+                    } else {
+                        var h = Math.floor(time / 3600)
+                        var m = Math.floor((time - h * 3600) / 60)
+                        var s = time - h * 3600 - m * 60
+                        return h + " h " + m + " m " + s + " s"
+                    }
+                }
+                function length(lg) {
+                    if (lg >= 1000) {
+                        return (lg / 1000).toFixed(1) + " km"
+                    } else {
+                        return lg.toFixed(0) + " m"
+                    }
+                }
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.pixelSize: Theme.fontSizeSmall
+	        text: if (map.track) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else ""
+            }
+            Label {
+                function speed(length, time) {
+                    if (time > 0) {
+                        return (length / time * 3.6).toFixed(2) + " km/h"
+                    } else {
+                        return ""
+                    }
+                }
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.pixelSize: Theme.fontSizeSmall
+	        text: if (map.track) { speed(map.track.length, map.track.duration) } else ""
+            }
+        }
+        Rectangle {
+            anchors.verticalCenter: coverTrack.verticalCenter
+            x: Theme.paddingSmall
+            width: Theme.paddingLarge
+            height: 4
+            color: "#EA0000"
+            opacity: 0.6
+            radius: 2
         }
     }
 
@@ -550,7 +612,7 @@ ApplicationWindow
             onTriggered: map.zoomOut()
         }
         CoverAction {
-            iconSource: "image://theme/icon-camera-zoom-tele"
+            iconSource: "image://theme/icon-cover-new"
             onTriggered: map.zoomIn()
         }
     }
