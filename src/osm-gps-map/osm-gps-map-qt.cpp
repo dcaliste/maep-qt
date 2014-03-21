@@ -779,6 +779,8 @@ void Maep::GpsMap::setTrackCapture(bool status)
 
 void Maep::GpsMap::setTrack(Maep::Track *track)
 {
+  bool addLastGPS;
+
   osm_gps_map_clear_tracks(map);
 
   g_message("Set track %p (track parent is %p)", track,
@@ -786,8 +788,8 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
 
   if (track_current && track_current->parent() == this)
     delete(track_current);
-  track_current = track;
 
+  addLastGPS = false;
   if (track)
     {
       g_message("Reparenting.");
@@ -796,6 +798,14 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       if (!track->getPath().isEmpty())
         gconf_set_string(GCONF_KEY_TRACK_PATH, track->getPath().toLocal8Bit().data());
     }
+  else if (track_capture && lastGps.isValid())
+    {
+      track = new Maep::Track();
+      g_message("Regenerate a new track.");
+      track->setParent(this);
+      addLastGPS = true;
+    }
+  track_current = track;
 
   emit trackChanged(track != NULL);
 
@@ -809,6 +819,9 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       /* Adjust map zoom and location according to track bounding box. */
       if (track_bounding_box(track->get(), &top_left, &bottom_right))
         osm_gps_map_adjust_to(map, &top_left, &bottom_right);
+
+      if (addLastGPS)
+        track->addPoint(lastGps);
     }
 }
 void Maep::GpsMap::gpsToTrack()

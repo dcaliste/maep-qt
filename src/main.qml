@@ -31,6 +31,19 @@ ApplicationWindow
         id: page
 	allowedOrientations: map.screen_rotation ? Orientation.All : main.deviceOrientation
 
+        function importTrack() {
+            var dialog = pageStack.push(trackopen)
+	    dialog.accepted.connect(
+                function() {
+                    if (!dialog.track.isEmpty()) {
+                        map.track_capture = false // disable track capture to avoid
+                                                  // adding new point from current
+                                                  // location to old tracks.
+                        map.setTrack(dialog.track)
+                    }
+                } )
+        }
+
         // To enable PullDownMenu, place our content in a SilicaFlickable
         SilicaFlickable {
             id: header
@@ -78,7 +91,6 @@ ApplicationWindow
                 }
                 MenuItem {
                     text: drawer_background.sourceComponent == trackview && drawer.open ? "Close track management" : "Track management"
-                    //font.pixelSize: Theme.fontSizeSmall
                     onClicked: drawer_background.sourceComponent == trackview && drawer.open ? drawer.disable(trackview) : drawer.enable(trackview)
                 }
 		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
@@ -297,7 +309,7 @@ ApplicationWindow
             SilicaFlickable {
                 id: trackitem
                 anchors.fill: parent
-                contentHeight: map.track ? trackdata.height : drawer.backgroundSize
+                contentHeight: map.track ? trackdata.height : trackholder.height
                 
                 PushUpMenu {
                     visible: map.track
@@ -311,16 +323,14 @@ ApplicationWindow
                     }
                     MenuItem {
                         text: "Import track"
-                        onClicked: { var dialog = pageStack.push(trackopen)
-		                     dialog.accepted.connect(
-                                         function() {
-                                             if (!dialog.track.isEmpty()) {
-                                                 map.setTrack(dialog.track) }
-                                         } ) }
+                        onClicked: page.importTrack()
                     }
+		    onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
                 }
 
 	        RemorsePopup { id: remorse }
+
+                Formatter { id: formatter }
                 
                 Column {
                     id: trackdata
@@ -335,7 +345,7 @@ ApplicationWindow
                         IconButton {
                             id: track_clear
                             anchors.verticalCenter: track_title.verticalCenter
-		            icon.source: "image://theme/icon-m-clear"
+		            icon.source: "image://theme/icon-m-remove"
 		            onClicked: remorse.execute("Clear current track", map.setTrack)
                         }
                         Column {
@@ -347,7 +357,7 @@ ApplicationWindow
                                 }
                                 color: Theme.highlightColor
                                 font.pixelSize: Theme.fontSizeMedium
-                                text: (map.track)?(map.track.path.length > 0)?basename(map.track.path):"unsaved track":"no track"
+                                text: (map.track)?(map.track.path.length > 0)?basename(map.track.path):"unsaved track":""
                                 truncationMode: TruncationMode.Fade
                                 width: parent.width
                             }
@@ -357,7 +367,16 @@ ApplicationWindow
                                 }
                                 color: Theme.secondaryColor
                                 font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? (map.track.path.length > 0) ? "in " + dirname(map.track.path):"Use the sync button to export":""
+                                text: (map.track) ? (map.track.path.length > 0) ? "in " + dirname(map.track.path):"save with the icon beside":""
+                                horizontalAlignment: Text.AlignRight
+                                truncationMode: TruncationMode.Fade
+                                width: parent.width - Theme.paddingMedium
+                                anchors.right: parent.right
+                            }
+                            Label {
+                                color: Theme.secondaryColor
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                text: (map.track) ? "acquired the " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Timepoint):""
                                 horizontalAlignment: Text.AlignRight
                                 truncationMode: TruncationMode.Fade
                                 width: parent.width - Theme.paddingMedium
@@ -367,7 +386,7 @@ ApplicationWindow
                         IconButton {
                             id: track_save
                             anchors.verticalCenter: track_title.verticalCenter
-		            icon.source: "image://theme/icon-m-sync"
+		            icon.source: (map.track && map.track.path.length > 0) ? "image://theme/icon-m-sync" : "image://theme/icon-m-device-upload"
 		            onClicked: if (map.track && map.track.path.length == 0) {
                                 pageStack.push(tracksave, { track: map.track })
                             } else {
@@ -438,50 +457,71 @@ ApplicationWindow
                         }
                     }
                 }
-                Item {
+                Column {
                     id: trackholder
                     visible: !map.track
-                    anchors.fill: parent
-                    Column {
-                        width: parent.width - 2 * Theme.paddingMedium
-                        anchors.centerIn: parent
-                        spacing: Theme.paddingLarge
-	                Label {
-                            text: "No track"
-                            color: Theme.highlightColor
-                            font.pixelSize: Theme.fontSizeLarge
-                        }
+                    width: parent.width - 2 * Theme.paddingMedium
+	            Label {
+                        anchors.right: parent.right
+                        text: "No track"
+                        color: Theme.highlightColor
+                        font.pixelSize: Theme.fontSizeLarge
+                    }
+                    BackgroundItem {
+                        id: item_gps
+		        contentHeight: Theme.itemSizeSmall
+                        enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+                        opacity: enabled ? 1.0 : 0.4
                         Row {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            IconButton {
-                                icon.source: "image://theme/icon-m-gps"
-                                enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-                                onClicked: map.track_capture = true
+                            anchors.fill: parent
+                            spacing: Theme.paddingMedium
+                            Image {
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: "image://theme/icon-m-gps"
                             }
-                            Button {
+		            Label {
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: "capture GPS position"
-                                enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-                                onClicked: map.track_capture = true
+		                color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
+		            }
+                        }
+                        onClicked: map.track_capture = true
+                    }
+                    BackgroundItem {
+                        id: item_file
+		        contentHeight: Theme.itemSizeSmall
+                        opacity: enabled ? 1.0 : 0.4
+                        Row {
+                            anchors.fill: parent
+                            spacing: Theme.paddingMedium
+                            Image {
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: "image://theme/icon-m-device-download"
+                            }
+                            Label {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "import a local file"
+		                color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
                             }
                         }
+                        onClicked: page.importTrack()
+                    }
+                    BackgroundItem {
+                        id: item_osm
+		        contentHeight: Theme.itemSizeSmall
+                        enabled: false
+                        opacity: enabled ? 1.0 : 0.4
                         Row {
-                            id: load_item
-                            function importTrack() {
-                                var dialog = pageStack.push(trackopen)
-		                dialog.accepted.connect(
-                                    function() {
-                                        if (!dialog.track.isEmpty()) {
-                                            map.setTrack(dialog.track) }
-                                    } )
+                            anchors.fill: parent
+                            spacing: Theme.paddingMedium
+                            Image {
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: "image://theme/icon-m-cloud-download"
                             }
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            IconButton {
-                                icon.source: "image://theme/icon-m-folder"
-                                onClicked: load_item.importTrack()
-                            }
-                            Button {
-                                text: "import"
-                                onClicked: load_item.importTrack()
+                            Label {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "import from OSM"
+		                color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
                             }
                         }
                     }

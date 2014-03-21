@@ -181,6 +181,7 @@ class Track: public QObject
   Q_OBJECT
   Q_PROPERTY(unsigned int autosavePeriod READ getAutosavePeriod WRITE setAutosavePeriod NOTIFY autosavePeriodChanged)
   Q_PROPERTY(QString path READ getPath NOTIFY pathChanged)
+  Q_PROPERTY(unsigned int startDate READ getStartDate NOTIFY startDateSet)
   Q_PROPERTY(qreal length READ getLength NOTIFY characteristicsChanged)
   Q_PROPERTY(unsigned int duration READ getDuration NOTIFY characteristicsChanged)
 
@@ -217,12 +218,16 @@ public:
   inline unsigned int getDuration() {
     return (unsigned int)track_duration(track);
   }
+  inline unsigned int getStartDate() {
+    return (unsigned int)track_start_timestamp(track);
+  }
 
 signals:
   void fileError(const QString &errorMsg);
   void autosavePeriodChanged(unsigned int value);
   void pathChanged();
   void characteristicsChanged(qreal length, unsigned int duration);
+  void startDateSet(unsigned int value);
 
 public slots:
   void set(track_state_t *track);

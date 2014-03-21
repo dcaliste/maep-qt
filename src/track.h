@@ -114,6 +114,7 @@ gboolean track_bounding_box(track_state_t *track_state,
                             coord_t *top_left, coord_t *bottom_right);
 gfloat track_metric_length(track_state_t *track_state);
 guint track_duration(track_state_t *track_state);
+guint track_start_timestamp(track_state_t *track_state);
 
 G_END_DECLS
 

@@ -631,6 +631,22 @@ guint track_duration(track_state_t *track_state) {
   return stop->time - start->time;
 }
 
+guint track_start_timestamp(track_state_t *track_state)
+{
+  track_point_t *start;
+
+  g_return_val_if_fail(track_state, 0);
+  
+  if (!track_state->track ||
+      !track_state->track->track_seg ||
+      track_state->track->track_seg->track_points->len == 0)
+    return 0;
+
+  start = &g_array_index(track_state->track->track_seg->track_points, track_point_t, 0);
+
+  return start->time;
+}
+
 gboolean track_bounding_box(track_state_t *track_state,
                             coord_t *top_left, coord_t *bottom_right)
 {
