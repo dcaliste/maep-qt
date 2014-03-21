@@ -331,7 +331,7 @@ ApplicationWindow
 	        RemorsePopup { id: remorse }
 
                 Formatter { id: formatter }
-                
+
                 Column {
                     id: trackdata
                     visible: map.track
@@ -376,7 +376,7 @@ ApplicationWindow
                             Label {
                                 color: Theme.secondaryColor
                                 font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? "acquired the " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Datepoint):""
+                                text: (map.track) ? "acquision date " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.Timepoint):""
                                 horizontalAlignment: Text.AlignRight
                                 truncationMode: TruncationMode.Fade
                                 width: parent.width - Theme.paddingMedium

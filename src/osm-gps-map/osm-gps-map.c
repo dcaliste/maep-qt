@@ -1801,11 +1801,11 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             break;
         case PROP_VIEWPORT_WIDTH:
             g_value_set_uint(value, priv->viewport_width);
-            g_message("get width %d.", priv->viewport_width);
+            /*g_message("get width %d.", priv->viewport_width);*/
             break;
         case PROP_VIEWPORT_HEIGHT:
             g_value_set_uint(value, priv->viewport_height);
-            g_message("get height %d.", priv->viewport_height);
+            /*g_message("get height %d.", priv->viewport_height);*/
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

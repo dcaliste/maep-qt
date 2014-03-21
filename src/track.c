@@ -363,7 +363,7 @@ static gboolean track_autosave(gpointer data) {
   if (!track_state->dirty)
     return TRUE;
 
-  g_message("TRACK: autosave to '%s'.\n", track_state->path);
+  g_message("TRACK: autosave to '%s'.", track_state->path);
 
   /* make sure directory exists */
   gchar *dirname = g_path_get_dirname(track_state->path);
