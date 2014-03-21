@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.3.7
-Release: 12
+Release: 13
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -86,8 +86,13 @@ cd tmp
 /usr/bin
 
 %changelog
+* Fri Mar 21 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-13
+- modify the layout of the track management drawer to highlight possibilities when there is no track.
+- add creation time of track in the track management drawer.
+- disable track capture when loading a track to avoid unwanted expansion of already saved tracks.
+
 * Thu Mar 13 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-12
-- implement track ength and duration measurements.
+- implement track length and duration measurements.
 - correct the autosave functionality for tracks.
 - add a setting for autosave period.
 - add a bottom drawer to display track information.
