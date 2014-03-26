@@ -2125,6 +2125,8 @@ osm_gps_map_source_get_friendly_name(OsmGpsMapSource_t source)
             return "OpenStreetMap II";
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
             return "OpenAerialMap";
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
+            return "OpenSeaMap";
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
             return "OpenCycleMap";
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
@@ -2175,6 +2177,8 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             /* OpenAerialMap is down, offline till furthur notice
                http://openaerialmap.org/pipermail/talk_openaerialmap.org/2008-December/000055.html */
             return NULL;
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
+            return "http://t1.openseamap.org/seamark/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             return "http://otile1.mqcdn.com/tiles/1.0.0/osm/#Z/#X/#Y.png";
             /* return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png"; */
@@ -2235,6 +2239,10 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
             return;
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
             return;
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
+            *notice = "© OpenStreetMap contributors";
+            *url    = "http://openseamap.org/";
+            return;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             *notice = "Tiles Courtesy of MapQuest";
             *url    = "http://www.mapquest.com/";
@@ -2280,6 +2288,7 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_NULL:
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
@@ -2319,6 +2328,7 @@ osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
             return OSM_MAX_ZOOM;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:

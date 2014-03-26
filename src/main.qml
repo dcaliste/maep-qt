@@ -627,6 +627,7 @@ ApplicationWindow
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET }
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE }
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID }
+        ListElement { source: GpsMap.SOURCE_OPENSEAMAP }
     }
 
     Component {
