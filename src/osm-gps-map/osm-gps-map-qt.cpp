@@ -754,8 +754,6 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 {
   float track;
 
-  g_message("position is %f %f", info.coordinate().latitude(),
-            info.coordinate().longitude());
   if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
     g_object_set(map, "gps-track-highlight-radius",
                  (int)(info.attribute(QGeoPositionInfo::HorizontalAccuracy) /
@@ -767,7 +765,9 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
     track = lastGps.coordinate().azimuthTo(info.coordinate());
   else
     track = OSM_GPS_MAP_INVALID;
-  g_message("heading is %g", track);
+  g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
+            info.coordinate().longitude(), track,
+            info.attribute(QGeoPositionInfo::HorizontalAccuracy);
 
   lastGps = info;
   emit gpsCoordinateChanged();

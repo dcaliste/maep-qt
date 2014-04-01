@@ -44,12 +44,11 @@ ApplicationWindow
                 } )
         }
 
-        // To enable PullDownMenu, place our content in a SilicaFlickable
-        SilicaFlickable {
+        Header {
             id: header
             anchors.top: parent.top
+            width: page.width
 
-            // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
             PullDownMenu {
                 MenuItem {
                     text: "About Mæp"
@@ -93,62 +92,7 @@ ApplicationWindow
                     text: drawer_background.sourceComponent == trackview && drawer.open ? "Close track management" : "Track management"
                     onClicked: drawer_background.sourceComponent == trackview && drawer.open ? drawer.disable(trackview) : drawer.enable(trackview)
                 }
-		onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
-            }
-
-            // Tell SilicaFlickable the height of its content.
-            width: page.width
-	    height: Theme.itemSizeMedium //childrenRect.height
-            contentHeight: childrenRect.height
-
-            Item {
-                width: parent.width
-                height: Theme.itemSizeMedium
-                TextField {
-                    id: search
-                    width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
-                    height: parent.height
-                    placeholderText: "Enter a place name"
-	            label: "Place search"
-		    anchors.verticalCenter: parent.verticalCenter
-		    EnterKey.text: "search"
-		    EnterKey.onClicked: {
-                        drawer.disable(placelist)
-			//placeview.model = null
-                        search_icon.visible = false
-                        busy.visible = true
-		        map.focus = true
-                        map.setSearchRequest(text)
-		    }
-		    onFocusChanged: { if (focus) { selectAll(); drawer.disable(trackview) } }
-                }
-                Item {
-                    anchors.right: maep.left
-                    height: parent.height
-                    width: search_icon.width
-	            BusyIndicator {
-	   	        id: busy
-                        visible: false
-                        running: visible
-                        size: BusyIndicatorSize.Small
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.horizontalCenter: parent.horizontalCenter
-                    }
-                    IconButton {
-                        id: search_icon
-                        property bool opened: drawer.open && drawer_background.sourceComponent == placelist
-                        icon.source: opened ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                        visible: false
-                        onClicked: opened ? drawer.disable(placelist):drawer.enable(placelist)
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-                PageHeader {
-                    id: maep
-                    width: 130
-                    title: "Mæp"
-                    anchors.right: parent.right
-                }
+	        onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
             }
         }
         Drawer {
@@ -184,16 +128,15 @@ ApplicationWindow
                   width: page.width
                   height: page.height - header.height*/
 	        anchors.fill: parent
-                onSearchRequest: { search.focus = true
-                                   search.label = "Place search" }
+                onSearchRequest: { header.searchFocus = true
+                                   header.searchLabel = "Place search" }
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: {
-                    search.label = search_results.length + " place(s) found"
-		    busy.visible = false
+                    header.searchLabel = search_results.length + " place(s) found"
+		    header.busy = false
 		    if (search_results.length > 0) {
 			//placeview.model = search_results
-                        search_icon.visible = true
                         drawer.enable(placelist)}
 		}
 	        Behavior on opacity {
@@ -220,7 +163,7 @@ ApplicationWindow
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
-                visible: !search.focus && (drawer_background.sourceComponent == trackview || !drawer.open)
+                visible: !header.searchFocus && (drawer_background.sourceComponent == trackview || !drawer.open)
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"
@@ -302,7 +245,7 @@ ApplicationWindow
 		        anchors.right: img_go.left
 		        anchors.bottom: parent.bottom
 		    }
-	            onClicked: { search.text = model.name
+	            onClicked: { header.searchText = model.name
 	    		         drawer.open = false
 			         map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
                 }
@@ -312,11 +255,10 @@ ApplicationWindow
 
         Component {
             id: trackview
-            SilicaFlickable {
-                id: trackitem
+            TrackView {
                 anchors.fill: parent
-                contentHeight: map.track ? trackdata.height : trackholder.height
-                
+                track: map.track
+
                 PushUpMenu {
                     visible: map.track
                     MenuItem {
@@ -332,208 +274,8 @@ ApplicationWindow
                         text: "Export track"
                         onClicked: pageStack.push(tracksave, { track: map.track })
                     }
-		    onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
+	            onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
                 }
-
-	        RemorsePopup { id: remorse }
-
-                Formatter { id: formatter }
-
-                Column {
-                    id: trackdata
-                    visible: map.track
-                    width: parent.width
-                    spacing: Theme.paddingSmall
-                    Row {
-                        width: parent.width - 2 * Theme.paddingMedium
-                        height: track_title.height
-                        spacing: Theme.paddingSmall
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        IconButton {
-                            id: track_clear
-                            anchors.verticalCenter: track_title.verticalCenter
-		            icon.source: "image://theme/icon-m-remove"
-		            onClicked: remorse.execute("Clear current track", map.setTrack)
-                        }
-                        Column {
-                            id: track_title
-                            width: parent.width - track_save.width - track_clear.width
-                            Label {
-	                        function basename(url) {
-                                    return url.substring(url.lastIndexOf("/") + 1)
-                                }
-                                color: Theme.highlightColor
-                                font.pixelSize: Theme.fontSizeMedium
-                                text: (map.track)?(map.track.path.length > 0)?basename(map.track.path):"unsaved track":""
-                                truncationMode: TruncationMode.Fade
-                                width: parent.width
-                            }
-                            Label {
-	                        function dirname(url) {
-                                    return url.substring(0, url.lastIndexOf("/"))
-                                }
-                                color: Theme.secondaryColor
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? (map.track.path.length > 0) ? "in " + dirname(map.track.path):"save with the icon beside":""
-                                horizontalAlignment: Text.AlignRight
-                                truncationMode: TruncationMode.Fade
-                                width: parent.width - Theme.paddingMedium
-                                anchors.right: parent.right
-                            }
-                            Label {
-                                color: Theme.secondaryColor
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                text: (map.track) ? "acquision: " + formatter.formatDate(new Date(map.track.startDate * 1000), Formatter.TimepointRelative):""
-                                horizontalAlignment: Text.AlignRight
-                                truncationMode: TruncationMode.Fade
-                                width: parent.width - Theme.paddingMedium
-                                anchors.right: parent.right
-                            }
-                        }
-                        IconButton {
-                            id: track_save
-                            anchors.verticalCenter: track_title.verticalCenter
-		            icon.source: (map.track && map.track.path.length > 0) ? "image://theme/icon-m-sync" : "image://theme/icon-m-device-upload"
-		            onClicked: if (map.track && map.track.path.length == 0) {
-                                pageStack.push(tracksave, { track: map.track })
-                            } else {
-                                map.track.toFile(map.track.path)
-                            }
-                        }
-                    }
-                    Row {
-                        spacing: Theme.paddingMedium
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            text: "length (duration)"
-                        }
-                        Label {
-                            function duration(time) {
-                                if (time < 60) {
-                                    return time + " s"
-                                } else if (time < 3600) {
-                                    var m = Math.floor(time / 60)
-                                    var s = time - m * 60
-                                    return  m + " m " + s + " s"
-                                } else {
-                                    var h = Math.floor(time / 3600)
-                                    var m = Math.floor((time - h * 3600) / 60)
-                                    var s = time - h * 3600 - m * 60
-                                    return h + " h " + m + " m " + s + " s"
-                                }
-                            }
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignLeft
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.highlightColor
-		            text: if (map.track) { (map.track.length >= 1000) ? (map.track.length / 1000).toFixed(1) + " km (" + duration(map.track.duration) + ")" : map.track.length.toFixed(0) + " m (" + duration(map.track.duration) + ")"} else ""
-                        }
-                    }
-                    /*Row {
-                        spacing: Theme.paddingMedium
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            text: "duration"
-                        }
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignLeft
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.highlightColor
-                            text: if (map.track) { duration(map.track.duration) } else ""
-                        }
-                    }*/
-                    Row {
-                        spacing: Theme.paddingMedium
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            text: "average speed"
-                        }
-                        Label {
-                            width: trackitem.width / 2
-                            horizontalAlignment: Text.AlignLeft
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.highlightColor
-                            text: map.track && map.track.duration > 0 ? (map.track.length / map.track.duration * 3.6).toFixed(2) + " km/h":"not available"
-                        }
-                    }
-                }
-                Column {
-                    id: trackholder
-                    visible: !map.track
-                    width: parent.width - 2 * Theme.paddingMedium
-	            Label {
-                        anchors.right: parent.right
-                        text: "No track"
-                        color: Theme.highlightColor
-                        font.pixelSize: Theme.fontSizeLarge
-                    }
-                    BackgroundItem {
-                        id: item_gps
-		        contentHeight: Theme.itemSizeSmall
-                        enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-                        opacity: enabled ? 1.0 : 0.4
-                        Row {
-                            anchors.fill: parent
-                            spacing: Theme.paddingMedium
-                            Image {
-                                anchors.verticalCenter: parent.verticalCenter
-                                source: "image://theme/icon-m-gps"
-                            }
-		            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "capture GPS position"
-		                color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
-		            }
-                        }
-                        onClicked: map.track_capture = true
-                    }
-                    BackgroundItem {
-                        id: item_file
-		        contentHeight: Theme.itemSizeSmall
-                        opacity: enabled ? 1.0 : 0.4
-                        Row {
-                            anchors.fill: parent
-                            spacing: Theme.paddingMedium
-                            Image {
-                                anchors.verticalCenter: parent.verticalCenter
-                                source: "image://theme/icon-m-device-download"
-                            }
-                            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "import a local file"
-		                color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
-                            }
-                        }
-                        onClicked: page.importTrack()
-                    }
-                    BackgroundItem {
-                        id: item_osm
-		        contentHeight: Theme.itemSizeSmall
-                        enabled: false
-                        opacity: enabled ? 1.0 : 0.4
-                        Row {
-                            anchors.fill: parent
-                            spacing: Theme.paddingMedium
-                            Image {
-                                anchors.verticalCenter: parent.verticalCenter
-                                source: "image://theme/icon-m-cloud-download"
-                            }
-                            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "import from OSM"
-		                color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
-                            }
-                        }
-                    }
-                }
-	        VerticalScrollDecorator { flickable: trackitem }
             }
         }
     }
@@ -551,7 +293,7 @@ ApplicationWindow
         OpacityRampEffect {
             enabled: map.track
             offset: 1. - (coverTrack.childrenRect.height + Theme.paddingLarge) / coverMap.height
-            slope: coverMap.height / (coverTrack.childrenRect.height + 2 * Theme.paddingLarge)
+            slope: coverMap.height / Theme.paddingLarge / 3.
             direction: 3
             sourceItem: coverMap
         }
@@ -566,13 +308,11 @@ ApplicationWindow
                         return time + " s"
                     } else if (time < 3600) {
                         var m = Math.floor(time / 60)
-                        var s = time - m * 60
-                        return  m + " m " + s + " s"
+                        return  m + " min"
                     } else {
                         var h = Math.floor(time / 3600)
                         var m = Math.floor((time - h * 3600) / 60)
-                        var s = time - h * 3600 - m * 60
-                        return h + " h " + m + " m " + s + " s"
+                        return h + " h " + m
                     }
                 }
                 function length(lg) {
@@ -600,10 +340,8 @@ ApplicationWindow
             }
         }
         Rectangle {
-            anchors.verticalCenter: coverTrack.verticalCenter
-            x: Theme.paddingSmall
-            width: Theme.paddingLarge
-            height: 4
+            width: Theme.paddingSmall
+            height: coverTrack.height
             color: "#EA0000"
             opacity: 0.6
             radius: 2

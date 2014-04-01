@@ -43,7 +43,7 @@ icon.path = $$PREFIX/share/icons/hicolor/86x86/apps
 icon.files = ../data/harbour-maep-qt.png
 
 qml.path = $$DEPLOYMENT_PATH
-qml.files = ../src/main.qml ../src/About.qml ../src/Settings.qml ../src/FileChooser.qml ../src/Notification.qml
+qml.files = ../src/main.qml ../src/Header.qml ../src/TrackView.qml ../src/About.qml ../src/Settings.qml ../src/FileChooser.qml ../src/Notification.qml
 
 resources.path = $$DEPLOYMENT_PATH
 resources.files = ../data/wikipedia_w.48.png ../data/AUTHORS ../data/COPYING
