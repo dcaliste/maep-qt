@@ -41,145 +41,150 @@ SilicaFlickable {
         }
     }
 
-    contentHeight: childrenRect.height
+    contentHeight: title.height + content.height
     contentWidth: childrenRect.width
 
     PageHeader { id: title; title: "About Mæp" }
-    Image {
-        id: icon
-        source: "file:///usr/share/icons/hicolor/86x86/apps/harbour-maep-qt.png"
-        anchors.horizontalCenter: parent.horizontalCenter
+    Column {
+        id: content
+        width: parent.width
 	anchors.top: title.bottom
-    }
-    Label {
-        id: subtitle
-        width: parent.width
-        text: "A small and fast tile map"
-        color: Theme.secondaryHighlightColor
-        font.pixelSize: Theme.fontSizeMedium
-        horizontalAlignment: Text.AlignHCenter
-        anchors.top: icon.bottom
-        anchors.bottomMargin: Theme.paddingMedium
-    }
-    Label {
-        id: lbl_version
-        width: parent.width
-        text: "Version " + version + " - " + date
-        color: Theme.primaryColor
-        font.pixelSize: Theme.fontSizeSmall
-        horizontalAlignment: Text.AlignHCenter
-	anchors.topMargin: Theme.paddingMedium
-        anchors.top: subtitle.bottom
-    }
-    Label {
-        id: copyright
-        width: parent.width
-        text: "Copyright 2009-2014"
-        color: Theme.primaryColor
-        font.pixelSize: Theme.fontSizeSmall
-        horizontalAlignment: Text.AlignHCenter
-        anchors.top: lbl_version.bottom
-        anchors.bottomMargin: Theme.paddingMedium
-    }
-    Item {
-        id: item_authors
-        opacity: 0
-        anchors.top: copyright.bottom
-	width: childrenRect.width
-        Label {
-	    id: lbl_title_authors
-            text: "Authors"
-            color: Theme.highlightColor
-            font.pixelSize: Theme.fontSizeMedium
-            anchors.topMargin: Theme.paddingSmall
-        }
-        Label {
-            id: lbl_authors
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeExtraSmall
-	    anchors.top: lbl_title_authors.bottom
-        }
-    }
-    Item {
-        id: item_license
-        opacity: 0
-        anchors.top: copyright.bottom
-	width: childrenRect.width
-        Label {
-	    id: lbl_title_license
-            text: "License"
-            color: Theme.highlightColor
-            font.pixelSize: Theme.fontSizeMedium
-            anchors.topMargin: Theme.paddingSmall
-        }
-        Label {
-            id: lbl_license
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeExtraSmall
-	    anchors.top: lbl_title_license.bottom
-        }
-    }
-    Item {
-        id: item_info
-        opacity: 0
-        anchors.top: copyright.bottom
-	width: page.width
-        Label {
-	    id: lbl_title_bugs
-            text: "Report bugs"
-            color: Theme.highlightColor
-            font.pixelSize: Theme.fontSizeMedium
-            anchors.topMargin: Theme.paddingSmall
-        }
-        Label {
-	    id: lbl_bugs
-            width: parent.width - Theme.paddingMedium * 2
-            text: "Please report bugs or feature requests via the Mæp " +
-	    "bug tracker. This bug tracker can directly be reached via " +
-	    "the following link:"
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeExtraSmall
-            wrapMode: Text.WordWrap
-            horizontalAlignment: Text.AlignJustify
-	    anchors.horizontalCenter: parent.horizontalCenter
-	    anchors.top: lbl_title_bugs.bottom
-        }
-        Button {
-            id: bt_bugs
-            text: "Open bug tracker"
+        spacing: Theme.paddingMedium
+        Image {
+            id: icon
+            source: "file:///usr/share/icons/hicolor/86x86/apps/harbour-maep-qt.png"
             anchors.horizontalCenter: parent.horizontalCenter
-	    anchors.top: lbl_bugs.bottom
-            onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
         }
         Label {
-	    id: lbl_title_donate
-            text: "Donate"
-            color: Theme.highlightColor
+            id: subtitle
+            width: parent.width
+            text: "A small and fast tile map"
+            color: Theme.secondaryHighlightColor
             font.pixelSize: Theme.fontSizeMedium
-            anchors.topMargin: Theme.paddingSmall
-	    anchors.top: bt_bugs.bottom
+            horizontalAlignment: Text.AlignHCenter
         }
         Label {
-	    id: lbl_donate
-            width: parent.width - Theme.paddingMedium * 2
-            text: "If you like Mæp and want to support its future development " +
-	    "please consider donating to the developer. You can either " +
-	    "donate via paypal to till@harbaum.org or you can just click " +
-            "the button below which will open the appropriate web page in " +
-            "your browser."
+            id: lbl_version
+            width: parent.width
+            text: "Version " + version + " - " + date
             color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeExtraSmall
-            wrapMode: Text.WordWrap
-            horizontalAlignment: Text.AlignJustify
-	    anchors.horizontalCenter: parent.horizontalCenter
-	    anchors.top: lbl_title_donate.bottom
+            font.pixelSize: Theme.fontSizeSmall
+            horizontalAlignment: Text.AlignHCenter
         }
-        Button {
-            id: bt_donate
-            text: "Donate through Paypal"
+        Label {
+            id: copyright
+            width: parent.width
+            text: "Copyright 2009-2014"
+            color: Theme.primaryColor
+            font.pixelSize: Theme.fontSizeSmall
+            horizontalAlignment: Text.AlignHCenter
+        }
+        Item {
+            id: item_authors
+            opacity: 0
+            visible: opacity > 0
+            width: parent.width - 2 * Theme.paddingSmall
+            height: childrenRect.height
             anchors.horizontalCenter: parent.horizontalCenter
-	    anchors.top: lbl_donate.bottom
-            onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+            Label {
+	        id: lbl_title_authors
+                text: "Authors"
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeMedium
+                anchors.topMargin: Theme.paddingSmall
+            }
+            Label {
+                id: lbl_authors
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+	        anchors.top: lbl_title_authors.bottom
+            }
+        }
+        Item {
+            id: item_license
+            opacity: 0
+            visible: opacity > 0
+            width: parent.width - 2 * Theme.paddingSmall
+            height: childrenRect.height
+            anchors.horizontalCenter: parent.horizontalCenter
+            Label {
+	        id: lbl_title_license
+                text: "License"
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeMedium
+                anchors.topMargin: Theme.paddingSmall
+            }
+            Label {
+                id: lbl_license
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+	        anchors.top: lbl_title_license.bottom
+            }
+        }
+        Item {
+            id: item_info
+            opacity: 0
+            visible: opacity > 0
+            width: parent.width - 2 * Theme.paddingSmall
+            height: childrenRect.height
+            anchors.horizontalCenter: parent.horizontalCenter
+            Label {
+	        id: lbl_title_bugs
+                text: "Report bugs"
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeMedium
+                anchors.topMargin: Theme.paddingSmall
+            }
+            Label {
+	        id: lbl_bugs
+                width: parent.width - Theme.paddingMedium * 2
+                text: "Please report bugs or feature requests via the Mæp " +
+	        "bug tracker. This bug tracker can directly be reached via " +
+	        "the following link:"
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignJustify
+	        anchors.horizontalCenter: parent.horizontalCenter
+	        anchors.top: lbl_title_bugs.bottom
+            }
+            Button {
+                id: bt_bugs
+                text: "Open bug tracker"
+                anchors.horizontalCenter: parent.horizontalCenter
+	        anchors.top: lbl_bugs.bottom
+                onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
+            }
+            Label {
+	        id: lbl_title_donate
+                text: "Donate"
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeMedium
+                anchors.topMargin: Theme.paddingSmall
+	        anchors.top: bt_bugs.bottom
+            }
+            Label {
+	        id: lbl_donate
+                width: parent.width - Theme.paddingMedium * 2
+                text: "If you like Mæp and want to support its future development " +
+	        "please consider donating to the developer. You can either " +
+	        "donate via paypal to till@harbaum.org or you can just click " +
+                "the button below which will open the appropriate web page in " +
+                "your browser."
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignJustify
+	        anchors.horizontalCenter: parent.horizontalCenter
+	        anchors.top: lbl_title_donate.bottom
+            }
+            Button {
+                id: bt_donate
+                text: "Donate through Paypal"
+                anchors.horizontalCenter: parent.horizontalCenter
+	        anchors.top: lbl_donate.bottom
+                onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+            }
         }
     }
     states: [
@@ -204,8 +209,5 @@ SilicaFlickable {
 	    PropertyChanges { target: item_license; opacity: 0 }
 	    PropertyChanges { target: item_info;    opacity: 1 }
 	} ]
-    transitions: Transition {
-	PropertyAnimation { property: "opacity"; duration: 1000 }
-    }
     VerticalScrollDecorator { flickable: about }
 }
