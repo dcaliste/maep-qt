@@ -96,18 +96,21 @@ bool Maep::Track::toFile(const QString &filename)
 void Maep::Track::addPoint(QGeoPositionInfo &info)
 {
   QGeoCoordinate coord = info.coordinate();
-  qreal speed;
+  qreal speed, h_acc;
 
 #ifndef NAN
 #define NAN (0.0/0.0)
 #endif
 
-  speed = 0.;
+  speed = NAN;
   if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
     speed = info.attribute(QGeoPositionInfo::GroundSpeed);
+  h_acc = G_MAXFLOAT;
+  if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
+    h_acc = info.attribute(QGeoPositionInfo::HorizontalAccuracy);
 
-  track_point_new(track, coord.latitude(), coord.longitude(), coord.altitude(),
-                  speed, NAN, NAN);
+  track_point_new(track, coord.latitude(), coord.longitude(), h_acc,
+                  coord.altitude(), speed, NAN, NAN);
 
   emit characteristicsChanged((qreal)track_metric_length(track),
                               (unsigned int)track_duration(track));
@@ -120,6 +123,20 @@ bool Maep::Track::setAutosavePeriod(unsigned int value)
   ret = track_set_autosave_period(track, (guint)value);
   if (ret)
     emit autosavePeriodChanged(value);
+
+  return ret;
+}
+bool Maep::Track::setMetricAccuracy(qreal value)
+{
+  bool ret;
+
+  ret = track_set_metric_accuracy(track, (value <= 0)?G_MAXFLOAT:(gfloat)value);
+  if (ret)
+    {
+      emit metricAccuracyChanged(value);
+      emit characteristicsChanged((qreal)track_metric_length(track),
+                                  (unsigned int)track_duration(track));
+    }
 
   return ret;
 }
@@ -738,6 +755,9 @@ void Maep::GpsMap::positionLost()
   emit gpsCoordinateChanged();
 
   osm_gps_map_clear_gps(map);
+
+  if (track_capture && track_current)
+    track_current->current_seg = NULL;
 }
 void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
 {

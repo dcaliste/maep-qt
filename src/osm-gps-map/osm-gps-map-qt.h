@@ -180,6 +180,7 @@ class Track: public QObject
 {
   Q_OBJECT
   Q_PROPERTY(unsigned int autosavePeriod READ getAutosavePeriod WRITE setAutosavePeriod NOTIFY autosavePeriodChanged)
+  Q_PROPERTY(qreal metricAccuracy READ getMetricAccuracy WRITE setMetricAccuracy NOTIFY metricAccuracyChanged)
   Q_PROPERTY(QString path READ getPath NOTIFY pathChanged)
   Q_PROPERTY(unsigned int startDate READ getStartDate NOTIFY startDateSet)
   Q_PROPERTY(qreal length READ getLength NOTIFY characteristicsChanged)
@@ -212,6 +213,11 @@ public:
   inline unsigned int getAutosavePeriod() {
     return autosavePeriod;
   }
+  inline unsigned int getMetricAccuracy() {
+    gfloat value;
+    value = track_get_metric_accuracy(track);
+    return (value == G_MAXFLOAT)?0.:(qreal)value;
+  }
   inline qreal getLength() {
     return (qreal)track_metric_length(track);
   }
@@ -225,6 +231,7 @@ public:
 signals:
   void fileError(const QString &errorMsg);
   void autosavePeriodChanged(unsigned int value);
+  void metricAccuracyChanged(qreal value);
   void pathChanged();
   void characteristicsChanged(qreal length, unsigned int duration);
   void startDateSet(unsigned int value);
@@ -235,6 +242,7 @@ public slots:
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
   bool setAutosavePeriod(unsigned int value);
+  bool setMetricAccuracy(qreal value);
 
 private:
   track_state_t *track;
