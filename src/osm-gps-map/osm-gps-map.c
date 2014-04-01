@@ -2659,7 +2659,6 @@ osm_gps_map_clear_images (OsmGpsMap *map)
 void
 osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float heading)
 {
-    int pixel_x, pixel_y;
     OsmGpsMapPrivate *priv;
 
     g_return_if_fail (OSM_IS_GPS_MAP (map));
@@ -2669,10 +2668,6 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     priv->gps->rlon = deg2rad(longitude);
     priv->gps_valid = TRUE;
     priv->gps_heading = deg2rad(heading);
-
-    // pixel_x,y, offsets
-    pixel_x = lon2pixel(priv->map_zoom, priv->gps->rlon);
-    pixel_y = lat2pixel(priv->map_zoom, priv->gps->rlat);
 
     //If trip marker add to list of gps points.
     if (priv->record_trip_history) {
@@ -2691,6 +2686,9 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
 
     //Automatically center the map if the track approaches the edge
     if(priv->map_auto_center)   {
+        // pixel_x,y, offsets
+        int pixel_x = lon2pixel(priv->map_zoom, priv->gps->rlon);
+        int pixel_y = lat2pixel(priv->map_zoom, priv->gps->rlat);
         int x = pixel_x - priv->map_x;
         int y = pixel_y - priv->map_y;
         int width = priv->viewport_width;
@@ -2715,6 +2713,7 @@ osm_gps_map_clear_gps (OsmGpsMap *map)
 {
     g_return_if_fail(OSM_IS_GPS_MAP(map));
 
+    priv->gps_valid = FALSE;
     osm_gps_map_free_trip(map);
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
