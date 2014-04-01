@@ -179,6 +179,7 @@ ApplicationWindow
                 id: map
                 property Conf conf: Conf {  }
                 property int track_autosave_rate: conf.getInt("track_autosave_period", 300)
+                property int track_metric_accuracy: conf.getInt("track_metric_accuracy", 30)
                 /*anchors.top: header.bottom
                   width: page.width
                   height: page.height - header.height*/
@@ -203,8 +204,13 @@ ApplicationWindow
                     if (track) { track.autosavePeriod = track_autosave_rate }
                     conf.setInt("track_autosave_period", track_autosave_rate)
                 }
+                onTrack_metric_accuracyChanged: {
+                    if (track) { track.metricAccuracy = track_metric_accuracy }
+                    conf.setInt("track_metric_accuracy", track_metric_accuracy)
+                }
                 onTrackChanged: if (track) {
                     track.autosavePeriod = track_autosave_rate
+                    track.metricAccuracy = track_metric_accuracy
                 }
             }
 	    Row {
@@ -627,7 +633,7 @@ ApplicationWindow
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET }
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE }
         ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID }
-        ListElement { source: GpsMap.SOURCE_OPENSEAMAP }
+        //ListElement { source: GpsMap.SOURCE_OPENSEAMAP }
     }
 
     Component {

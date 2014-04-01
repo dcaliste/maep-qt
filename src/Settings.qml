@@ -30,7 +30,7 @@ SilicaFlickable {
     }
 
     Column {
-        spacing: Theme.paddingLarge
+        spacing: Theme.paddingMedium
         width: parent.width
         anchors.top: title.bottom
 
@@ -57,7 +57,7 @@ SilicaFlickable {
                 stepSize: 1.
                 label: "GPS refresh rate"
                 value: map.gps_refresh_rate / 1000.
-                valueText: (value > 0) ? value + " s" : "No update"
+                valueText: (value > 0) ? value + " s" : "no update"
                 onValueChanged: { map.gps_refresh_rate = value * 1000 }
             }
             Label {
@@ -86,7 +86,7 @@ SilicaFlickable {
                 stepSize: 1.
                 label: "Track autosave rate"
                 value: map.track_autosave_rate / 60.
-                valueText: (value > 0) ? value + " min." : "On demand"
+                valueText: (value > 0) ? value + " min." : "on demand"
                 onValueChanged: { map.track_autosave_rate = value * 60 }
             }
             Label {
@@ -97,6 +97,35 @@ SilicaFlickable {
                 " Autosaving a track without providing a filename" +
                 " will result to the track being saved in" +
                 " $HOME/.local/share/maep/track.gpx"
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignJustify
+	        anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+        
+        Item {
+            width: parent.width
+            height: childrenRect.height
+            Slider {
+                id: metric
+                width: parent.width
+
+                minimumValue: 0.
+                maximumValue: 100.
+                stepSize: 10.
+                label: "Track metric accuracy"
+                value: map.track_metric_accuracy
+                valueText: (value > 0) ? value + " m." : "keep all"
+                onValueChanged: { map.track_metric_accuracy = value }
+            }
+            Label {
+                anchors.top: metric.bottom
+                width: parent.width - 6 * Theme.paddingLarge
+
+                text: "Points in track are registered if horizontal" +
+                " accuracy is below this value."
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 wrapMode: Text.WordWrap
