@@ -21,7 +21,7 @@ import Sailfish.Silica 1.0
 SilicaFlickable {
     id: settings
 
-    contentHeight: childrenRect.height
+    contentHeight: title.height + widgets.childrenRect.height
     contentWidth: parent.width
 
     PageHeader {
@@ -30,6 +30,7 @@ SilicaFlickable {
     }
 
     Column {
+        id: widgets
         spacing: Theme.paddingMedium
         width: parent.width
         anchors.top: title.bottom
@@ -62,7 +63,7 @@ SilicaFlickable {
             }
             Label {
                 anchors.top: refresh.bottom
-                width: parent.width - 6 * Theme.paddingLarge
+                width: parent.width - 3 * Theme.paddingLarge
 
                 text: "Minimum time between two GPS updates." +
                 " If set to 0, there will be no GPS update."
@@ -91,7 +92,7 @@ SilicaFlickable {
             }
             Label {
                 anchors.top: autosave.bottom
-                width: parent.width - 6 * Theme.paddingLarge
+                width: parent.width - 3 * Theme.paddingLarge
 
                 text: "Time between two automatic track dumps on disk." +
                 " Autosaving a track without providing a filename" +
@@ -122,9 +123,9 @@ SilicaFlickable {
             }
             Label {
                 anchors.top: metric.bottom
-                width: parent.width - 6 * Theme.paddingLarge
+                width: parent.width - 3 * Theme.paddingLarge
 
-                text: "Points in track are registered if horizontal" +
+                text: "Points in track are displayed if horizontal" +
                 " accuracy is below this value."
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
@@ -134,4 +135,6 @@ SilicaFlickable {
             }
         }
     }
+
+    VerticalScrollDecorator { flickable: settings }
 }

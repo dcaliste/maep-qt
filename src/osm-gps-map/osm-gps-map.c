@@ -2713,7 +2713,7 @@ osm_gps_map_clear_gps (OsmGpsMap *map)
 {
     g_return_if_fail(OSM_IS_GPS_MAP(map));
 
-    priv->gps_valid = FALSE;
+    map->priv->gps_valid = FALSE;
     osm_gps_map_free_trip(map);
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
