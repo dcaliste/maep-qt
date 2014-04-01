@@ -37,6 +37,7 @@ G_BEGIN_DECLS
 /* a point is just that */
 typedef struct track_point_s {
   coord_t coord;
+  float h_acc;
   float altitude;
   float speed;
   float hr;          // heart rate
@@ -76,10 +77,21 @@ typedef struct {
 
   /* Total length of the track in meters. */
   gfloat metricLength;
+  gfloat metricAccuracy;
 
   /* Ref counted object. */
   guint ref_count;
 } track_state_t;
+
+typedef struct {
+  track_state_t *parent;
+  
+  track_t *track;
+  track_seg_t *seg;
+  guint pt;
+
+  track_point_t *cur;
+} track_iter_t;
 
 #define MAEP_TRACK_ERROR track_get_quark()
 GQuark track_get_quark();
@@ -103,8 +115,12 @@ gboolean track_set_autosave_period(track_state_t *track_state, guint elaps);
 const gchar* track_get_autosave_path(track_state_t *track_state);
 gboolean track_set_autosave_path(track_state_t *track_state, const gchar *path);
 
+gboolean track_set_metric_accuracy(track_state_t *track_state, gfloat metricAccuracy);
+gfloat track_get_metric_accuracy(track_state_t *track_state);
+
 void track_point_new(track_state_t *track_state,
                      float latitude, float longitude,
+                     float h_acc,
                      float altitude, float speed,
                      float hr, float cad);
 

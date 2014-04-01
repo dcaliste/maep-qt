@@ -27,7 +27,6 @@
 #include "config.h"
 #include "track.h"
 #include "converter.h"
-#include "misc.h"
 /* #include "hxm.h" */
 
 #include <stdio.h>
@@ -609,26 +608,46 @@ gfloat track_metric_length(track_state_t *track_state) {
   
   return track_state->metricLength;
 }
+gboolean track_set_metric_accuracy(track_state_t *track_state, gfloat metricAccuracy)
+{
+  g_return_val_if_fail(track_state, FALSE);
+
+  if (metricAccuracy == track_state->metricAccuracy)
+    return FALSE;
+
+  track_state->metricAccuracy = metricAccuracy;
+  track_state_update_length(track_state);
+
+  return TRUE;
+}
+gfloat track_get_metric_accuracy(track_state_t *track_state)
+{
+  g_return_val_if_fail(track_state, G_MAXFLOAT);
+
+  return track_state->metricAccuracy;
+}
 
 guint track_duration(track_state_t *track_state) {
+  guint duration;
   track_t *track;
   track_seg_t *seg;
   track_point_t *start, *stop;
 
   g_return_val_if_fail(track_state, 0);
 
-  if (!track_state->track ||
-      !track_state->track->track_seg ||
-      track_state->track->track_seg->track_points->len == 0)
-    return 0;
-
-  start = &g_array_index(track_state->track->track_seg->track_points, track_point_t, 0);
-  for(track = track_state->track; track && track->next; track = track->next);
-  for(seg = track->track_seg; seg && seg->next && seg->next->track_points->len > 0; seg = seg->next);
-  stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
+  /* Accumulate time for each segment. */
+  duration = 0;
+  for(track = track_state->track; track; track = track->next)
+    for(seg = track->track_seg; seg; seg = seg->next)
+      if (seg->track_points->len > 1)
+        {
+          start = &g_array_index(seg->track_points, track_point_t, 0);
+          stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
+          duration += stop->time - start->time;
+        }
 
   /* g_message("Track: get duration %d %d.", start->time, stop->time); */
-  return stop->time - start->time;
+  return duration;
 }
 
 guint track_start_timestamp(track_state_t *track_state)
@@ -712,17 +731,26 @@ static float get_distance(float lat1, float lon1, float lat2, float lon2) {
   return(aob * 6371000.0);     /* great circle radius in meters */
 }
 
-static gfloat _seg_add_point(track_seg_t *seg, track_point_t *new_point)
+static gfloat _seg_add_point(track_seg_t *seg, track_point_t *new_point,
+                             gfloat metricAccuracy)
 {
   track_point_t *prev;
+  gint i;
 
   g_array_append_vals(seg->track_points, new_point, 1);
   /* Calculate distance between previous point and new one. */
-  if (seg->track_points->len > 1)
+  if (seg->track_points->len > 1 && new_point->h_acc <= metricAccuracy)
     {
-      prev = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 2);
-      return ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
-                              new_point->coord.rlat, new_point->coord.rlon));
+      /* Get previous valid point for distance. */
+      prev = NULL;
+      for (i = seg->track_points->len - 2; i >= 0; i--)
+        {
+          prev = &g_array_index(seg->track_points, track_point_t, i);
+          if (prev->h_acc <= metricAccuracy)
+            break;
+        }
+      return (prev)?ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
+                                     new_point->coord.rlat, new_point->coord.rlon)):0.f;
     }
   else
     return 0.f;
@@ -739,15 +767,19 @@ static void track_state_update_length(track_state_t *track_state)
     while(track) {
       track_seg_t *seg = track->track_seg;
       while(seg) {
-        if (seg->track_points->len > 0)
-          prev = &g_array_index(seg->track_points, track_point_t, 0);
-        for (i = 1; i < seg->track_points->len; i++)
+        /* Use only valid point for distance. */
+        prev = NULL;
+        cur = NULL;
+        for (i = 0; i < seg->track_points->len; i++)
           {
             cur = &g_array_index(seg->track_points, track_point_t, i);
-            track_state->metricLength +=
-              ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
-                               cur->coord.rlat, cur->coord.rlon));
-            prev = cur;
+            if (cur->h_acc <= track_state->metricAccuracy)
+              {
+                track_state->metricLength +=
+                  (prev)?ABS(get_distance(prev->coord.rlat, prev->coord.rlon,
+                                          cur->coord.rlat, cur->coord.rlon)):0.f;
+                prev = cur;
+              }
           }
 	seg = seg->next;
       }
@@ -802,11 +834,14 @@ track_state_t *track_state_new()
   track_state->bb_bottom_right.rlat = -G_MAXFLOAT;
   track_state->bb_bottom_right.rlon = -G_MAXFLOAT;
 
+  track_state->metricAccuracy = G_MAXFLOAT;
+
   return track_state;
  }
 
 void track_point_new(track_state_t *track_state,
                      float latitude, float longitude,
+                     float h_acc,
                      float altitude, float speed,
                      float hr, float cad)
 {
@@ -821,16 +856,127 @@ void track_point_new(track_state_t *track_state,
   new_point.cad = cad;
   new_point.coord.rlat = deg2rad(latitude);
   new_point.coord.rlon = deg2rad(longitude);
+  new_point.h_acc = h_acc;
 
   /* get current segment */
   track_seg_t *seg = track_state->current_seg;
   if (!seg)
     seg = track_state->current_seg = _get_new_segment(track_state);
   
-  g_message("gps: creating new point %g", track_state->metricLength);
   track_state->dirty = TRUE;
-  track_state->metricLength += _seg_add_point(seg, &new_point);
+  track_state->metricLength += _seg_add_point(seg, &new_point,
+                                              track_state->metricAccuracy);
+  g_message("gps: creating new point %g", track_state->metricLength);
 
   /* Updating bounding box. */
   track_state_update_bb0(track_state, &new_point);
 }
+
+/* Iterator on tracks. */
+void track_iter_new(track_iter_t *iter, track_state_t *track_state)
+{
+  g_return_if_fail(iter);
+
+  iter->parent = track_state;
+  iter->track = track_state->track;
+  iter->seg = (iter->track)?iter->track->track_seg:NULL;
+  iter->pt = 0;
+}
+gboolean track_iter_next(track_iter_t *iter, gboolean *new_seg)
+{
+  track_point_t *pt;
+
+  g_return_val_if_fail(iter, FALSE);
+
+  if (!iter->seg)
+    return FALSE;
+
+  if (new_seg)
+    *new_seg = (iter->pt == 0);
+
+  /* We go to next valid point. */
+  pt = NULL;
+  for (; iter->pt < iter->seg->track_points->len; iter->pt++)
+    {
+      pt = &g_array_index(iter->seg->track_points, track_point_t, iter->pt);
+      if (pt->h_acc <= iter->parent->metricAccuracy)
+        {
+          iter->cur = pt;
+          iter->pt += 1;
+          return TRUE;
+        }
+    }
+
+  /* No more valid point on this segment, go to next. */
+  if (iter->seg->next)
+    {
+      iter->seg = iter->seg->next;
+      iter->pt = 0;
+      return track_iter_next(iter, new_seg);
+    }
+
+  /* No more segment, go to next track. */
+  if (iter->track->next)
+    {
+      iter->track = iter->track->next;
+      iter->seg = iter->track->track_seg;
+      iter->pt = 0;
+      return track_iter_next(iter, new_seg);
+    }
+  
+  return FALSE;
+}
+
+#ifdef TEST_ME
+int main(int argc, const char **argv)
+{
+  track_state_t *track_state;
+  track_iter_t iter;
+  guint i;
+  gboolean nw;
+
+  /* Create a track for tests. */
+  track_state = track_state_new();
+  /* First segment. */
+  for (i = 0; i < 10; i++)
+    track_point_new(track_state, 46. + (gfloat)i / 1000.f,
+                    6. + sin((gfloat)i) / 1000.,
+                    45.f / (gfloat)i, 200., NAN, NAN, NAN);
+  /* Second segment. */
+  track_state->current_seg = NULL;
+  for (i = 0; i < 15; i++)
+    track_point_new(track_state, 46. - (gfloat)i / 200.f,
+                    6. + cos((gfloat)i) / 1000.,
+                    45.f / (gfloat)i, 200., NAN, NAN, NAN);
+
+  nw = FALSE;
+  track_iter_new(&iter, track_state);
+  while (track_iter_next(&iter, &nw))
+    {
+      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+    };
+
+  g_print("%g\n", track_state->metricLength);
+
+  track_set_metric_accuracy(track_state, 14.);
+  track_iter_new(&iter, track_state);
+  while (track_iter_next(&iter, &nw))
+    {
+      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+    };
+  g_print("%g\n", track_state->metricLength);
+
+  track_set_metric_accuracy(track_state, 4.8);
+  track_iter_new(&iter, track_state);
+  while (track_iter_next(&iter, &nw))
+    {
+      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+    };
+  g_print("%g\n", track_state->metricLength);
+
+  return 0;
+}
+#endif

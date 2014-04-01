@@ -98,7 +98,7 @@ struct _OsmGpsMapPrivate
     //gps tracking state
     gboolean record_trip_history;
     gboolean show_trip_history;
-    track_seg_t *trip_history;
+    track_state_t *trip_history;
     coord_t *gps;
     float gps_heading;
     gboolean gps_valid;
@@ -464,7 +464,7 @@ osm_gps_map_free_trip (OsmGpsMap *map)
     OsmGpsMapPrivate *priv = map->priv;
 
     if (priv->trip_history) {
-        track_seg_free(priv->trip_history);
+        track_state_unref(priv->trip_history);
         priv->trip_history = NULL;
     }
 }
@@ -1190,50 +1190,34 @@ void osm_gps_map_get_tile_xy_at(OsmGpsMap *map, float lat, float lon,
 }
 
 static void
-osm_gps_map_print_segment (OsmGpsMap *map, track_seg_t *track)
+osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track,
+                           int *max_x, int *min_x, int *max_y, int *min_y)
 {
-    OsmGpsMapPrivate *priv = map->priv;
-
-    guint i;
-    int x,y;
-    int min_x = 0,min_y = 0,max_x = 0,max_y = 0;
-    int lw = priv->ui_gps_track_width;
-    int map_x0, map_y0;
-    cairo_rectangle_int_t rect;
-
-    g_message("Print a track!");
-    cairo_set_line_width (priv->cr, lw);
-    cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
-    cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
-    cairo_set_line_join (priv->cr, CAIRO_LINE_JOIN_ROUND);
+    track_iter_t iter;
+    gboolean nw;
+    int x,y, map_x0, map_y0;
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
-    for(i = 0; i < track->track_points->len; i++)
+    track_iter_new(&iter, track);
+    while (track_iter_next(&iter, &nw))
         {
-            coord_t *tp = &(g_array_index(track->track_points, track_point_t, i).coord);
-
-            x = lon2pixel(priv->map_zoom, tp->rlon) - map_x0;
-            y = lat2pixel(priv->map_zoom, tp->rlat) - map_y0;
-
-            // first time through loop
-            if (i == 0) {
-                cairo_move_to(priv->cr, x, y);
-            }
-
+            x = lon2pixel(priv->map_zoom, iter.cur->coord.rlon) - map_x0;
+            y = lat2pixel(priv->map_zoom, iter.cur->coord.rlat) - map_y0;
+                    
+            if (nw)
+                {
+                    cairo_stroke(priv->cr);
+                    cairo_move_to(priv->cr, x, y);
+                }
             cairo_line_to(priv->cr, x, y);
 
-            max_x = MAX(x,max_x);
-            min_x = MIN(x,min_x);
-            max_y = MAX(y,max_y);
-            min_y = MIN(y,min_y);
+            *max_x = MAX(x,*max_x);
+            *min_x = MIN(x,*min_x);
+            *max_y = MAX(y,*max_y);
+            *min_y = MIN(y,*min_y);
         }
     cairo_stroke(priv->cr);
-    rect.x = min_x - lw;
-    rect.y = min_y - lw;
-    rect.width = max_x - min_x + 2 * lw;
-    rect.height = max_y - min_y + 2 * lw;
-    cairo_region_union_rectangle(priv->dirty, &rect);
 }
 
 /* Prints the gps trip history, and any other tracks */
@@ -1241,22 +1225,34 @@ static void
 osm_gps_map_print_tracks (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
-    track_t *track;
-    track_seg_t *seg;
+    int lw = priv->ui_gps_track_width;
+    int min_x = G_MAXINT,min_y = G_MAXINT,max_x = 0,max_y = 0;
+    cairo_rectangle_int_t rect;
 
-    if (priv->show_trip_history)
-        osm_gps_map_print_segment (map, priv->trip_history);
-
-    if (priv->tracks)
+    if (priv->tracks || (priv->show_trip_history && priv->trip_history))
     {
+        g_message("Print a track list!");
+        cairo_set_line_width (priv->cr, lw);
+        cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
+        cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join (priv->cr, CAIRO_LINE_JOIN_ROUND);
+
+        if (priv->show_trip_history)
+            osm_gps_map_print_track(priv, priv->trip_history,
+                                    &max_x, &min_x, &max_y, &min_y);
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            for (track = ((track_state_t*)tmp->data)->track; track; track = track->next)
-                for (seg = track->track_seg; seg; seg = seg->next)
-                    osm_gps_map_print_segment (map, seg);
+            osm_gps_map_print_track(priv, (track_state_t*)tmp->data,
+                                    &max_x, &min_x, &max_y, &min_y);
             tmp = g_slist_next(tmp);
         }
+
+        rect.x = min_x - lw;
+        rect.y = min_y - lw;
+        rect.width = max_x - min_x + 2 * lw;
+        rect.height = max_y - min_y + 2 * lw;
+        cairo_region_union_rectangle(priv->dirty, &rect);
     }
 }
 
@@ -2681,11 +2677,9 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     //If trip marker add to list of gps points.
     if (priv->record_trip_history) {
         if (!priv->trip_history)
-            priv->trip_history = track_seg_new();
-        track_point_t tp;
-        tp.coord.rlat = priv->gps->rlat;
-        tp.coord.rlon = priv->gps->rlon;
-        g_array_append_vals(priv->trip_history->track_points, &tp, 1);
+            priv->trip_history = track_state_new();
+        track_point_new(priv->trip_history, latitude, longitude,
+                        G_MAXFLOAT, NAN, NAN, NAN, NAN);
     }
 
     // dont draw anything if we are dragging
