@@ -190,6 +190,13 @@ static void track_parse_ext(xmlDocPtr doc, xmlNode *a_node,
 
       if(strcasecmp((char*)cur_node->name, "TrackPointExtension") == 0) 
 	track_parse_tpext(doc, cur_node, point); 
+
+      /* horizontal accuracy */
+      if(strcasecmp((char*)cur_node->name, "h_acc") == 0) {
+	char *str = (char*)xmlNodeGetContent(cur_node);
+	point->h_acc = g_ascii_strtod(str, NULL);
+ 	xmlFree(str);
+      }
     }
   }
 }
@@ -202,6 +209,7 @@ static gboolean track_parse_trkpt(track_point_t *point,
   point->cad = NAN;
   point->coord.rlat = NAN;
   point->coord.rlon = NAN;
+  point->h_acc = 0.;
 
   /* parse position */
   if(!track_get_prop_pos(a_node, &point->coord))
@@ -475,6 +483,12 @@ void track_save_point(track_point_t *point, xmlNodePtr node) {
     xmlNodePtr ext = 
       xmlNewChild(node_point, NULL, BAD_CAST "extensions", NULL);
 
+    if(point->h_acc != G_MAXFLOAT) {
+      char *lstr = g_strdup_printf("%g", point->h_acc);
+      xmlNewTextChild(ext, NULL, BAD_CAST "h_acc", BAD_CAST lstr);
+      g_free(lstr);
+    }
+
     xmlNodePtr tpext = 
       xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
 
@@ -523,10 +537,10 @@ gboolean track_write(track_state_t *track_state, const char *name, GError **erro
  
   xmlDocPtr doc = xmlNewDoc(BAD_CAST "1.0");
   xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "gpx");
-  xmlNewProp(root_node, BAD_CAST "version", BAD_CAST "1.0");
+  xmlNewProp(root_node, BAD_CAST "version", BAD_CAST "1.1");
   xmlNewProp(root_node, BAD_CAST "creator", BAD_CAST PACKAGE " v" VERSION);
   xmlNewProp(root_node, BAD_CAST "xmlns", BAD_CAST 
-	     "http://www.topografix.com/GPX/1/0/gpx.xsd");
+	     "http://www.topografix.com/GPX/1/1");
 
   /* add TrackPointExtension only if it will actually be used */
   if(track_contents(track_state) & (TRACK_HR | TRACK_CADENCE))
@@ -882,17 +896,18 @@ void track_iter_new(track_iter_t *iter, track_state_t *track_state)
   iter->seg = (iter->track)?iter->track->track_seg:NULL;
   iter->pt = 0;
 }
-gboolean track_iter_next(track_iter_t *iter, gboolean *new_seg)
+gboolean track_iter_next(track_iter_t *iter, int *status)
 {
   track_point_t *pt;
+  guint i;
 
   g_return_val_if_fail(iter, FALSE);
 
   if (!iter->seg)
     return FALSE;
 
-  if (new_seg)
-    *new_seg = (iter->pt == 0);
+  if (status)
+    *status = (iter->pt == 0)?TRACK_POINT_START:0;
 
   /* We go to next valid point. */
   pt = NULL;
@@ -903,6 +918,19 @@ gboolean track_iter_next(track_iter_t *iter, gboolean *new_seg)
         {
           iter->cur = pt;
           iter->pt += 1;
+          if (status)
+            {
+              /* We inquire if this is the last valid point of this
+               * segment. */
+              for ( i = iter->pt; i < iter->seg->track_points->len; i++)
+                {
+                  pt = &g_array_index(iter->seg->track_points, track_point_t, i);
+                  if (pt->h_acc <= iter->parent->metricAccuracy)
+                    break;
+                }
+              if (i == iter->seg->track_points->len)
+                *status += TRACK_POINT_STOP;
+            }
           return TRUE;
         }
     }
@@ -912,7 +940,7 @@ gboolean track_iter_next(track_iter_t *iter, gboolean *new_seg)
     {
       iter->seg = iter->seg->next;
       iter->pt = 0;
-      return track_iter_next(iter, new_seg);
+      return track_iter_next(iter, status);
     }
 
   /* No more segment, go to next track. */
@@ -921,7 +949,7 @@ gboolean track_iter_next(track_iter_t *iter, gboolean *new_seg)
       iter->track = iter->track->next;
       iter->seg = iter->track->track_seg;
       iter->pt = 0;
-      return track_iter_next(iter, new_seg);
+      return track_iter_next(iter, status);
     }
   
   return FALSE;
@@ -933,7 +961,7 @@ int main(int argc, const char **argv)
   track_state_t *track_state;
   track_iter_t iter;
   guint i;
-  gboolean nw;
+  int st;
 
   /* Create a track for tests. */
   track_state = track_state_new();
@@ -949,31 +977,31 @@ int main(int argc, const char **argv)
                     6. + cos((gfloat)i) / 1000.,
                     45.f / (gfloat)i, 200., NAN, NAN, NAN);
 
-  nw = FALSE;
+  st = 0;
   track_iter_new(&iter, track_state);
-  while (track_iter_next(&iter, &nw))
+  while (track_iter_next(&iter, &st))
     {
       g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
     };
 
   g_print("%g\n", track_state->metricLength);
 
   track_set_metric_accuracy(track_state, 14.);
   track_iter_new(&iter, track_state);
-  while (track_iter_next(&iter, &nw))
+  while (track_iter_next(&iter, &st))
     {
       g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
     };
   g_print("%g\n", track_state->metricLength);
 
-  track_set_metric_accuracy(track_state, 4.8);
+  track_set_metric_accuracy(track_state, 3.3);
   track_iter_new(&iter, track_state);
-  while (track_iter_next(&iter, &nw))
+  while (track_iter_next(&iter, &st))
     {
       g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), nw, iter.cur->h_acc);
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
     };
   g_print("%g\n", track_state->metricLength);
 

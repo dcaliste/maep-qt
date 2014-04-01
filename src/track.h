@@ -93,6 +93,9 @@ typedef struct {
   track_point_t *cur;
 } track_iter_t;
 
+#define TRACK_POINT_START ( 1 << 0)
+#define TRACK_POINT_STOP  ( 1 << 1)
+
 #define MAEP_TRACK_ERROR track_get_quark()
 GQuark track_get_quark();
 

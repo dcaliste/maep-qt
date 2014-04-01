@@ -1194,30 +1194,27 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track,
                            int *max_x, int *min_x, int *max_y, int *min_y)
 {
     track_iter_t iter;
-    gboolean nw;
-    int x,y, map_x0, map_y0;
+    int x,y, map_x0, map_y0, st;
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
     track_iter_new(&iter, track);
-    while (track_iter_next(&iter, &nw))
+    while (track_iter_next(&iter, &st))
         {
             x = lon2pixel(priv->map_zoom, iter.cur->coord.rlon) - map_x0;
             y = lat2pixel(priv->map_zoom, iter.cur->coord.rlat) - map_y0;
                     
-            if (nw)
-                {
-                    cairo_stroke(priv->cr);
-                    cairo_move_to(priv->cr, x, y);
-                }
+            if (st & TRACK_POINT_START)
+                cairo_move_to(priv->cr, x, y);
             cairo_line_to(priv->cr, x, y);
+            if (st & TRACK_POINT_STOP)
+                cairo_stroke(priv->cr);
 
             *max_x = MAX(x,*max_x);
             *min_x = MIN(x,*min_x);
             *max_y = MAX(y,*max_y);
             *min_y = MIN(y,*min_y);
         }
-    cairo_stroke(priv->cr);
 }
 
 /* Prints the gps trip history, and any other tracks */
