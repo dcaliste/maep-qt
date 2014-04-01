@@ -116,6 +116,11 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
   emit characteristicsChanged((qreal)track_metric_length(track),
                               (unsigned int)track_duration(track));
 }
+void Maep::Track::finalizeSegment()
+{
+  if (track)
+    track->current_seg = NULL;
+}
 bool Maep::Track::setAutosavePeriod(unsigned int value)
 {
   bool ret;
@@ -435,7 +440,7 @@ void Maep::GpsMap::paint(QPainter *painter)
   path.arcTo(w - 40., 0., 40., 40., 90., -90.);
   path.lineTo(w, 0.);
 
-  painter->fillPath(path, white);
+  painter->fillPath(path, *white);
 }
 
 void Maep::GpsMap::zoomIn()
@@ -779,7 +784,7 @@ void Maep::GpsMap::positionLost()
   osm_gps_map_clear_gps(map);
 
   if (track_capture && track_current)
-    track_current->current_seg = NULL;
+    track_current->finalizeSegment();
 }
 void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
 {

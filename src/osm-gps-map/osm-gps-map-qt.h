@@ -242,6 +242,7 @@ public slots:
   bool set(const QString &filename);
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
+  void finalizeSegment();
   bool setAutosavePeriod(unsigned int value);
   bool setMetricAccuracy(qreal value);
 
