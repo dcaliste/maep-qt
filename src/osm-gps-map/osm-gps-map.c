@@ -1245,11 +1245,14 @@ osm_gps_map_print_tracks (OsmGpsMap *map)
             tmp = g_slist_next(tmp);
         }
 
-        rect.x = min_x - lw;
-        rect.y = min_y - lw;
-        rect.width = max_x - min_x + 2 * lw;
-        rect.height = max_y - min_y + 2 * lw;
-        cairo_region_union_rectangle(priv->dirty, &rect);
+        if (max_x > 0 && max_y > 0)
+            {
+                rect.x = min_x - lw;
+                rect.y = min_y - lw;
+                rect.width = max_x - min_x + 2 * lw;
+                rect.height = max_y - min_y + 2 * lw;
+                cairo_region_union_rectangle(priv->dirty, &rect);
+            }
     }
 }
 
