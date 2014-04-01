@@ -235,15 +235,18 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   gpsRefreshRate_ = gpsRefresh;
   gps = QGeoPositionInfoSource::createDefaultSource(this);
-  if (gps && gpsRefreshRate_ > 0)
+  if (gps)
     {
       connect(gps, SIGNAL(positionUpdated(QGeoPositionInfo)),
               this, SLOT(positionUpdate(QGeoPositionInfo)));
       connect(gps, SIGNAL(updateTimeout()),
               this, SLOT(positionLost()));
       g_message("Start gps with rate at %d", gpsRefreshRate_);
-      gps->setUpdateInterval(gpsRefreshRate_);
-      gps->startUpdates();
+      if (gpsRefreshRate_ > 0)
+        {
+          gps->setUpdateInterval(gpsRefreshRate_);
+          gps->startUpdates();
+        }
     }
   else
     g_message("no gps source...");
