@@ -25,6 +25,7 @@
 #include <QQmlListProperty>
 #include <QGeoCoordinate>
 #include <QGeoPositionInfoSource>
+#include <QColor>
 #include <cairo.h>
 #include "misc.h"
 #include "search.h"
@@ -480,8 +481,9 @@ class GpsMap : public QQuickPaintedItem
   /* Screen display. */
   cairo_surface_t *surf;
   cairo_t *cr;
-  cairo_pattern_t *pat;
+  /* cairo_pattern_t *pat; */
   QImage *img;
+  QColor *white;
 
   /* GPS */
   unsigned int gpsRefreshRate_;

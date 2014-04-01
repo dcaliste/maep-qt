@@ -21,6 +21,7 @@
 #include "net_io.h"
 
 #include <QPainter>
+#include <QPainterPath>
 
 #define GCONF_KEY_ZOOM       "zoom"
 #define GCONF_KEY_SOURCE     "source"
@@ -220,7 +221,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   surf = NULL;
   cr = NULL;
-  pat = NULL;
+  // pat = NULL;
+  white = new QColor(255, 255, 255);
   img = NULL;
 
   forceActiveFocus();
@@ -271,10 +273,11 @@ Maep::GpsMap::~GpsMap()
     cairo_surface_destroy(surf);
   if (cr)
     cairo_destroy(cr);
-  if (pat)
-    cairo_pattern_destroy(pat);
+  // if (pat)
+  //   cairo_pattern_destroy(pat);
   if (img)
     delete(img);
+  delete(white);
   if (gps)
     delete(gps);
   if (track_current && track_current->parent() == this)
@@ -316,7 +319,7 @@ bool Maep::GpsMap::mapSized()
     {
       cairo_surface_destroy(surf);
       cairo_destroy(cr);
-      cairo_pattern_destroy(pat);
+      // cairo_pattern_destroy(pat);
       delete(img);
       surf = NULL;
     }
@@ -325,10 +328,10 @@ bool Maep::GpsMap::mapSized()
     {
       surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width(), height());
       cr = cairo_create(surf);
-      pat = cairo_pattern_create_linear (0.0, height(),
-                                         0.0, height() - 100);
-      cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
-      cairo_pattern_add_color_stop_rgba (pat, 0, 0, 0, 0, 0.3);
+      // pat = cairo_pattern_create_linear (0.0, height(),
+      //                                    0.0, height() - 100);
+      // cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
+      // cairo_pattern_add_color_stop_rgba (pat, 0, 0, 0, 0, 0.3);
       img = new QImage(cairo_image_surface_get_data(surf),
                        cairo_image_surface_get_width(surf),
                        cairo_image_surface_get_height(surf),
@@ -341,7 +344,7 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
-  double w; //, h;
+  // double w; //, h;
   cairo_surface_t *map_surf;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
@@ -361,7 +364,7 @@ void Maep::GpsMap::mapUpdate()
   osd->draw(osd, cr);
 #endif
 
-  w = cairo_image_surface_get_width(surf);
+  // w = cairo_image_surface_get_width(surf);
   //h = cairo_image_surface_get_height(surf);
 
   /* Remove the bottom part for a Sailfish toolbar. */
@@ -373,20 +376,20 @@ void Maep::GpsMap::mapUpdate()
   // cairo_paint(cr);
   // cairo_restore(cr);
   /* Make top rounded corners. */
-  cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
-  cairo_move_to(cr, 0., 0.);
-  cairo_line_to(cr, 20., 0.);
-  cairo_arc_negative(cr, 20., 20., 20., 1.5 * G_PI, G_PI);
-  cairo_line_to(cr, 0., 0.);
-  cairo_set_source_rgb (cr, 1., 1., 1.);
-  cairo_fill(cr);
+  // cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
+  // cairo_move_to(cr, 0., 0.);
+  // cairo_line_to(cr, 20., 0.);
+  // cairo_arc_negative(cr, 20., 20., 20., 1.5 * G_PI, G_PI);
+  // cairo_line_to(cr, 0., 0.);
+  // cairo_set_source_rgb (cr, 1., 1., 1.);
+  // cairo_fill(cr);
 
-  cairo_move_to(cr, w, 0.);
-  cairo_line_to(cr, w - 20., 0.);
-  cairo_arc(cr, w - 20., 20., 20., 1.5 * G_PI, 2. * G_PI);
-  cairo_line_to(cr, w, 0.);
-  cairo_set_source_rgb (cr, 1., 1., 1.);
-  cairo_fill(cr);
+  // cairo_move_to(cr, w, 0.);
+  // cairo_line_to(cr, w - 20., 0.);
+  // cairo_arc(cr, w - 20., 20., 20., 1.5 * G_PI, 2. * G_PI);
+  // cairo_line_to(cr, w, 0.);
+  // cairo_set_source_rgb (cr, 1., 1., 1.);
+  // cairo_fill(cr);
 
   emit mapChanged();
 }
@@ -411,9 +414,28 @@ void Maep::GpsMap::paintTo(QPainter *painter, int width, int height)
 
 void Maep::GpsMap::paint(QPainter *painter)
 {
+  int w;
+  QPainterPath path;
+
   if (mapSized())
     mapUpdate();
   paintTo(painter, width(), height());
+  /* Make top rounded corners. */
+  painter->setCompositionMode(QPainter::CompositionMode_Clear);
+  w = width();
+
+  path = QPainterPath();
+  path.moveTo(0., 0.);
+  path.lineTo(20., 0.);
+  path.arcTo(0., 0., 40., 40., 90., 90.);
+  path.lineTo(0., 0.);
+
+  path.moveTo(w, 0.);
+  path.lineTo(w - 20., 0.);
+  path.arcTo(w - 40., 0., 40., 40., 90., -90.);
+  path.lineTo(w, 0.);
+
+  painter->fillPath(path, white);
 }
 
 void Maep::GpsMap::zoomIn()
