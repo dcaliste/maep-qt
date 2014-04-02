@@ -94,6 +94,15 @@ ApplicationWindow
                 }
 	        onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
             }
+
+            resultVisible: drawer.open && drawer_background.sourceComponent == placelist
+            onSearchFocusChanged: { drawer.disable(trackview) }
+            onSearchRequest: {
+                drawer.remove(placelist)
+                map.focus = true
+                map.setSearchRequest(text)
+            }
+            onShowResults: {status ? drawer.disable(placelist):drawer.enable(placelist)}
         }
         Drawer {
  	    id: drawer
@@ -104,6 +113,12 @@ ApplicationWindow
             function disable(child) {
                 if (drawer_background.sourceComponent == child) {
                     drawer.open = false
+                }
+            }
+            function remove(child) {
+                if (drawer_background.sourceComponent == child) {
+                    drawer.open = false
+                    drawer_background.sourceComponent = undefined
                 }
             }
             z: -1
@@ -133,11 +148,8 @@ ApplicationWindow
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: {
-                    header.searchLabel = search_results.length + " place(s) found"
-		    header.busy = false
-		    if (search_results.length > 0) {
-			//placeview.model = search_results
-                        drawer.enable(placelist)}
+                    header.searchResults(search_results)
+		    if (search_results.length > 0) { drawer.enable(placelist) }
 		}
 	        Behavior on opacity {
                     FadeAnimation {}

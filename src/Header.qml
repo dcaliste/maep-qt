@@ -19,10 +19,18 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 SilicaFlickable {
+    id: root
     property alias searchFocus: search.focus
     property alias searchLabel: search.label
     property alias searchText: search.text
-    property alias busy: busy.visible
+    property bool resultVisible: false
+    signal searchRequest(string text)
+    function searchResults(lst) {
+        search.label = lst.length + " place(s) found"
+	busy.visible = false
+        search_icon.visible = (lst.length > 0)
+    }
+    signal showResults(bool status)
     
     // Tell SilicaFlickable the height of its content.
     height: Theme.itemSizeMedium //childrenRect.height
@@ -40,14 +48,12 @@ SilicaFlickable {
 	    anchors.verticalCenter: parent.verticalCenter
 	    EnterKey.text: "search"
 	    EnterKey.onClicked: {
-                drawer.disable(placelist)
-		//placeview.model = null
                 search_icon.visible = false
                 busy.visible = true
-		map.focus = true
-                map.setSearchRequest(text)
+                label = "Searching…"
+                root.searchRequest(text)
 	    }
-	    onFocusChanged: { if (focus) { selectAll(); drawer.disable(trackview) } }
+	    onFocusChanged: { if (focus) { selectAll() } }
         }
         Item {
             anchors.right: maep.left
@@ -63,10 +69,9 @@ SilicaFlickable {
             }
             IconButton {
                 id: search_icon
-                property bool opened: drawer.open && drawer_background.sourceComponent == placelist
-                icon.source: opened ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                visible: drawer_background.sourceComponent == placelist
-                onClicked: opened ? drawer.disable(placelist):drawer.enable(placelist)
+                icon.source: root.resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+                visible: false
+                onClicked: root.showResults(root.resultVisible)
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
