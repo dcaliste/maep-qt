@@ -92,7 +92,19 @@ GQuark track_get_quark()
 
 /* --------------------------------------------------------------- */
 
-track_seg_t* track_seg_new()
+static void track_point_reset(track_point_t *point)
+{
+  point->time = 0;
+  point->altitude = NAN;
+  point->speed = NAN;
+  point->hr = NAN;
+  point->cad = NAN;
+  point->coord.rlat = NAN;
+  point->coord.rlon = NAN;
+  point->h_acc = 0.;
+}
+
+static track_seg_t* track_seg_new()
 {
   track_seg_t *seg;
 
@@ -101,10 +113,24 @@ track_seg_t* track_seg_new()
 
   return seg;
 }
-void track_seg_free(track_seg_t *seg) {
+static void track_seg_free(track_seg_t *seg) {
   g_array_unref(seg->track_points);
 
   g_free(seg);
+}
+
+static void way_point_free(way_point_t *wpt) {
+  if (wpt->name) g_free(wpt->name);
+  if (wpt->comment) g_free(wpt->comment);
+  if (wpt->description) g_free(wpt->description);
+}
+
+static track_t* track_new() {
+  track_t *track;
+
+  track = g_malloc0(sizeof(track_t));
+
+  return track;
 }
 
 static void track_free(track_t *trk) {
@@ -120,6 +146,27 @@ static void track_free(track_t *trk) {
   g_free(trk);
 }
 
+track_state_t *track_state_new()
+{
+  track_state_t *track_state;
+
+  track_state = g_new0(track_state_t, 1);
+  track_state->ref_count = 1;
+
+  track_state->bb_top_left.rlat = G_MAXFLOAT;
+  track_state->bb_top_left.rlon = G_MAXFLOAT;
+
+  track_state->bb_bottom_right.rlat = -G_MAXFLOAT;
+  track_state->bb_bottom_right.rlon = -G_MAXFLOAT;
+
+  track_state->metricAccuracy = G_MAXFLOAT;
+
+  track_state->way_points = g_array_new(FALSE, FALSE, sizeof(way_point_t));
+  g_array_set_clear_func(track_state->way_points, (GDestroyNotify)way_point_free);
+
+  return track_state;
+ }
+
 static void track_state_free(track_state_t *track_state) {
 
   /* stop running timeout timer if present */
@@ -132,6 +179,8 @@ static void track_state_free(track_state_t *track_state) {
     track_free(track);
     track = next;
   }
+
+  g_array_free(track_state->way_points, TRUE);
 
   g_free(track_state);
 }
@@ -203,13 +252,7 @@ static void track_parse_ext(xmlDocPtr doc, xmlNode *a_node,
 
 static gboolean track_parse_trkpt(track_point_t *point,
                                   xmlDocPtr doc, xmlNode *a_node) {
-  point->altitude = NAN;
-  point->speed = NAN;
-  point->hr = NAN;
-  point->cad = NAN;
-  point->coord.rlat = NAN;
-  point->coord.rlon = NAN;
-  point->h_acc = 0.;
+  track_point_reset(point);
 
   /* parse position */
   if(!track_get_prop_pos(a_node, &point->coord))
@@ -277,13 +320,13 @@ track_parse_trkseg(track_t *track, xmlDocPtr doc, xmlNode *a_node) {
 	  }
 	}
       } else
-	g_message("found unhandled gpx/trk/trkseg/%s\n", cur_node->name);
+	g_message("found unhandled gpx/trk/trkseg/%s", cur_node->name);
     }
   }
 }
 
 static track_t *track_parse_trk(xmlDocPtr doc, xmlNode *a_node) {
-  track_t *track = g_new0(track_t, 1);
+  track_t *track = track_new();
   xmlNode *cur_node = NULL;
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
@@ -295,17 +338,58 @@ static track_t *track_parse_trk(xmlDocPtr doc, xmlNode *a_node) {
       } else if(strcasecmp((char*)cur_node->name, "trkseg") == 0) {
 	track_parse_trkseg(track, doc, cur_node);
       } else
-	g_message("found unhandled gpx/trk/%s\n", cur_node->name);
+	g_message("found unhandled gpx/trk/%s", cur_node->name);
       
     }
   }
   return track;
 }
 
+static gboolean track_parse_wpt(way_point_t *wpt, xmlDocPtr doc, xmlNode *a_node) {
+  if (!track_parse_trkpt(&wpt->pt, doc, a_node))
+    return FALSE;
+
+  wpt->pt.h_acc = G_MAXFLOAT;
+  wpt->name = NULL;
+  wpt->comment = NULL;
+  wpt->description = NULL;
+
+  /* scan for children */
+  xmlNode *cur_node = NULL;
+  for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+
+      /* name */
+      if(strcasecmp((char*)cur_node->name, "name") == 0) {
+        char *str = (char*)xmlNodeGetContent(cur_node);
+        if (str) wpt->name = g_strdup(str);
+        xmlFree(str);
+      }
+
+      /* comment */
+      if(strcasecmp((char*)cur_node->name, "cmt") == 0) {
+        char *str = (char*)xmlNodeGetContent(cur_node);
+        if (str) wpt->comment = g_strdup(str);
+        xmlFree(str);
+      }
+
+      /* description */
+      if(strcasecmp((char*)cur_node->name, "desc") == 0) {
+        char *str = (char*)xmlNodeGetContent(cur_node);
+        if (str) wpt->description = g_strdup(str);
+        xmlFree(str);
+      }
+    }
+  }
+
+  return TRUE;
+}
+
 static track_state_t *track_parse_gpx(xmlDocPtr doc, xmlNode *a_node) {
   track_state_t *track_state = track_state_new();
   track_t **track = &(track_state->track);
   xmlNode *cur_node = NULL;
+  way_point_t wpt;
 
   for (cur_node = a_node->children; cur_node; cur_node = cur_node->next) {
     if (cur_node->type == XML_ELEMENT_NODE) {
@@ -318,8 +402,11 @@ static track_state_t *track_parse_gpx(xmlDocPtr doc, xmlNode *a_node) {
 	  else
 	    track = &(*track)->next;
 	}
+      } else if(strcasecmp((char*)cur_node->name, "wpt") == 0) {
+        if (track_parse_wpt(&wpt, doc, cur_node))
+          g_array_append_val(track_state->way_points, wpt);
       } else
-	g_message("found unhandled gpx/%s\n", cur_node->name);      
+	g_message("found unhandled gpx/%s", cur_node->name);      
     }
   }
   return track_state;
@@ -336,7 +423,7 @@ static track_state_t *track_parse_root(xmlDocPtr doc, xmlNode *a_node) {
       if(strcasecmp((char*)cur_node->name, "gpx") == 0) 
       	track_state = track_parse_gpx(doc, cur_node);
       else 
-	g_message("found unhandled %s\n", cur_node->name);
+	g_message("found unhandled %s", cur_node->name);
     }
   }
   return track_state;
@@ -462,26 +549,23 @@ track_state_t *track_read(const char *filename, GError **error) {
 }
 
 /* ----------------------  saving track --------------------------- */
-
-void track_save_point(track_point_t *point, xmlNodePtr node) {
+static void track_save_point(track_point_t *point, xmlNodePtr node) {
   char str[G_ASCII_DTOSTR_BUF_SIZE];
 
-  xmlNodePtr node_point = xmlNewChild(node, NULL, BAD_CAST "trkpt", NULL);
-
   g_ascii_formatd(str, sizeof(str), "%.07f", rad2deg(point->coord.rlat));
-  xmlNewProp(node_point, BAD_CAST "lat", BAD_CAST str);
+  xmlNewProp(node, BAD_CAST "lat", BAD_CAST str);
     
   g_ascii_formatd(str, sizeof(str), "%.07f", rad2deg(point->coord.rlon));
-  xmlNewProp(node_point, BAD_CAST "lon", BAD_CAST str);
+  xmlNewProp(node, BAD_CAST "lon", BAD_CAST str);
 
   if(!isnan(point->altitude)) {
     g_ascii_formatd(str, sizeof(str), "%.02f", point->altitude);
-    xmlNewTextChild(node_point, NULL, BAD_CAST "ele", BAD_CAST str);
+    xmlNewTextChild(node, NULL, BAD_CAST "ele", BAD_CAST str);
   }
 
   if(!isnan(point->hr) || !isnan(point->cad) || point->h_acc != G_MAXFLOAT) {
     xmlNodePtr ext = 
-      xmlNewChild(node_point, NULL, BAD_CAST "extensions", NULL);
+      xmlNewChild(node, NULL, BAD_CAST "extensions", NULL);
 
     if(point->h_acc != G_MAXFLOAT) {
       char *lstr = g_strdup_printf("%g", point->h_acc);
@@ -509,21 +593,24 @@ void track_save_point(track_point_t *point, xmlNodePtr node) {
 
   if(point->time) {
     strftime(str, sizeof(str), DATE_FORMAT, localtime(&point->time));
-    xmlNewTextChild(node_point, NULL, BAD_CAST "time", BAD_CAST str);
+    xmlNewTextChild(node, NULL, BAD_CAST "time", BAD_CAST str);
   }
 }
 
-void track_save_segs(track_seg_t *seg, xmlNodePtr node) {
+static void track_save_segs(track_seg_t *seg, xmlNodePtr node) {
   guint i;
   while(seg) {
     xmlNodePtr node_seg = xmlNewChild(node, NULL, BAD_CAST "trkseg", NULL);
     for (i = 0; i < seg->track_points->len; i++)
-      track_save_point(&g_array_index(seg->track_points, track_point_t, i), node_seg);
+      {
+        xmlNodePtr node_point = xmlNewChild(node_seg, NULL, BAD_CAST "trkpt", NULL);
+        track_save_point(&g_array_index(seg->track_points, track_point_t, i), node_point);
+      }
     seg = seg->next;
   }
 }
 
-void track_save_tracks(track_t *track, xmlNodePtr node) {
+static void track_save_tracks(track_t *track, xmlNodePtr node) {
   while(track) {
     xmlNodePtr trk_node = xmlNewChild(node, NULL, BAD_CAST "trk", NULL);
     if(track->name) 
@@ -531,6 +618,23 @@ void track_save_tracks(track_t *track, xmlNodePtr node) {
 
     track_save_segs(track->track_seg, trk_node);
     track = track->next;
+  }
+}
+
+static void track_save_waypoints(GArray *array, xmlNodePtr node) {
+  guint i;
+  way_point_t *wpt;
+
+  for (i = 0; i < array->len; i++) {
+    xmlNodePtr trk_node = xmlNewChild(node, NULL, BAD_CAST "wpt", NULL);
+    wpt = &g_array_index(array, way_point_t, i);
+    track_save_point(&wpt->pt, trk_node);
+    if(wpt->name) 
+      xmlNewTextChild(trk_node, NULL, BAD_CAST "name", BAD_CAST wpt->name);
+    if(wpt->comment) 
+      xmlNewTextChild(trk_node, NULL, BAD_CAST "cmt", BAD_CAST wpt->comment);
+    if(wpt->description) 
+      xmlNewTextChild(trk_node, NULL, BAD_CAST "desc", BAD_CAST wpt->description);
   }
 }
 
@@ -552,6 +656,8 @@ gboolean track_write(track_state_t *track_state, const char *name, GError **erro
   xmlDocSetRootElement(doc, root_node);
 
   track_save_tracks(track_state->track, root_node);
+
+  track_save_waypoints(track_state->way_points, root_node);
 
   g_message("Going to save track to '%s'.", name);
   xmlSaveFormatFileEnc(name, doc, "UTF-8", 1);
@@ -644,22 +750,41 @@ gfloat track_get_metric_accuracy(track_state_t *track_state)
 }
 
 guint track_duration(track_state_t *track_state) {
-  guint duration;
+  guint duration, i;
   track_t *track;
   track_seg_t *seg;
-  track_point_t *start, *stop;
+  track_point_t *start, *stop, *cur;
 
   g_return_val_if_fail(track_state, 0);
 
-  /* Accumulate time for each segment. */
+  /* Accumulate time for each segment, on valid points only. */
   duration = 0;
   for(track = track_state->track; track; track = track->next)
     for(seg = track->track_seg; seg; seg = seg->next)
       if (seg->track_points->len > 1)
         {
-          start = &g_array_index(seg->track_points, track_point_t, 0);
-          stop  = &g_array_index(seg->track_points, track_point_t, seg->track_points->len - 1);
-          duration += stop->time - start->time;
+          start = NULL;
+          for (i = 0; i < seg->track_points->len; i++)
+            {
+              cur = &g_array_index(seg->track_points, track_point_t, i);
+              if (cur->h_acc <= track_state->metricAccuracy)
+                {
+                  start = cur;
+                  break;
+                }
+            }
+          stop = NULL;
+          for (i = seg->track_points->len - 1; i > 0; i--)
+            {
+              cur = &g_array_index(seg->track_points, track_point_t, i);
+              if (cur->h_acc <= track_state->metricAccuracy)
+                {
+                  stop = cur;
+                  break;
+                }
+            }
+          if (start && stop)
+            duration += stop->time - start->time;
         }
 
   /* g_message("Track: get duration %d %d.", start->time, stop->time); */
@@ -804,7 +929,7 @@ static void track_state_update_length(track_state_t *track_state)
   }
 }
 
-static track_seg_t* _get_new_segment(track_state_t *track_state)
+static track_t* _get_last_track(track_state_t *track_state)
 {
   g_return_val_if_fail(track_state, NULL);
 
@@ -813,7 +938,7 @@ static track_seg_t* _get_new_segment(track_state_t *track_state)
   if(!track) {
     g_message("track: no track so far, creating new track");
 
-    track = track_state->track = g_new0(track_t, 1);
+    track = track_state->track = track_new();
 
     time_t tval = time(NULL);
     struct tm *loctime = localtime(&tval);
@@ -821,6 +946,21 @@ static track_seg_t* _get_new_segment(track_state_t *track_state)
     strftime(str, sizeof(str), "Track started %x %X", loctime);
     track->name = g_strdup(str);
   }
+  else {
+    while (track->next) {
+      track = track->next;
+    }
+  }
+
+  return track;
+}
+
+static track_seg_t* _get_new_segment(track_state_t *track_state)
+{
+  track_t *track;
+
+  track = _get_last_track(track_state);
+  g_return_val_if_fail(track, NULL);
 
   g_message("track: no active segment, starting new one");
     
@@ -836,24 +976,6 @@ static track_seg_t* _get_new_segment(track_state_t *track_state)
 
   return seg;
 }
-
-track_state_t *track_state_new()
-{
-  track_state_t *track_state;
-
-  track_state = g_new0(track_state_t, 1);
-  track_state->ref_count = 1;
-
-  track_state->bb_top_left.rlat = G_MAXFLOAT;
-  track_state->bb_top_left.rlon = G_MAXFLOAT;
-
-  track_state->bb_bottom_right.rlat = -G_MAXFLOAT;
-  track_state->bb_bottom_right.rlon = -G_MAXFLOAT;
-
-  track_state->metricAccuracy = G_MAXFLOAT;
-
-  return track_state;
- }
 
 void track_point_new(track_state_t *track_state,
                      float latitude, float longitude,
@@ -886,6 +1008,65 @@ void track_point_new(track_state_t *track_state,
 
   /* Updating bounding box. */
   track_state_update_bb0(track_state, &new_point);
+}
+
+void track_waypoint_new(track_state_t *track_state,
+                        float latitude, float longitude,
+                        const gchar *name, const gchar *comment,
+                        const gchar *description)
+{
+  way_point_t new_point;
+
+  /* get current track. */
+  g_return_if_fail(track_state);
+
+  track_point_reset(&new_point.pt);
+  new_point.pt.h_acc = G_MAXFLOAT;
+  new_point.pt.time = time(NULL);
+  new_point.pt.coord.rlat = deg2rad(latitude);
+  new_point.pt.coord.rlon = deg2rad(longitude);
+  new_point.name = g_strdup(name);
+  new_point.comment = g_strdup(comment);
+  new_point.description = g_strdup(description);
+
+  g_array_append_val(track_state->way_points, new_point);
+
+  track_state->dirty = TRUE;
+}
+gboolean track_waypoint_update(track_state_t *track_state,
+                               guint iwpt, way_point_field field, const gchar *value)
+{
+  way_point_t *wpt;
+
+  g_return_val_if_fail(track_state, FALSE);
+
+  if (iwpt >= track_state->way_points->len)
+    return FALSE;
+  track_state->dirty = TRUE;
+
+  wpt = &g_array_index(track_state->way_points, way_point_t, iwpt);
+  switch (field)
+    {
+    case WAY_POINT_NAME:
+      g_free(wpt->name);
+      wpt->name = g_strdup(value);
+      return TRUE;
+    case WAY_POINT_COMMENT:
+      g_free(wpt->comment);
+      wpt->comment = g_strdup(value);
+      return TRUE;
+    case WAY_POINT_DESCRIPTION:
+      g_free(wpt->description);
+      wpt->description = g_strdup(value);
+      return TRUE;
+    }
+  return TRUE;
+}
+const way_point_t* track_waypoint_get(track_state_t *track_state, guint iwpt)
+{
+  g_return_val_if_fail(track_state, NULL);
+
+  return (iwpt < track_state->way_points->len)?&g_array_index(track_state->way_points, way_point_t, iwpt):NULL;
 }
 
 /* Iterator on tracks. */
@@ -962,6 +1143,7 @@ int main(int argc, const char **argv)
 {
   track_state_t *track_state;
   track_iter_t iter;
+  const way_point_t *wpt;
   guint i;
   int st;
 
@@ -969,43 +1151,74 @@ int main(int argc, const char **argv)
   track_state = track_state_new();
   /* First segment. */
   for (i = 0; i < 10; i++)
-    track_point_new(track_state, 46. + (gfloat)i / 1000.f,
-                    6. + sin((gfloat)i) / 1000.,
-                    45.f / (gfloat)i, 200., NAN, NAN, NAN);
+    {
+      track_point_new(track_state, 46. + (gfloat)i / 1000.f,
+                      6. + sin((gfloat)i) / 1000.,
+                      45.f / (gfloat)(i + 1), 200., NAN, NAN, NAN);
+      g_array_index(track_state->current_seg->track_points, track_point_t, track_state->current_seg->track_points->len - 1).time += i;
+    }
   /* Second segment. */
   track_state->current_seg = NULL;
   for (i = 0; i < 15; i++)
-    track_point_new(track_state, 46. - (gfloat)i / 200.f,
-                    6. + cos((gfloat)i) / 1000.,
-                    45.f / (gfloat)i, 200., NAN, NAN, NAN);
+    {
+      track_point_new(track_state, 46. - (gfloat)i / 200.f,
+                      6. + cos((gfloat)i) / 1000.,
+                      45.f / (gfloat)(i + 1), 200., NAN, NAN, NAN);
+      g_array_index(track_state->current_seg->track_points, track_point_t, track_state->current_seg->track_points->len - 1).time += 3 * i;
+      if (i % 5 == 2)
+        track_waypoint_new(track_state, 46. - (gfloat)i / 200.f,
+                           6. + cos((gfloat)i) / 1000., "Great point", NULL, NULL);
+    }
 
   st = 0;
   track_iter_new(&iter, track_state);
   while (track_iter_next(&iter, &st))
     {
-      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
+      g_print("%g %g %d (%g) at %d\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc, (int)iter.cur->time);
     };
-
-  g_print("%g\n", track_state->metricLength);
+  g_print("%gm %ds\n", track_state->metricLength, track_duration(track_state));
 
   track_set_metric_accuracy(track_state, 14.);
   track_iter_new(&iter, track_state);
   while (track_iter_next(&iter, &st))
     {
-      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
+      g_print("%g %g %d (%g) at %d\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc, (int)iter.cur->time);
     };
-  g_print("%g\n", track_state->metricLength);
+  g_print("%gm %ds\n", track_state->metricLength, track_duration(track_state));
 
-  track_set_metric_accuracy(track_state, 3.3);
+  track_set_metric_accuracy(track_state, 3.1);
   track_iter_new(&iter, track_state);
   while (track_iter_next(&iter, &st))
     {
-      g_print("%g %g %d (%g)\n", rad2deg(iter.cur->coord.rlat),
-              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc);
+      g_print("%g %g %d (%g) at %d\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc, (int)iter.cur->time);
     };
-  g_print("%g\n", track_state->metricLength);
+  g_print("%gm %ds\n", track_state->metricLength, track_duration(track_state));
+  for (i = 0, wpt = track_waypoint_get(track_state, i); wpt;
+       wpt = track_waypoint_get(track_state, ++i))
+    g_print("%d '%s' at %g %g\n", i, wpt->name, wpt->pt.coord.rlat, wpt->pt.coord.rlon);
+
+  track_write(track_state, "test.gpx", NULL);
+
+  track_state_unref(track_state);
+
+  track_state = track_read("test.gpx", NULL);
+
+  st = 0;
+  track_iter_new(&iter, track_state);
+  while (track_iter_next(&iter, &st))
+    {
+      g_print("%g %g %d (%g) at %d\n", rad2deg(iter.cur->coord.rlat),
+              rad2deg(iter.cur->coord.rlon), st, iter.cur->h_acc, (int)iter.cur->time);
+    };
+  g_print("%gm %ds\n", track_state->metricLength, track_duration(track_state));
+  for (i = 0, wpt = track_waypoint_get(track_state, i); wpt;
+       wpt = track_waypoint_get(track_state, ++i))
+    g_print("%d '%s' at %g %g\n", i, wpt->name, wpt->pt.coord.rlat, wpt->pt.coord.rlon);
+
+  track_state_unref(track_state);
 
   return 0;
 }

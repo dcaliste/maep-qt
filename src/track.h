@@ -46,6 +46,11 @@ typedef struct track_point_s {
   /* struct track_point_s *next; */
 } track_point_t;
 
+typedef struct way_point_s {
+  track_point_t pt;
+  gchar *name, *comment, *description;
+} way_point_t;
+
 /* a segment is a series of points */
 typedef struct track_seg_s {
   GArray *track_points;
@@ -66,6 +71,8 @@ typedef struct {
 
   /* The currently edited segment, or NULL if not any. */
   track_seg_t *current_seg;
+
+  GArray *way_points;
 
   /* Timer for autosaving. */
   gchar *path;
@@ -104,8 +111,11 @@ enum {
   MAEP_TRACK_ERROR_EMPTY
 };
 
-track_seg_t* track_seg_new();
-void track_seg_free(track_seg_t *seg);
+typedef enum {
+  WAY_POINT_NAME,
+  WAY_POINT_COMMENT,
+  WAY_POINT_DESCRIPTION
+} way_point_field;
 
 track_state_t *track_state_new();
 
@@ -134,6 +144,14 @@ gboolean track_bounding_box(track_state_t *track_state,
 gfloat track_metric_length(track_state_t *track_state);
 guint track_duration(track_state_t *track_state);
 guint track_start_timestamp(track_state_t *track_state);
+
+void track_waypoint_new(track_state_t *track_state,
+                        float latitude, float longitude,
+                        const gchar *name, const gchar *comment,
+                        const gchar *description);
+gboolean track_waypoint_update(track_state_t *track_state,
+                               guint iwpt, way_point_field field, const gchar *value);
+const way_point_t* track_waypoint_get(track_state_t *track_state, guint iwpt);
 
 G_END_DECLS
 
