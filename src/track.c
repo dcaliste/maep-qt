@@ -479,7 +479,7 @@ void track_save_point(track_point_t *point, xmlNodePtr node) {
     xmlNewTextChild(node_point, NULL, BAD_CAST "ele", BAD_CAST str);
   }
 
-  if(!isnan(point->hr) || !isnan(point->cad)) {
+  if(!isnan(point->hr) || !isnan(point->cad) || point->h_acc != G_MAXFLOAT) {
     xmlNodePtr ext = 
       xmlNewChild(node_point, NULL, BAD_CAST "extensions", NULL);
 
@@ -489,19 +489,21 @@ void track_save_point(track_point_t *point, xmlNodePtr node) {
       g_free(lstr);
     }
 
-    xmlNodePtr tpext = 
-      xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
+    if (!isnan(point->hr) || !isnan(point->cad)) {
+      xmlNodePtr tpext = 
+        xmlNewChild(ext, NULL, BAD_CAST "gpxtpx:TrackPointExtension", NULL);
 
-    if(!isnan(point->hr)) {
-      char *lstr = g_strdup_printf("%u", (unsigned)point->hr);
-      xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST lstr);
-      g_free(lstr);
-    }
+      if(!isnan(point->hr)) {
+        char *lstr = g_strdup_printf("%u", (unsigned)point->hr);
+        xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:hr", BAD_CAST lstr);
+        g_free(lstr);
+      }
 
-    if(!isnan(point->cad)) {
-      char *lstr = g_strdup_printf("%u", (unsigned)point->cad);
-      xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:cad", BAD_CAST lstr);
-      g_free(lstr);
+      if(!isnan(point->cad)) {
+        char *lstr = g_strdup_printf("%u", (unsigned)point->cad);
+        xmlNewTextChild(tpext, NULL, BAD_CAST "gpxtpx:cad", BAD_CAST lstr);
+        g_free(lstr);
+      }
     }
   }
 
