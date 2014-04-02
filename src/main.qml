@@ -121,6 +121,9 @@ ApplicationWindow
                     drawer_background.sourceComponent = undefined
                 }
             }
+            function searchText(text) {
+                header.searchText = text
+            }
             z: -1
             anchors.top: header.bottom
             width: page.width
@@ -143,8 +146,7 @@ ApplicationWindow
                   width: page.width
                   height: page.height - header.height*/
 	        anchors.fill: parent
-                onSearchRequest: { header.searchFocus = true
-                                   header.searchLabel = "Place search" }
+                onSearchRequest: { header.searchFocus = true }
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: {
@@ -167,6 +169,13 @@ ApplicationWindow
                     track.autosavePeriod = track_autosave_rate
                     track.metricAccuracy = track_metric_accuracy
                 }
+            }
+            OpacityRampEffect {
+                enabled: map_controls.visible
+                offset: 1. - Theme.itemSizeMedium / map.height
+                slope: map.height / Theme.itemSizeMedium
+                direction: 2
+                sourceItem: map
             }
 	    Row {
                 id: map_controls
@@ -202,66 +211,19 @@ ApplicationWindow
 		    onClicked: { map.auto_center = !map.auto_center }
                 }
 	    }
-            OpacityRampEffect {
-                enabled: map_controls.visible
-                offset: 1. - Theme.itemSizeMedium / map.height
-                slope: map.height / Theme.itemSizeMedium
-                direction: 2
-                sourceItem: map
-            }
 	}
 
         Component {
             id: placelist
-            SilicaListView {
-                id: placeview
+            PlaceView {
                 anchors.fill: parent
-
+                currentPlace: map.coordinate
                 model: map.search_results
-
-                delegate: ListItem {
-		    
-		    contentHeight: Theme.itemSizeSmall
-                    Image {
-                        id: img_go
-                        source: "image://theme/icon-m-right"
-                        anchors.right: parent.right
-                        anchors.leftMargin: Theme.paddingSmall
-                        anchors.rightMargin: Theme.paddingSmall
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-		    Label {
-                        text: model.name
-		        font.pixelSize: Theme.fontSizeSmall
-                        truncationMode: TruncationMode.Fade
-                        anchors.leftMargin: Theme.paddingSmall
-                        anchors.left: parent.left
-                        anchors.right: img_go.left
-                        anchors.top: parent.top
-                        anchors.topMargin: Theme.paddingMedium
-		        color: highlighted ? Theme.highlightColor : Theme.primaryColor
-		    }
-		    Label {
-                        text: model.country
-		        font.pixelSize: Theme.fontSizeExtraSmall
-                        anchors.leftMargin: Theme.paddingLarge
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-		        color: highlighted ? Theme.highlightColor : Theme.secondaryColor
-		    }
-		    Label {
-		        property real dist: map.coordinate.distanceTo(model.coordinate)
-		        font.pixelSize: Theme.fontSizeExtraSmall
-		        text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
-		        color: Theme.secondaryColor
-		        anchors.right: img_go.left
-		        anchors.bottom: parent.bottom
-		    }
-	            onClicked: { header.searchText = model.name
-	    		         drawer.open = false
-			         map.setLookAt(model.coordinate.latitude, model.coordinate.longitude) }
+                onSelection: {
+                    drawer.open = false
+                    map.setLookAt(lat, lon)
+                    drawer.searchText(place)
                 }
-	        VerticalScrollDecorator { flickable: placeview }
             }
         }
 

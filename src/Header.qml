@@ -21,7 +21,6 @@ import Sailfish.Silica 1.0
 SilicaFlickable {
     id: root
     property alias searchFocus: search.focus
-    property alias searchLabel: search.label
     property alias searchText: search.text
     property bool resultVisible: false
     signal searchRequest(string text)
@@ -42,7 +41,6 @@ SilicaFlickable {
         TextField {
             id: search
             width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
-            height: parent.height
             placeholderText: "Enter a place name"
 	    label: "Place search"
 	    anchors.verticalCenter: parent.verticalCenter
