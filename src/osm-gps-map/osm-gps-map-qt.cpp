@@ -804,6 +804,8 @@ void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
   if (rate == 0 && gps)
     {
       gps->stopUpdates();
+      lastGps = QGeoPositionInfo();
+      emit gpsCoordinateChanged();
       osm_gps_map_clear_gps(map);
     }
   else if (gps)

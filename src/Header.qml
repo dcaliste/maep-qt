@@ -36,6 +36,7 @@ SilicaFlickable {
     contentHeight: childrenRect.height
 
     Item {
+        visible: !map.track
         width: parent.width
         height: Theme.itemSizeMedium
         TextField {
@@ -79,5 +80,12 @@ SilicaFlickable {
             title: "Mæp"
             anchors.right: parent.right
         }
+    }
+    TrackHeader {
+        track: map.track
+        visible: track
+        width: parent.width
+        //height: Theme.itemSizeMedium
+        //anchors.bottom: parent.bottom
     }
 }

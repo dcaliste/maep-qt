@@ -25,71 +25,14 @@ SilicaFlickable {
     id: trackitem
     contentHeight: track ? trackdata.height : trackholder.height
     
-    RemorsePopup { id: remorse }
-
-    Formatter { id: formatter }
-
     Column {
         id: trackdata
         visible: track
-        width: parent.width
+        width: parent.width - 2 * Theme.paddingSmall
         spacing: Theme.paddingSmall
-        Row {
-            width: parent.width - 2 * Theme.paddingMedium
-            height: track_title.height
-            spacing: Theme.paddingSmall
-            anchors.horizontalCenter: parent.horizontalCenter
-            IconButton {
-                id: track_clear
-                anchors.verticalCenter: track_title.verticalCenter
-		icon.source: "image://theme/icon-m-remove"
-		onClicked: remorse.execute("Clear current track", map.setTrack)
-            }
-            Column {
-                id: track_title
-                width: parent.width - track_save.width - track_clear.width
-                Label {
-	            function basename(url) {
-                        return url.substring(url.lastIndexOf("/") + 1)
-                    }
-                    color: Theme.highlightColor
-                    font.pixelSize: Theme.fontSizeMedium
-                    text: (track)?(track.path.length > 0)?basename(track.path):"unsaved track":""
-                    truncationMode: TruncationMode.Fade
-                    width: parent.width
-                }
-                Label {
-	            function dirname(url) {
-                        return url.substring(0, url.lastIndexOf("/"))
-                    }
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    text: (track) ? (track.path.length > 0) ? "in " + dirname(track.path):"save with the icon beside":""
-                    horizontalAlignment: Text.AlignRight
-                    truncationMode: TruncationMode.Fade
-                    width: parent.width - Theme.paddingMedium
-                    anchors.right: parent.right
-                }
-                Label {
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    text: (track) ? "acquision: " + formatter.formatDate(new Date(track.startDate * 1000), Formatter.TimepointRelative):""
-                    horizontalAlignment: Text.AlignRight
-                    truncationMode: TruncationMode.Fade
-                    width: parent.width - Theme.paddingMedium
-                    anchors.right: parent.right
-                }
-            }
-            IconButton {
-                id: track_save
-                anchors.verticalCenter: track_title.verticalCenter
-		icon.source: (track && track.path.length > 0) ? "image://theme/icon-m-sync" : "image://theme/icon-m-device-upload"
-		onClicked: if (track && track.path.length == 0) {
-                    pageStack.push(tracksave, { track: track })
-                } else {
-                    track.toFile(track.path)
-                }
-            }
+        TrackHeader {
+            track: trackitem.track
+            width: parent.width
         }
         Row {
             spacing: Theme.paddingMedium
@@ -121,22 +64,6 @@ SilicaFlickable {
 		text: if (track) { (track.length >= 1000) ? (track.length / 1000).toFixed(1) + " km (" + duration(track.duration) + ")" : track.length.toFixed(0) + " m (" + duration(track.duration) + ")"} else ""
             }
         }
-        /*Row {
-          spacing: Theme.paddingMedium
-          Label {
-          width: trackitem.width / 2
-          horizontalAlignment: Text.AlignRight
-          font.pixelSize: Theme.fontSizeSmall
-          text: "duration"
-          }
-          Label {
-          width: trackitem.width / 2
-          horizontalAlignment: Text.AlignLeft
-          font.pixelSize: Theme.fontSizeSmall
-          color: Theme.highlightColor
-          text: if (track) { duration(track.duration) } else ""
-          }
-          }*/
         Row {
             spacing: Theme.paddingMedium
             Label {
