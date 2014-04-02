@@ -1197,7 +1197,7 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
     const way_point_t *wpt;
     int x,y, map_x0, map_y0, st;
     guint i;
-    double s = 20.;
+    double s = 10.;
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
@@ -1235,11 +1235,11 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
             y = lat2pixel(priv->map_zoom, wpt->pt.coord.rlat) - map_y0;
 
             cairo_move_to (priv->cr, x, y);
-            cairo_curve_to (priv->cr, x, y - s, x - s, y - s, x - s, y - 2 * s);
-            cairo_arc_negative (priv->cr, x, y - 2 * s, s, M_PI, 0.);
-            cairo_curve_to (priv->cr, x + s, y - s, x, y - s, x, y);
+            cairo_curve_to (priv->cr, x, y - 2. * s, x - s, y - 2. * s, x - s, y - 3. * s);
+            cairo_arc (priv->cr, x, y - 3. * s, s, M_PI, 0.);
+            cairo_curve_to (priv->cr, x + s, y - 2. * s, x, y - 2. * s, x, y);
             cairo_new_sub_path (priv->cr);
-            cairo_arc (priv->cr, x, y - 2 * s, s / 2, 0, 2 * M_PI);
+            cairo_arc (priv->cr, x, y - 3. * s, s / 2, 0, 2 * M_PI);
             cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
             cairo_fill_preserve (priv->cr);
             cairo_set_source_rgba (priv->cr, 0.0, 0.0, 0.0, 0.6);

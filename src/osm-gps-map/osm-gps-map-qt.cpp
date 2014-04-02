@@ -767,7 +767,7 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
     track = OSM_GPS_MAP_INVALID;
   g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
             info.coordinate().longitude(), track,
-            info.attribute(QGeoPositionInfo::HorizontalAccuracy);
+            info.attribute(QGeoPositionInfo::HorizontalAccuracy));
 
   lastGps = info;
   emit gpsCoordinateChanged();
