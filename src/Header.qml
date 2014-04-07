@@ -20,7 +20,15 @@ import Sailfish.Silica 1.0
 
 SilicaFlickable {
     id: root
+    property int action: 0
+    function nextAction() {
+        action = (action + 1) % 2
+    }
+    function prevAction() {
+        action = (action - 1) % 2
+    }
     property alias searchFocus: search.focus
+    property alias trackFocus: track_details.wptFocus
     property alias searchText: search.text
     property bool resultVisible: false
     signal searchRequest(string text)
@@ -32,60 +40,97 @@ SilicaFlickable {
     signal showResults(bool status)
     
     // Tell SilicaFlickable the height of its content.
-    height: Theme.itemSizeMedium //childrenRect.height
-    contentHeight: childrenRect.height
+    height: Math.min(content.height, 3 * Theme.itemSizeSmall + Theme.itemSizeMedium)
+    contentHeight: content.height
 
-    Item {
-        visible: !map.track
+    Column {
+        id: content
         width: parent.width
-        height: Theme.itemSizeMedium
-        TextField {
-            id: search
-            width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
-            placeholderText: "Enter a place name"
-	    label: "Place search"
-	    anchors.verticalCenter: parent.verticalCenter
-	    EnterKey.text: "search"
-	    EnterKey.onClicked: {
-                search_icon.visible = false
-                busy.visible = true
-                label = "Searching…"
-                root.searchRequest(text)
-	    }
-	    onFocusChanged: { if (focus) { selectAll() } }
-        }
         Item {
-            anchors.right: maep.left
-            height: parent.height
-            width: search_icon.width
-	    BusyIndicator {
-	   	id: busy
-                visible: false
-                running: visible
-                size: BusyIndicatorSize.Small
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.horizontalCenter: parent.horizontalCenter
+            id: action0
+            visible: action == 0
+            width: parent.width
+            height: Theme.itemSizeMedium
+            TextField {
+                id: search
+                width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
+                placeholderText: "Enter a place name"
+	        label: "Place search"
+	        anchors.verticalCenter: parent.verticalCenter
+	        EnterKey.text: "search"
+	        EnterKey.onClicked: {
+                    search_icon.visible = false
+                    busy.visible = true
+                    label = "Searching…"
+                    root.searchRequest(text)
+	        }
+	        onFocusChanged: { if (focus) { selectAll() } }
             }
-            IconButton {
-                id: search_icon
-                icon.source: root.resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                visible: false
-                onClicked: root.showResults(root.resultVisible)
-                anchors.verticalCenter: parent.verticalCenter
+            Item {
+                anchors.right: maep.left
+                height: parent.height
+                width: search_icon.width
+	        BusyIndicator {
+	   	    id: busy
+                    visible: false
+                    running: visible
+                    size: BusyIndicatorSize.Small
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                IconButton {
+                    id: search_icon
+                    icon.source: root.resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+                    visible: false
+                    onClicked: root.showResults(root.resultVisible)
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+            PageHeader {
+                id: maep
+                width: 130
+                title: "Mæp"
+                anchors.right: parent.right
             }
         }
-        PageHeader {
-            id: maep
-            width: 130
-            title: "Mæp"
-            anchors.right: parent.right
+        Column {
+            id: action1
+            visible: action == 1
+            width: parent.width
+            spacing: Theme.paddingSmall
+            TrackHeader {
+                track: map.track
+                detailVisible: track_details.visible
+                width: parent.width
+                onClicked: track_details.visible = !track_details.visible
+            }
+            TrackView {
+                id: track_details
+                width: parent.width
+                visible: false
+                track: map.track
+                tracking: map.track_capture
+            }
         }
     }
-    TrackHeader {
-        track: map.track
-        visible: track
-        width: parent.width
-        //height: Theme.itemSizeMedium
-        //anchors.bottom: parent.bottom
-    }
+
+/*    PushUpMenu {
+        visible: action == 1 && track_details.visible
+        MenuItem {
+            text: "Upload track to OSM"
+            enabled: false
+            //onClicked: pageStack.push(tracksave, { track: map.track })
+        }
+        MenuItem {
+            text: "Import track"
+            onClicked: page.importTrack()
+        }
+        MenuItem {
+            text: "Export track"
+            onClicked: pageStack.push(tracksave, { track: map.track })
+        }
+	onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
+    }*/
+
+    VerticalScrollDecorator { flickable: root; visible: root.contentHeight > root.height }
 }

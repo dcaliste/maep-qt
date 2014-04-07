@@ -19,136 +19,82 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Maep 1.0
 
-SilicaFlickable {
+Column {
     property Track track: null
+    property bool tracking: false
+    property alias wptFocus: wpt_desc.focus
 
-    id: trackitem
-    contentHeight: track ? trackdata.height : trackholder.height
-    
-    Column {
-        id: trackdata
-        visible: track
-        width: parent.width - 2 * Theme.paddingSmall
-        spacing: Theme.paddingSmall
-        TrackHeader {
-            track: trackitem.track
-            width: parent.width
+    id: trackdata
+    visible: track
+    width: parent.width - 2 * Theme.paddingSmall
+    spacing: Theme.paddingSmall
+    Row {
+        spacing: Theme.paddingMedium
+        Label {
+            width: trackdata.width / 2
+            horizontalAlignment: Text.AlignRight
+            font.pixelSize: Theme.fontSizeSmall
+            text: "length (duration)"
         }
-        Row {
-            spacing: Theme.paddingMedium
-            Label {
-                width: trackitem.width / 2
-                horizontalAlignment: Text.AlignRight
-                font.pixelSize: Theme.fontSizeSmall
-                text: "length (duration)"
-            }
-            Label {
-                function duration(time) {
-                    if (time < 60) {
-                        return time + " s"
-                    } else if (time < 3600) {
-                        var m = Math.floor(time / 60)
-                        var s = time - m * 60
-                        return  m + " m " + s + " s"
-                    } else {
-                        var h = Math.floor(time / 3600)
-                        var m = Math.floor((time - h * 3600) / 60)
-                        var s = time - h * 3600 - m * 60
-                        return h + " h " + m + " m " + s + " s"
-                    }
+        Label {
+            function duration(time) {
+                if (time < 60) {
+                    return time + " s"
+                } else if (time < 3600) {
+                    var m = Math.floor(time / 60)
+                    var s = time - m * 60
+                    return  m + " m " + s + " s"
+                } else {
+                    var h = Math.floor(time / 3600)
+                    var m = Math.floor((time - h * 3600) / 60)
+                    var s = time - h * 3600 - m * 60
+                    return h + " h " + m + " m " + s + " s"
                 }
-                width: trackitem.width / 2
-                horizontalAlignment: Text.AlignLeft
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.highlightColor
-		text: if (track) { (track.length >= 1000) ? (track.length / 1000).toFixed(1) + " km (" + duration(track.duration) + ")" : track.length.toFixed(0) + " m (" + duration(track.duration) + ")"} else ""
             }
-        }
-        Row {
-            spacing: Theme.paddingMedium
-            Label {
-                width: trackitem.width / 2
-                horizontalAlignment: Text.AlignRight
-                font.pixelSize: Theme.fontSizeSmall
-                text: "average speed"
-            }
-            Label {
-                width: trackitem.width / 2
-                horizontalAlignment: Text.AlignLeft
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.highlightColor
-                text: track && track.duration > 0 ? (track.length / track.duration * 3.6).toFixed(2) + " km/h":"not available"
-            }
-        }
-    }
-    Column {
-        id: trackholder
-        visible: !track
-        width: parent.width - 2 * Theme.paddingMedium
-	Label {
-            anchors.right: parent.right
-            text: "No track"
+            width: trackdata.width / 2
+            horizontalAlignment: Text.AlignLeft
+            font.pixelSize: Theme.fontSizeSmall
             color: Theme.highlightColor
-            font.pixelSize: Theme.fontSizeLarge
-        }
-        BackgroundItem {
-            id: item_gps
-	    contentHeight: Theme.itemSizeSmall
-            enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-            opacity: enabled ? 1.0 : 0.4
-            Row {
-                anchors.fill: parent
-                spacing: Theme.paddingMedium
-                Image {
-                    anchors.verticalCenter: parent.verticalCenter
-                    source: "image://theme/icon-m-gps"
-                }
-		Label {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "capture GPS position"
-		    color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
-		}
-            }
-            onClicked: map.track_capture = true
-        }
-        BackgroundItem {
-            id: item_file
-	    contentHeight: Theme.itemSizeSmall
-            opacity: enabled ? 1.0 : 0.4
-            Row {
-                anchors.fill: parent
-                spacing: Theme.paddingMedium
-                Image {
-                    anchors.verticalCenter: parent.verticalCenter
-                    source: "image://theme/icon-m-device-download"
-                }
-                Label {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "import a local file"
-		    color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
-                }
-            }
-            onClicked: page.importTrack()
-        }
-        BackgroundItem {
-            id: item_osm
-	    contentHeight: Theme.itemSizeSmall
-            enabled: false
-            opacity: enabled ? 1.0 : 0.4
-            Row {
-                anchors.fill: parent
-                spacing: Theme.paddingMedium
-                Image {
-                    anchors.verticalCenter: parent.verticalCenter
-                    source: "image://theme/icon-m-cloud-download"
-                }
-                Label {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "import from OSM"
-		    color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
-                }
-            }
+	    text: if (track) { (track.length >= 1000) ? (track.length / 1000).toFixed(1) + " km (" + duration(track.duration) + ")" : track.length.toFixed(0) + " m (" + duration(track.duration) + ")"} else ""
         }
     }
-    VerticalScrollDecorator { flickable: trackitem }
+    Row {
+        spacing: Theme.paddingMedium
+        Label {
+            width: trackdata.width / 2
+            horizontalAlignment: Text.AlignRight
+            font.pixelSize: Theme.fontSizeSmall
+            text: "average speed"
+        }
+        Label {
+            width: trackdata.width / 2
+            horizontalAlignment: Text.AlignLeft
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.highlightColor
+            text: track && track.duration > 0 ? (track.length / track.duration * 3.6).toFixed(2) + " km/h":"not available"
+        }
+    }
+    Row {
+        enabled: tracking
+        opacity: enabled ? 1.0 : 0.4
+        spacing: Theme.paddingSmall
+        width: parent.width
+        IconButton {
+            id: wpt_prev
+            anchors.verticalCenter: wpt_desc.verticalCenter
+	    icon.source: "image://theme/icon-m-previous"
+        }
+        TextField {
+            id: wpt_desc
+            width: parent.width - wpt_prev.width - wpt_next.width - 2 * parent.spacing
+            height: Theme.itemSizeMedium
+            placeholderText: "new waypoint description"
+            label: "track has xx way points"
+        }
+        IconButton {
+            id: wpt_next
+            anchors.verticalCenter: wpt_desc.verticalCenter
+	    icon.source: "image://theme/icon-m-add"
+        }
+    }    
 }

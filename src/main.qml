@@ -89,53 +89,40 @@ ApplicationWindow
                     onClicked: {trackcheck.checked = !trackcheck.checked}
                 }
                 MenuItem {
-                    text: drawer_background.sourceComponent == trackview && drawer.open ? "Close track management" : "Track management"
-                    onClicked: drawer_background.sourceComponent == trackview && drawer.open ? drawer.disable(trackview) : drawer.enable(trackview)
+                    text: "Next action"
+                    onClicked: header.nextAction()
                 }
 	        onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
             }
 
-            resultVisible: drawer.open && drawer_background.sourceComponent == placelist
-            onSearchFocusChanged: { drawer.disable(trackview) }
+            resultVisible: drawer.open
             onSearchRequest: {
-                drawer.remove(placelist)
+                drawer.open = false
+                placeview.model = null
                 map.focus = true
                 map.setSearchRequest(text)
             }
-            onShowResults: {status ? drawer.disable(placelist):drawer.enable(placelist)}
+            onShowResults: drawer.open = status
         }
         Drawer {
  	    id: drawer
-            function enable(child) {
-                drawer_background.sourceComponent = child
-                drawer.open = true
-            }
-            function disable(child) {
-                if (drawer_background.sourceComponent == child) {
-                    drawer.open = false
-                }
-            }
-            function remove(child) {
-                if (drawer_background.sourceComponent == child) {
-                    drawer.open = false
-                    drawer_background.sourceComponent = undefined
-                }
-            }
-            function searchText(text) {
-                header.searchText = text
-            }
             z: -1
             anchors.top: header.bottom
             width: page.width
             height: page.height - header.height
 
-            dock: page.isPortrait ? drawer_background.sourceComponent == trackview ? Dock.Bottom : Dock.Top : Dock.Left
-            backgroundSize: dock == Dock.Left ? width / 3 : drawer_background.sourceComponent == trackview ? height / 3 : height / 2
+            dock: page.isPortrait ? Dock.Top : Dock.Left
 
-            background: Loader {
-                id: drawer_background
+            background: PlaceView {
+                id: placeview
                 anchors.fill: parent
+                currentPlace: map.coordinate
+                onSelection: {
+                    drawer.open = false
+                    map.setLookAt(lat, lon)
+                    header.searchText = text
                 }
+            }
 
             GpsMap {
                 id: map
@@ -151,7 +138,8 @@ ApplicationWindow
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: {
                     header.searchResults(search_results)
-		    if (search_results.length > 0) { drawer.enable(placelist) }
+		    if (search_results.length > 0) { placeview.model = search_results
+                                                     drawer.open = true }
 		}
 	        Behavior on opacity {
                     FadeAnimation {}
@@ -184,7 +172,7 @@ ApplicationWindow
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
-                visible: !header.searchFocus && (drawer_background.sourceComponent == trackview || !drawer.open)
+                visible: !header.searchFocus && !header.trackFocus && !drawer.open
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"
@@ -212,46 +200,6 @@ ApplicationWindow
                 }
 	    }
 	}
-
-        Component {
-            id: placelist
-            PlaceView {
-                anchors.fill: parent
-                currentPlace: map.coordinate
-                model: map.search_results
-                onSelection: {
-                    drawer.open = false
-                    map.setLookAt(lat, lon)
-                    drawer.searchText(place)
-                }
-            }
-        }
-
-        Component {
-            id: trackview
-            TrackView {
-                anchors.fill: parent
-                track: map.track
-
-                PushUpMenu {
-                    visible: map.track
-                    MenuItem {
-                        text: "Upload track to OSM"
-                        enabled: false
-                        //onClicked: pageStack.push(tracksave, { track: map.track })
-                    }
-                    MenuItem {
-                        text: "Import track"
-                        onClicked: page.importTrack()
-                    }
-                    MenuItem {
-                        text: "Export track"
-                        onClicked: pageStack.push(tracksave, { track: map.track })
-                    }
-	            onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
-                }
-            }
-        }
     }
 
     CoverBackground {
