@@ -149,9 +149,12 @@ void track_waypoint_new(track_state_t *track_state,
                         float latitude, float longitude,
                         const gchar *name, const gchar *comment,
                         const gchar *description);
-gboolean track_waypoint_update(track_state_t *track_state,
-                               guint iwpt, way_point_field field, const gchar *value);
-const way_point_t* track_waypoint_get(track_state_t *track_state, guint iwpt);
+gboolean track_waypoint_set_field(track_state_t *track_state,
+                                  guint iwpt, way_point_field field, const gchar *value);
+const gchar* track_waypoint_get_field(const track_state_t *track_state,
+                                      guint iwpt, way_point_field field);
+const way_point_t* track_waypoint_get(const track_state_t *track_state, guint iwpt);
+guint track_waypoint_length(const track_state_t *track_state);
 
 G_END_DECLS
 

@@ -146,6 +146,15 @@ bool Maep::Track::setMetricAccuracy(qreal value)
 
   return ret;
 }
+void Maep::Track::addWayPoint(const QGeoCoordinate &coord, const QString &name,
+                              const QString &comment, const QString &description)
+{
+  track_waypoint_new(track, coord.latitude(), coord.longitude(),
+                     name.toLocal8Bit().data(),
+                     comment.toLocal8Bit().data(),
+                     description.toLocal8Bit().data());
+}
+
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);

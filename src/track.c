@@ -629,11 +629,11 @@ static void track_save_waypoints(GArray *array, xmlNodePtr node) {
     xmlNodePtr trk_node = xmlNewChild(node, NULL, BAD_CAST "wpt", NULL);
     wpt = &g_array_index(array, way_point_t, i);
     track_save_point(&wpt->pt, trk_node);
-    if(wpt->name) 
+    if(wpt->name && wpt->name[0]) 
       xmlNewTextChild(trk_node, NULL, BAD_CAST "name", BAD_CAST wpt->name);
-    if(wpt->comment) 
+    if(wpt->comment && wpt->comment[0]) 
       xmlNewTextChild(trk_node, NULL, BAD_CAST "cmt", BAD_CAST wpt->comment);
-    if(wpt->description) 
+    if(wpt->description && wpt->description[0]) 
       xmlNewTextChild(trk_node, NULL, BAD_CAST "desc", BAD_CAST wpt->description);
   }
 }
@@ -1033,8 +1033,9 @@ void track_waypoint_new(track_state_t *track_state,
 
   track_state->dirty = TRUE;
 }
-gboolean track_waypoint_update(track_state_t *track_state,
-                               guint iwpt, way_point_field field, const gchar *value)
+gboolean track_waypoint_set_field(track_state_t *track_state,
+                                  guint iwpt, way_point_field field,
+                                  const gchar *value)
 {
   way_point_t *wpt;
 
@@ -1062,11 +1063,39 @@ gboolean track_waypoint_update(track_state_t *track_state,
     }
   return TRUE;
 }
-const way_point_t* track_waypoint_get(track_state_t *track_state, guint iwpt)
+const gchar* track_waypoint_get_field(const track_state_t *track_state,
+                                      guint iwpt, way_point_field field)
+{
+  way_point_t *wpt;
+
+  g_return_val_if_fail(track_state, NULL);
+
+  if (iwpt >= track_state->way_points->len)
+    return NULL;
+
+  wpt = &g_array_index(track_state->way_points, way_point_t, iwpt);
+  switch (field)
+    {
+    case WAY_POINT_NAME:
+      return wpt->name;
+    case WAY_POINT_COMMENT:
+      return wpt->comment;
+    case WAY_POINT_DESCRIPTION:
+      return wpt->description;
+    }
+  return NULL;
+}
+const way_point_t* track_waypoint_get(const track_state_t *track_state, guint iwpt)
 {
   g_return_val_if_fail(track_state, NULL);
 
   return (iwpt < track_state->way_points->len)?&g_array_index(track_state->way_points, way_point_t, iwpt):NULL;
+}
+guint track_waypoint_length(const track_state_t *track_state)
+{
+  g_return_val_if_fail(track_state, 0);
+
+  return track_state->way_points->len;
 }
 
 /* Iterator on tracks. */

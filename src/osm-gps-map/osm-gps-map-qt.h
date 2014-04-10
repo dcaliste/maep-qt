@@ -180,6 +180,9 @@ private:
 class Track: public QObject
 {
   Q_OBJECT
+
+  Q_ENUMS(WayPointField)
+
   Q_PROPERTY(unsigned int autosavePeriod READ getAutosavePeriod WRITE setAutosavePeriod NOTIFY autosavePeriodChanged)
   Q_PROPERTY(qreal metricAccuracy READ getMetricAccuracy WRITE setMetricAccuracy NOTIFY metricAccuracyChanged)
   Q_PROPERTY(QString path READ getPath NOTIFY pathChanged)
@@ -188,6 +191,12 @@ class Track: public QObject
   Q_PROPERTY(unsigned int duration READ getDuration NOTIFY characteristicsChanged)
 
 public:
+  enum WayPointField {
+    FIELD_NAME,
+    FIELD_COMMENT,
+    FIELD_DESCRIPTION
+  };
+
   Q_INVOKABLE inline Track(track_state_t *track = NULL,
                QObject *parent = NULL) : QObject(parent)
   {
@@ -228,6 +237,18 @@ public:
   inline unsigned int getStartDate() {
     return (unsigned int)track_start_timestamp(track);
   }
+  Q_INVOKABLE inline unsigned int getWayPointLength() {
+    return track_waypoint_length(track);
+  }
+  Q_INVOKABLE inline QString getWayPoint(int index, WayPointField field) {
+    return QString(track_waypoint_get_field(track, (guint)index,
+                                            (way_point_field)field));
+  }
+  Q_INVOKABLE inline void setWayPoint(int index, WayPointField field,
+                                      const QString &value) {
+    track_waypoint_set_field(track, (guint)index, (way_point_field)field,
+                             value.toLocal8Bit().data());
+  }
 
 signals:
   void fileError(const QString &errorMsg);
@@ -242,6 +263,8 @@ public slots:
   bool set(const QString &filename);
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
+  void addWayPoint(const QGeoCoordinate &coord, const QString &name,
+                   const QString &comment, const QString &description);
   void finalizeSegment();
   bool setAutosavePeriod(unsigned int value);
   bool setMetricAccuracy(qreal value);
