@@ -24,6 +24,22 @@ Column {
     property bool tracking: false
     property alias wptFocus: wpt_desc.focus
 
+    ListModel {
+        id: waypoints
+        function refresh(track) {
+            waypoints.clear();
+            for (var i = 0; i < track.getWayPointLength(); i++) {
+                var wpt = Object();
+                wpt.index = i
+                wpt.name = track.getWayPoint(i, Track.FIELD_NAME);
+                wpt.comment = track.getWayPoint(i, Track.FIELD_COMMENT);
+                wpt.description = track.getWayPoint(i, Track.FIELD_DESCRIPTION);
+                waypoints.append(wpt);
+            }
+        }
+    }
+    onTrackChanged: waypoints.refresh(track)
+
     id: trackdata
     visible: track
     width: parent.width - 2 * Theme.paddingSmall
@@ -74,7 +90,24 @@ Column {
             text: track && track.duration > 0 ? (track.length / track.duration * 3.6).toFixed(2) + " km/h":"not available"
         }
     }
-    Row {
+    SlideshowView {
+        id: wptview
+        enabled: tracking
+        opacity: enabled ? 1.0 : 0.4
+        width: parent.width
+        height: Theme.itemSizeMedium
+        itemWidth: width - 2 * Theme.paddingLarge
+        model: waypoints
+
+        delegate: TextField {
+            width: wptview.itemWidth
+            placeholderText: "new waypoint description"
+            label: "track has xx way points"
+            text: model.name
+        }
+
+    }
+/*    Row {
         enabled: tracking
         opacity: enabled ? 1.0 : 0.4
         spacing: Theme.paddingSmall
@@ -96,5 +129,5 @@ Column {
             anchors.verticalCenter: wpt_desc.verticalCenter
 	    icon.source: "image://theme/icon-m-add"
         }
-    }    
+    }    */
 }
