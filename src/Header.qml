@@ -97,19 +97,18 @@ SilicaFlickable {
             id: action1
             visible: action == 1
             width: parent.width
-            spacing: Theme.paddingSmall
             TrackHeader {
-                track: map.track
-                detailVisible: track_details.visible
-                width: parent.width
-                onClicked: track_details.visible = !track_details.visible
+                id: trackHolder
+                visible: !map.track
+                width: parent.width - 2 * Theme.paddingMedium
             }
             TrackView {
                 id: track_details
                 width: parent.width
-                visible: false
+                visible: track
                 track: map.track
                 tracking: map.track_capture
+                currentPlace: map.coordinate
             }
         }
     }

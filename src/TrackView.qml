@@ -20,14 +20,19 @@ import Sailfish.Silica 1.0
 import Maep 1.0
 
 Column {
+    id: root
+
     property Track track: null
+    property variant currentPlace
     property bool tracking: false
-    property alias wptFocus: wpt_desc.focus
+    property bool wptFocus: false
+    property bool detailVisible: false
 
     ListModel {
         id: waypoints
-        function refresh(track) {
+        function refresh(track, edit) {
             waypoints.clear();
+            if (!track) { return }
             for (var i = 0; i < track.getWayPointLength(); i++) {
                 var wpt = Object();
                 wpt.index = i
@@ -36,98 +41,172 @@ Column {
                 wpt.description = track.getWayPoint(i, Track.FIELD_DESCRIPTION);
                 waypoints.append(wpt);
             }
+            if (edit) { editable(true) }
+        }
+        function editable(value) {
+            // If true, append an empty wpt to the model.
+            if (value) {
+                var wpt = Object();
+                wpt.index = waypoints.count
+                wpt.name = ""
+                wpt.comment = ""
+                wpt.description = ""
+                waypoints.append(wpt);
+            } else {
+                waypoints.remove(waypoints.count - 1)
+            }
         }
     }
-    onTrackChanged: waypoints.refresh(track)
+    onTrackChanged: waypoints.refresh(track, tracking)
+    onTrackingChanged: waypoints.editable(tracking)
 
-    id: trackdata
-    visible: track
     width: parent.width - 2 * Theme.paddingSmall
     spacing: Theme.paddingSmall
-    Row {
-        spacing: Theme.paddingMedium
-        Label {
-            width: trackdata.width / 2
-            horizontalAlignment: Text.AlignRight
-            font.pixelSize: Theme.fontSizeSmall
-            text: "length (duration)"
+
+    move: Transition {
+        NumberAnimation {
+            properties: "y"
+            //easing.type: Easing.OutBounce
         }
-        Label {
-            function duration(time) {
-                if (time < 60) {
-                    return time + " s"
-                } else if (time < 3600) {
-                    var m = Math.floor(time / 60)
-                    var s = time - m * 60
-                    return  m + " m " + s + " s"
-                } else {
-                    var h = Math.floor(time / 3600)
-                    var m = Math.floor((time - h * 3600) / 60)
-                    var s = time - h * 3600 - m * 60
-                    return h + " h " + m + " m " + s + " s"
+    }
+
+    Formatter { id: formatter }
+
+    Item {
+        width: parent.width
+        height: track_button.height
+        ListItem {
+            id: track_button
+            visible: !wptFocus
+            width: parent.width
+            contentHeight: Theme.itemSizeMedium
+            onClicked: root.detailVisible = !root.detailVisible
+            
+            RemorseItem { id: remorse }
+
+            menu: ContextMenu {
+                MenuItem {
+                    text: "clear"
+                    onClicked: {
+                        root.detailVisible = false
+                        remorse.execute(track_button,
+                                        "Clear current track", map.setTrack)
+                    }
+                }
+                MenuItem {
+                    text: "save on device"
+                    onClicked: if (track && track.path.length == 0) {
+                        pageStack.push(tracksave, { track: track })
+                    } else {
+                        track.toFile(track.path)
+                    }
+                }
+                MenuItem {
+                    text: "export to OSM"
+                    enabled: false
                 }
             }
-            width: trackdata.width / 2
-            horizontalAlignment: Text.AlignLeft
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.highlightColor
-	    text: if (track) { (track.length >= 1000) ? (track.length / 1000).toFixed(1) + " km (" + duration(track.duration) + ")" : track.length.toFixed(0) + " m (" + duration(track.duration) + ")"} else ""
+            PageHeader {
+	        function basename(url) {
+                    return url.substring(url.lastIndexOf("/") + 1)
+                }
+                title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
+            }
+            Label {
+                function details(tr) {
+                    if (!tr || tr.duration == 0.) { return "" }
+                    var dist = ""
+                    if (tr.length >= 1000) {
+                        dist = (tr.length / 1000).toFixed(1) + " km"
+                    } else {
+                        dist = tr.length.toFixed(0) + " m"
+                    }
+                    var time = tr.duration
+                    var duration = ""
+                    if (time < 60) {
+                        duration = time + " s"
+                    } else if (time < 3600) {
+                        var m = Math.floor(time / 60)
+                        var s = time - m * 60
+                        duration = m + " m " + s + " s"
+                    } else {
+                        var h = Math.floor(time / 3600)
+                        var m = Math.floor((time - h * 3600) / 60)
+                        duration = h + " h " + m + " m "
+                    }
+                    return dist + " (" + duration + ") - " + (tr.length / time * 3.6).toFixed(2) + " km/h"
+                }
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                text: details(track)
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+            }
+            Image {
+                anchors.left: parent.left
+                source: root.detailVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Theme.paddingMedium
+            }
         }
     }
-    Row {
-        spacing: Theme.paddingMedium
-        Label {
-            width: trackdata.width / 2
-            horizontalAlignment: Text.AlignRight
-            font.pixelSize: Theme.fontSizeSmall
-            text: "average speed"
+    Label {
+	function location(url, date) {
+            return "in " + url.substring(0, url.lastIndexOf("/")) + " (" + formatter.formatDate(date, Formatter.TimepointRelative) + ")"
         }
-        Label {
-            width: trackdata.width / 2
-            horizontalAlignment: Text.AlignLeft
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.highlightColor
-            text: track && track.duration > 0 ? (track.length / track.duration * 3.6).toFixed(2) + " km/h":"not available"
-        }
+        visible: root.detailVisible && !wptFocus && track && track.path.length > 0
+        color: Theme.secondaryColor
+        font.pixelSize: Theme.fontSizeExtraSmall
+        text: (track) ? location(track.path, new Date(track.startDate * 1000)) : ""
+        horizontalAlignment: Text.AlignRight
+        truncationMode: TruncationMode.Fade
+        width: parent.width - Theme.paddingMedium
+        anchors.right: parent.right
     }
-    SlideshowView {
-        id: wptview
-        enabled: tracking
-        opacity: enabled ? 1.0 : 0.4
+    Item {
+        visible: root.detailVisible
         width: parent.width
-        height: Theme.itemSizeMedium
-        itemWidth: width - 2 * Theme.paddingLarge
-        model: waypoints
-
-        delegate: TextField {
-            width: wptview.itemWidth
-            placeholderText: "new waypoint description"
-            label: "track has xx way points"
-            text: model.name
+        height: wptview.height
+        clip: true
+        Image {
+            visible: waypoints.count > 1
+            source: "image://theme/icon-m-previous"
+            x: - width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            z: wptview.z + 1
         }
-
-    }
-/*    Row {
-        enabled: tracking
-        opacity: enabled ? 1.0 : 0.4
-        spacing: Theme.paddingSmall
-        width: parent.width
-        IconButton {
-            id: wpt_prev
-            anchors.verticalCenter: wpt_desc.verticalCenter
-	    icon.source: "image://theme/icon-m-previous"
-        }
-        TextField {
-            id: wpt_desc
-            width: parent.width - wpt_prev.width - wpt_next.width - 2 * parent.spacing
+        SlideshowView {
+            id: wptview
+            width: parent.width - 2 * Theme.paddingLarge
+            anchors.horizontalCenter: parent.horizontalCenter
             height: Theme.itemSizeMedium
-            placeholderText: "new waypoint description"
-            label: "track has xx way points"
+            itemWidth: width
+            model: waypoints
+
+            delegate: TextField {
+                enabled: wptview.currentIndex == model.index
+                opacity: enabled ? 1.0 : 0.4
+                width: wptview.width
+                placeholderText: "new waypoint description"
+                label: (tracking && (model.index == waypoints.count - 1)) ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
+                text: model.name
+	        EnterKey.text: (tracking && model.index == waypoints.count - 1) ? "add" : "update"
+	        EnterKey.onClicked: if (tracking && model.index == waypoints.count - 1) {
+                    track.addWayPoint(currentPlace, text, "", "")
+                    waypoints.editable(true)
+                } else {
+                    track.setWayPoint(model.index, Track.FIELD_NAME, text)
+	        }
+                onActiveFocusChanged: wptFocus = activeFocus
+            }
+
         }
-        IconButton {
-            id: wpt_next
-            anchors.verticalCenter: wpt_desc.verticalCenter
-	    icon.source: "image://theme/icon-m-add"
+        Image {
+            visible: waypoints.count > 1
+            source: "image://theme/icon-m-next"
+            x: parent.width - width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            z: wptview.z + 1
         }
-    }    */
+    }
 }
