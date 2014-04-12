@@ -34,31 +34,21 @@ Column {
             waypoints.clear();
             if (!track) { return }
             for (var i = 0; i < track.getWayPointLength(); i++) {
-                var wpt = Object();
-                wpt.index = i
-                wpt.name = track.getWayPoint(i, Track.FIELD_NAME);
-                wpt.comment = track.getWayPoint(i, Track.FIELD_COMMENT);
-                wpt.description = track.getWayPoint(i, Track.FIELD_DESCRIPTION);
-                waypoints.append(wpt);
+                waypoints.append({"index": i});
             }
-            if (edit) { editable(true) }
+            if (edit) { setEditable(true) }
         }
-        function editable(value) {
+        function setEditable(value) {
             // If true, append an empty wpt to the model.
             if (value) {
-                var wpt = Object();
-                wpt.index = waypoints.count
-                wpt.name = ""
-                wpt.comment = ""
-                wpt.description = ""
-                waypoints.append(wpt);
+                waypoints.append({"index": waypoints.count});
             } else {
                 waypoints.remove(waypoints.count - 1)
             }
         }
     }
     onTrackChanged: waypoints.refresh(track, tracking)
-    onTrackingChanged: waypoints.editable(tracking)
+    onTrackingChanged: waypoints.setEditable(tracking)
 
     width: parent.width - 2 * Theme.paddingSmall
     spacing: Theme.paddingSmall
@@ -107,15 +97,14 @@ Column {
                 height: Theme.itemSizeMedium
             }
             Label {
-                function details(tr) {
-                    if (!tr || tr.duration == 0.) { return "" }
+                function details(lg, time) {
+                    if (time == 0.) { return "no GPS data within allowed accuracy" }
                     var dist = ""
-                    if (tr.length >= 1000) {
-                        dist = (tr.length / 1000).toFixed(1) + " km"
+                    if (lg >= 1000) {
+                        dist = (lg / 1000).toFixed(1) + " km"
                     } else {
-                        dist = tr.length.toFixed(0) + " m"
+                        dist = lg.toFixed(0) + " m"
                     }
-                    var time = tr.duration
                     var duration = ""
                     if (time < 60) {
                         duration = time + " s"
@@ -128,11 +117,11 @@ Column {
                         var m = Math.floor((time - h * 3600) / 60)
                         duration = h + " h " + m + " m "
                     }
-                    return dist + " (" + duration + ") - " + (tr.length / time * 3.6).toFixed(2) + " km/h"
+                    return dist + " (" + duration + ") - " + (lg / time * 3.6).toFixed(2) + " km/h"
                 }
                 color: Theme.primaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
-                text: details(track)
+                text: (track) ? details(track.length, track.duration) : ""
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
             }
@@ -176,27 +165,27 @@ Column {
             height: Theme.itemSizeMedium
             itemWidth: width
             model: waypoints
-            onCurrentIndexChanged: {
+            onCurrentIndexChanged: if (track) {
                 track.highlightWayPoint(currentIndex)
-                if (!tracking || currentIndex < waypoints.count - 1) {
+                if (currentIndex < track.getWayPointLength()) {
                     map.coordinate = track.getWayPointCoord(currentIndex)
                 }
             }
 
             delegate: TextField {
+                property bool newWpt: tracking && (model.index == waypoints.count - 1)
                 enabled: wptview.currentIndex == model.index
                 opacity: enabled ? 1.0 : 0.4
                 width: wptview.width
                 placeholderText: "new waypoint description"
-                label: (tracking && (model.index == waypoints.count - 1)) ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
-                text: model.name
-	        EnterKey.text: (tracking && model.index == waypoints.count - 1) ? "add" : "update"
+                label: newWpt ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
+                text: (track) ? track.getWayPoint(model.index, Track.FIELD_NAME) : ""
+	        EnterKey.text: newWpt ? "add" : "update"
 	        EnterKey.onClicked: {
-                    if (tracking && model.index == waypoints.count - 1) {
+                    if (newWpt) {
                         track.addWayPoint(currentPlace, text, "", "")
-                        track.highlightWayPoint(model.index);
-                        waypoints.editable(true)
-                        map.update()
+                        track.highlightWayPoint(model.index)
+                        waypoints.setEditable(true)
                     } else {
                         track.setWayPoint(model.index, Track.FIELD_NAME, text)
 	            }
