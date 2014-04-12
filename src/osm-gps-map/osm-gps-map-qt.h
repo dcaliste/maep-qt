@@ -244,8 +244,8 @@ public:
     const way_point_t *wpt;
 
     wpt = track_waypoint_get(track, (guint)index);
-    return (wpt) ? QGeoCoordinate(wpt->pt.coord.rlat,
-                                  wpt->pt.coord.rlon) : QGeoCoordinate();
+    return (wpt) ? QGeoCoordinate(rad2deg(wpt->pt.coord.rlat),
+                                  rad2deg(wpt->pt.coord.rlon)) : QGeoCoordinate();
   }
   Q_INVOKABLE inline QString getWayPoint(int index, WayPointField field) {
     return QString(track_waypoint_get_field(track, (guint)index,
