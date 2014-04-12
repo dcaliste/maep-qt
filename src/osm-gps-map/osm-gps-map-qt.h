@@ -240,6 +240,13 @@ public:
   Q_INVOKABLE inline unsigned int getWayPointLength() {
     return track_waypoint_length(track);
   }
+  Q_INVOKABLE inline QGeoCoordinate getWayPointCoord(int index) {
+    const way_point_t *wpt;
+
+    wpt = track_waypoint_get(track, (guint)index);
+    return (wpt) ? QGeoCoordinate(wpt->pt.coord.rlat,
+                                  wpt->pt.coord.rlon) : QGeoCoordinate();
+  }
   Q_INVOKABLE inline QString getWayPoint(int index, WayPointField field) {
     return QString(track_waypoint_get_field(track, (guint)index,
                                             (way_point_field)field));

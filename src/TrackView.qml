@@ -176,7 +176,12 @@ Column {
             height: Theme.itemSizeMedium
             itemWidth: width
             model: waypoints
-            onCurrentIndexChanged: track.highlightWayPoint(currentIndex)
+            onCurrentIndexChanged: {
+                track.highlightWayPoint(currentIndex)
+                if (!tracking || currentIndex < waypoints.count - 1) {
+                    map.coordinate = track.getWayPointCoord(currentIndex)
+                }
+            }
 
             delegate: TextField {
                 enabled: wptview.currentIndex == model.index
@@ -191,6 +196,7 @@ Column {
                         track.addWayPoint(currentPlace, text, "", "")
                         track.highlightWayPoint(model.index);
                         waypoints.editable(true)
+                        map.update()
                     } else {
                         track.setWayPoint(model.index, Track.FIELD_NAME, text)
 	            }

@@ -43,7 +43,9 @@ static OsmGpsMapSource_t map_sources[] = {
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID
 };
+#ifdef OSD_SOURCE_SEL
 static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]);
+#endif
 
 #ifdef OSD_DOUBLEPIXEL
 #define OSD_DPIX_EXTRA 1
@@ -224,7 +226,7 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
 
     /* ... and calculate position */
     int orientation = 0;
-    if(xs > width/2) {
+    if(xs > (gint)width/2) {
         priv->balloon.offset_x = -BALLOON_WIDTH + POINTER_OFFSET;
         pointer_x = x0 - priv->balloon.offset_x;
         pointer_x0 = pointer_x - (BALLOON_CORNER_RADIUS - POINTER_OFFSET);
@@ -238,7 +240,7 @@ osd_render_balloon(osm_gps_map_osd_t *osd) {
     }
     
     gboolean bottom = FALSE;
-    if(ys > height/2) {
+    if(ys > (gint)height/2) {
         priv->balloon.offset_y = -BALLOON_HEIGHT - POINTER_HEIGHT;
         pointer_y = y0 - priv->balloon.offset_y;
         bottom = TRUE;
@@ -502,6 +504,7 @@ osm_gps_map_osd_draw_balloon (osm_gps_map_osd_t *osd,
 #define Z_RIGHT  (2 * D_RAD - Z_RAD + Z_GPS * 2 * Z_RAD)
 #define Z_CENTER ((Z_RIGHT + Z_LEFT)/2)
 
+#ifdef OSD_CONTROLS
 /* create the cairo shape used for the zoom buttons */
 static void 
 osd_zoom_shape(cairo_t *cr, gint x, gint y) 
@@ -512,6 +515,7 @@ osd_zoom_shape(cairo_t *cr, gint x, gint y)
     cairo_line_to (cr, x+Z_LEFT,    y+Z_BOT);
     cairo_arc     (cr, x+Z_LEFT,    y+Z_MID, Z_RAD,  M_PI/2, -M_PI/2);
 }
+#endif
 
 /* ------------------- color/shadow functions ----------------- */
 
@@ -1666,7 +1670,6 @@ osm_gps_map_osd_draw_hr (osm_gps_map_osd_t *osd, gboolean ok, gint rate) {
 static osd_button_t
 osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y) {
     osd_button_t but = OSD_NONE;
-    guint width, height;
 
 #ifdef OSD_BALLOON
     if(state == OSD_STATE_DOWN) {
@@ -1692,7 +1695,8 @@ osd_check_int(osm_gps_map_osd_t *osd, gboolean click, gint state, gint x, gint y
     if(but == OSD_NONE) {
         gint mx = x - OSD_X;
         gint my = y - OSD_Y;
-    
+        guint width, height;
+
         g_object_get(G_OBJECT(osd->map), "viewport-width", &width,
                      "viewport-height", &height, NULL);
         if(OSD_X < 0)

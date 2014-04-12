@@ -1105,7 +1105,7 @@ gboolean track_waypoint_set_highlight(track_state_t *track_state, gint iwpt)
   if (track_state->iwpt_highlight == iwpt)
     return FALSE;
 
-  track_state->iwpt_highlight = (iwpt >= track_state->way_points->len) ? -1 : iwpt;
+  track_state->iwpt_highlight = (iwpt >= (gint)track_state->way_points->len) ? -1 : iwpt;
   return TRUE;
 }
 gint track_waypoint_get_highlight(track_state_t *track_state)

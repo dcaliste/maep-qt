@@ -161,6 +161,9 @@ const gchar* track_waypoint_get_field(const track_state_t *track_state,
 const way_point_t* track_waypoint_get(const track_state_t *track_state, guint iwpt);
 guint track_waypoint_length(const track_state_t *track_state);
 
+void track_iter_new(track_iter_t *iter, track_state_t *track_state);
+gboolean track_iter_next(track_iter_t *iter, int *status);
+
 G_END_DECLS
 
 #endif // TRACK_H

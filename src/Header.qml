@@ -73,7 +73,7 @@ SilicaFlickable {
                 visible: track
                 track: map.track
                 tracking: map.track_capture
-                currentPlace: map.coordinate
+                currentPlace: map.gps_coordinate
             }
         }
     }

@@ -729,12 +729,12 @@ static cairo_surface_t* osm_gps_map_from_mem(const unsigned char *buffer,
                                              size_t len, const char *ext)
 {
     cairo_surface_t *surf = NULL;
-    GError *error;
 
     if (!strcmp(ext, "png")) {
         g_warning("PNG load from memory not implemented!");
     } else {
 #if JPEG_LIB_VERSION >= 80
+    GError *error;
         error = NULL;
         surf = maep_loader_jpeg_from_mem(buffer, len, &error);
         if (error) {
@@ -1233,7 +1233,7 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
     for (i = 0, wpt = track_waypoint_get(track, i); wpt;
          wpt = track_waypoint_get(track, ++i))
         {
-            s = (i == iwpt) ? 16.66667 : 10.;
+            s = ((gint)i == iwpt) ? 16.66667 : 10.;
 
             x = lon2pixel(priv->map_zoom, wpt->pt.coord.rlon) - map_x0;
             y = lat2pixel(priv->map_zoom, wpt->pt.coord.rlat) - map_y0;
