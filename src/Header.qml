@@ -27,71 +27,36 @@ SilicaFlickable {
     function prevAction() {
         action = (action - 1) % 2
     }
-    property alias searchFocus: search.focus
     property alias trackFocus: track_details.wptFocus
-    property alias searchText: search.text
-    property bool resultVisible: false
+
+    property alias searchFocus: placeHeader.searchFocus
+    property alias searchText: placeHeader.text
+    property alias resultVisible: placeHeader.resultVisible
     signal searchRequest(string text)
-    function searchResults(lst) {
-        search.label = lst.length + " place(s) found"
-	busy.visible = false
-        search_icon.visible = (lst.length > 0)
-    }
     signal showResults(bool status)
+    function searchResults(lst) {
+        placeHeader.searchResults(lst)
+    }
     
     // Tell SilicaFlickable the height of its content.
     height: Math.min(content.height, 3 * Theme.itemSizeSmall + Theme.itemSizeMedium)
     contentHeight: content.height
+    //clip: true
+
+    Behavior on height {
+        NumberAnimation { easing.type: Easing.InOutCubic }
+    }
 
     Column {
         id: content
         width: parent.width
-        Item {
-            id: action0
+        PlaceHeader {
+            id: placeHeader
             visible: action == 0
             width: parent.width
             height: Theme.itemSizeMedium
-            TextField {
-                id: search
-                width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
-                placeholderText: "Enter a place name"
-	        label: "Place search"
-	        anchors.verticalCenter: parent.verticalCenter
-	        EnterKey.text: "search"
-	        EnterKey.onClicked: {
-                    search_icon.visible = false
-                    busy.visible = true
-                    label = "Searching…"
-                    root.searchRequest(text)
-	        }
-	        onFocusChanged: { if (focus) { selectAll() } }
-            }
-            Item {
-                anchors.right: maep.left
-                height: parent.height
-                width: search_icon.width
-	        BusyIndicator {
-	   	    id: busy
-                    visible: false
-                    running: visible
-                    size: BusyIndicatorSize.Small
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-                IconButton {
-                    id: search_icon
-                    icon.source: root.resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                    visible: false
-                    onClicked: root.showResults(root.resultVisible)
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-            PageHeader {
-                id: maep
-                width: 130
-                title: "Mæp"
-                anchors.right: parent.right
-            }
+            onSearchRequest: root.searchRequest(text)
+            onShowResults: root.showResults(status)
         }
         Column {
             id: action1
@@ -100,7 +65,7 @@ SilicaFlickable {
             TrackHeader {
                 id: trackHolder
                 visible: !map.track
-                width: parent.width - 2 * Theme.paddingMedium
+                width: parent.width
             }
             TrackView {
                 id: track_details
@@ -112,24 +77,6 @@ SilicaFlickable {
             }
         }
     }
-
-/*    PushUpMenu {
-        visible: action == 1 && track_details.visible
-        MenuItem {
-            text: "Upload track to OSM"
-            enabled: false
-            //onClicked: pageStack.push(tracksave, { track: map.track })
-        }
-        MenuItem {
-            text: "Import track"
-            onClicked: page.importTrack()
-        }
-        MenuItem {
-            text: "Export track"
-            onClicked: pageStack.push(tracksave, { track: map.track })
-        }
-	onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
-    }*/
 
     VerticalScrollDecorator { flickable: root; visible: root.contentHeight > root.height }
 }

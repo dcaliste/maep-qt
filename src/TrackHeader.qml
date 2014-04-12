@@ -20,16 +20,9 @@ import Sailfish.Silica 1.0
 import Maep 1.0
 
 Column {
-    Item {
-        width: parent.width
+    PageHeader {
         height: Theme.itemSizeMedium
-	Label {
-            anchors.right: parent.right
-            text: "No track"
-            color: Theme.highlightColor
-            font.pixelSize: Theme.fontSizeLarge
-            anchors.verticalCenter: parent.verticalCenter
-        }
+        title: "No track"
     }
     BackgroundItem {
         id: item_gps

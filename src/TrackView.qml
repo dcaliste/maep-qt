@@ -63,21 +63,14 @@ Column {
     width: parent.width - 2 * Theme.paddingSmall
     spacing: Theme.paddingSmall
 
-    move: Transition {
-        NumberAnimation {
-            properties: "y"
-            //easing.type: Easing.OutBounce
-        }
-    }
-
     Formatter { id: formatter }
 
     Item {
         width: parent.width
         height: track_button.height
+        visible: !wptFocus
         ListItem {
             id: track_button
-            visible: !wptFocus
             width: parent.width
             contentHeight: Theme.itemSizeMedium
             onClicked: root.detailVisible = !root.detailVisible
@@ -111,6 +104,7 @@ Column {
                     return url.substring(url.lastIndexOf("/") + 1)
                 }
                 title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
+                height: Theme.itemSizeMedium
             }
             Label {
                 function details(tr) {
@@ -164,7 +158,7 @@ Column {
         anchors.right: parent.right
     }
     Item {
-        visible: root.detailVisible
+        visible: root.detailVisible && waypoints.count > 0
         width: parent.width
         height: wptview.height
         clip: true
@@ -182,6 +176,7 @@ Column {
             height: Theme.itemSizeMedium
             itemWidth: width
             model: waypoints
+            onCurrentIndexChanged: console.log("highlight wpt " + currentIndex)
 
             delegate: TextField {
                 enabled: wptview.currentIndex == model.index
@@ -191,12 +186,15 @@ Column {
                 label: (tracking && (model.index == waypoints.count - 1)) ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
                 text: model.name
 	        EnterKey.text: (tracking && model.index == waypoints.count - 1) ? "add" : "update"
-	        EnterKey.onClicked: if (tracking && model.index == waypoints.count - 1) {
-                    track.addWayPoint(currentPlace, text, "", "")
-                    waypoints.editable(true)
-                } else {
-                    track.setWayPoint(model.index, Track.FIELD_NAME, text)
-	        }
+	        EnterKey.onClicked: {
+                    if (tracking && model.index == waypoints.count - 1) {
+                        track.addWayPoint(currentPlace, text, "", "")
+                        waypoints.editable(true)
+                    } else {
+                        track.setWayPoint(model.index, Track.FIELD_NAME, text)
+	            }
+                    map.focus = true
+                }
                 onActiveFocusChanged: wptFocus = activeFocus
             }
 
