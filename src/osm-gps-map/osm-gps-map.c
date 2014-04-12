@@ -1197,7 +1197,8 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
     const way_point_t *wpt;
     int x,y, map_x0, map_y0, st;
     guint i;
-    double s = 10.;
+    double s;
+    gint iwpt;
 
     map_x0 = priv->map_x - EXTRA_BORDER;
     map_y0 = priv->map_y - EXTRA_BORDER;
@@ -1226,11 +1227,14 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
         }
 
     /* Draw all way points. */
+    iwpt = track_waypoint_get_highlight(track);
     cairo_set_line_width (priv->cr, 1);
     cairo_set_fill_rule (priv->cr, CAIRO_FILL_RULE_EVEN_ODD);
     for (i = 0, wpt = track_waypoint_get(track, i); wpt;
          wpt = track_waypoint_get(track, ++i))
         {
+            s = (i == iwpt) ? 16.66667 : 10.;
+
             x = lon2pixel(priv->map_zoom, wpt->pt.coord.rlon) - map_x0;
             y = lat2pixel(priv->map_zoom, wpt->pt.coord.rlat) - map_y0;
 

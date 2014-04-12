@@ -72,7 +72,9 @@ typedef struct {
   /* The currently edited segment, or NULL if not any. */
   track_seg_t *current_seg;
 
+  /* Waypoints. */
   GArray *way_points;
+  gint iwpt_highlight; /* Negative for no highlight. */
 
   /* Timer for autosaving. */
   gchar *path;
@@ -150,7 +152,10 @@ void track_waypoint_new(track_state_t *track_state,
                         const gchar *name, const gchar *comment,
                         const gchar *description);
 gboolean track_waypoint_set_field(track_state_t *track_state,
-                                  guint iwpt, way_point_field field, const gchar *value);
+                                  guint iwpt, way_point_field field,
+                                  const gchar *value);
+gboolean track_waypoint_set_highlight(track_state_t *track_state, gint iwpt);
+gint track_waypoint_get_highlight(track_state_t *track_state);
 const gchar* track_waypoint_get_field(const track_state_t *track_state,
                                       guint iwpt, way_point_field field);
 const way_point_t* track_waypoint_get(const track_state_t *track_state, guint iwpt);

@@ -265,6 +265,7 @@ public slots:
   void addPoint(QGeoPositionInfo &info);
   void addWayPoint(const QGeoCoordinate &coord, const QString &name,
                    const QString &comment, const QString &description);
+  void highlightWayPoint(int iwpt);
   void finalizeSegment();
   bool setAutosavePeriod(unsigned int value);
   bool setMetricAccuracy(qreal value);

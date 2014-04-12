@@ -163,6 +163,7 @@ track_state_t *track_state_new()
 
   track_state->way_points = g_array_new(FALSE, FALSE, sizeof(way_point_t));
   g_array_set_clear_func(track_state->way_points, (GDestroyNotify)way_point_free);
+  track_state->iwpt_highlight = -1;
 
   return track_state;
  }
@@ -1096,6 +1097,22 @@ guint track_waypoint_length(const track_state_t *track_state)
   g_return_val_if_fail(track_state, 0);
 
   return track_state->way_points->len;
+}
+gboolean track_waypoint_set_highlight(track_state_t *track_state, gint iwpt)
+{
+  g_return_val_if_fail(track_state, FALSE);
+  
+  if (track_state->iwpt_highlight == iwpt)
+    return FALSE;
+
+  track_state->iwpt_highlight = (iwpt >= track_state->way_points->len) ? -1 : iwpt;
+  return TRUE;
+}
+gint track_waypoint_get_highlight(track_state_t *track_state)
+{
+  g_return_val_if_fail(track_state, -1);
+
+  return track_state->iwpt_highlight;
 }
 
 /* Iterator on tracks. */

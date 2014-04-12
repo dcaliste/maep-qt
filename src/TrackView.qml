@@ -176,7 +176,7 @@ Column {
             height: Theme.itemSizeMedium
             itemWidth: width
             model: waypoints
-            onCurrentIndexChanged: console.log("highlight wpt " + currentIndex)
+            onCurrentIndexChanged: track.highlightWayPoint(currentIndex)
 
             delegate: TextField {
                 enabled: wptview.currentIndex == model.index
@@ -189,6 +189,7 @@ Column {
 	        EnterKey.onClicked: {
                     if (tracking && model.index == waypoints.count - 1) {
                         track.addWayPoint(currentPlace, text, "", "")
+                        track.highlightWayPoint(model.index);
                         waypoints.editable(true)
                     } else {
                         track.setWayPoint(model.index, Track.FIELD_NAME, text)

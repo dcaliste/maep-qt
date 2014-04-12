@@ -154,6 +154,10 @@ void Maep::Track::addWayPoint(const QGeoCoordinate &coord, const QString &name,
                      comment.toLocal8Bit().data(),
                      description.toLocal8Bit().data());
 }
+void Maep::Track::highlightWayPoint(int iwpt)
+{
+  track_waypoint_set_highlight(track, iwpt);
+}
 
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
