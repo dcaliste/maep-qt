@@ -44,6 +44,103 @@ ApplicationWindow
                 } )
         }
 
+        Drawer {
+ 	    id: drawer
+            anchors.top: header.bottom
+            width: page.width
+            height: page.height - header.height
+
+            dock: page.isPortrait ? Dock.Top : Dock.Left
+
+            background: PlaceView {
+                id: placeview
+                anchors.fill: parent
+                currentPlace: map.coordinate
+                onSelection: {
+                    drawer.open = false
+                    map.setLookAt(lat, lon)
+                    header.searchText = text
+                }
+            }
+
+            GpsMap {
+                id: map
+                property Conf conf: Conf {  }
+                property int track_autosave_rate: conf.getInt("track_autosave_period", 300)
+                property int track_metric_accuracy: conf.getInt("track_metric_accuracy", 30)
+                /*anchors.top: header.bottom
+                  width: page.width
+                  height: page.height - header.height*/
+	        anchors.fill: parent
+                onSearchRequest: { header.searchFocus = true }
+                onWikiEntryChanged: { pageStack.push(wiki) }
+	        onWikiStatusChanged: { wikicheck.checked = status }
+                onSearchResults: {
+                    header.searchResults(search_results)
+		    if (search_results.length > 0) { placeview.model = search_results
+                                                     drawer.open = true }
+		}
+	        Behavior on opacity {
+                    NumberAnimation {easing.type: Easing.InOutCubic}
+                }
+		onFocusChanged: { if (focus) { drawer.open = false } }
+                onTrack_autosave_rateChanged: {
+                    if (track) { track.autosavePeriod = track_autosave_rate }
+                    conf.setInt("track_autosave_period", track_autosave_rate)
+                }
+                onTrack_metric_accuracyChanged: {
+                    if (track) { track.metricAccuracy = track_metric_accuracy }
+                    conf.setInt("track_metric_accuracy", track_metric_accuracy)
+                }
+                onTrackChanged: if (track) {
+                    track.autosavePeriod = track_autosave_rate
+                    track.metricAccuracy = track_metric_accuracy
+                }
+            }
+            OpacityRampEffect {
+                enabled: map_controls.visible
+                offset: 1. - Theme.itemSizeMedium / map.height
+                slope: map.height / Theme.itemSizeMedium
+                direction: 2
+                sourceItem: map
+                clampMax: map.opacity
+            }
+	    Row {
+                id: map_controls
+		anchors.bottom: parent.bottom
+		width: parent.width
+		height: Theme.itemSizeMedium
+		z: map.z + 1
+                anchors.bottomMargin: -Theme.paddingMedium
+                visible: !header.searchFocus && !header.trackFocus && !drawer.open
+                opacity: map.opacity
+		IconButton {
+		    id: zoomout
+		    icon.source: "image://theme/icon-camera-zoom-wide"
+		    onClicked: { map.zoomOut() }
+		}
+                IconButton {
+		    id: zoomin
+                    icon.source: "image://theme/icon-camera-zoom-tele"
+		    onClicked: { map.zoomIn() }
+                }
+                Button {
+		    width: parent.width - zoomout.width - zoomin.width - autocenter.width
+                    text: map.sourceLabel(map.source)
+		    /*font.pixelSize: Theme.fontSizeSmall*/
+                    onClicked: { pageStack.push(sources) }
+                }
+                IconButton {
+                    id: autocenter
+                    icon.source: "image://theme/icon-m-gps"
+                    anchors.rightMargin: Theme.paddingSmall
+                    anchors.leftMargin: Theme.paddingSmall
+		    enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+		    highlighted: map.auto_center
+		    onClicked: { map.auto_center = !map.auto_center }
+                }
+	    }
+	}
         Header {
             id: header
             anchors.top: parent.top
@@ -92,7 +189,7 @@ ApplicationWindow
                     text: "Next action"
                     onClicked: header.nextAction()
                 }
-	        onActiveChanged: { active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1 }
+	        onActiveChanged: active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1
             }
 
             resultVisible: drawer.open
@@ -104,102 +201,6 @@ ApplicationWindow
             }
             onShowResults: drawer.open = status
         }
-        Drawer {
- 	    id: drawer
-            z: -1
-            anchors.top: header.bottom
-            width: page.width
-            height: page.height - header.height
-
-            dock: page.isPortrait ? Dock.Top : Dock.Left
-
-            background: PlaceView {
-                id: placeview
-                anchors.fill: parent
-                currentPlace: map.coordinate
-                onSelection: {
-                    drawer.open = false
-                    map.setLookAt(lat, lon)
-                    header.searchText = text
-                }
-            }
-
-            GpsMap {
-                id: map
-                property Conf conf: Conf {  }
-                property int track_autosave_rate: conf.getInt("track_autosave_period", 300)
-                property int track_metric_accuracy: conf.getInt("track_metric_accuracy", 30)
-                /*anchors.top: header.bottom
-                  width: page.width
-                  height: page.height - header.height*/
-	        anchors.fill: parent
-                onSearchRequest: { header.searchFocus = true }
-                onWikiEntryChanged: { pageStack.push(wiki) }
-	        onWikiStatusChanged: { wikicheck.checked = status }
-                onSearchResults: {
-                    header.searchResults(search_results)
-		    if (search_results.length > 0) { placeview.model = search_results
-                                                     drawer.open = true }
-		}
-	        Behavior on opacity {
-                    FadeAnimation {}
-                }
-		onFocusChanged: { if (focus) { drawer.open = false } }
-                onTrack_autosave_rateChanged: {
-                    if (track) { track.autosavePeriod = track_autosave_rate }
-                    conf.setInt("track_autosave_period", track_autosave_rate)
-                }
-                onTrack_metric_accuracyChanged: {
-                    if (track) { track.metricAccuracy = track_metric_accuracy }
-                    conf.setInt("track_metric_accuracy", track_metric_accuracy)
-                }
-                onTrackChanged: if (track) {
-                    track.autosavePeriod = track_autosave_rate
-                    track.metricAccuracy = track_metric_accuracy
-                }
-            }
-            OpacityRampEffect {
-                enabled: map_controls.visible
-                offset: 1. - Theme.itemSizeMedium / map.height
-                slope: map.height / Theme.itemSizeMedium
-                direction: 2
-                sourceItem: map
-            }
-	    Row {
-                id: map_controls
-		anchors.bottom: parent.bottom
-		width: parent.width
-		height: Theme.itemSizeMedium
-		z: map.z + 1
-                anchors.bottomMargin: -Theme.paddingMedium
-                visible: !header.searchFocus && !header.trackFocus && !drawer.open
-		IconButton {
-		    id: zoomout
-		    icon.source: "image://theme/icon-camera-zoom-wide"
-		    onClicked: { map.zoomOut() }
-		}
-                IconButton {
-		    id: zoomin
-                    icon.source: "image://theme/icon-camera-zoom-tele"
-		    onClicked: { map.zoomIn() }
-                }
-                Button {
-		    width: parent.width - zoomout.width - zoomin.width - autocenter.width
-                    text: map.sourceLabel(map.source)
-		    /*font.pixelSize: Theme.fontSizeSmall*/
-                    onClicked: { pageStack.push(sources) }
-                }
-                IconButton {
-                    id: autocenter
-                    icon.source: "image://theme/icon-m-gps"
-                    anchors.rightMargin: Theme.paddingSmall
-                    anchors.leftMargin: Theme.paddingSmall
-		    enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-		    highlighted: map.auto_center
-		    onClicked: { map.auto_center = !map.auto_center }
-                }
-	    }
-	}
     }
 
     CoverBackground {
