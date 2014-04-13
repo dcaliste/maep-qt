@@ -26,7 +26,7 @@ ApplicationWindow
     id: main
     initialPage: page
     cover: coverPage
-    
+
     Page {
         id: page
 	allowedOrientations: map.screen_rotation ? Orientation.All : main.deviceOrientation
@@ -44,23 +44,14 @@ ApplicationWindow
                 } )
         }
 
-        Drawer {
- 	    id: drawer
+        Item {
             anchors.top: header.bottom
             width: page.width
             height: page.height - header.height
 
-            dock: page.isPortrait ? Dock.Top : Dock.Left
-
-            background: PlaceView {
-                id: placeview
-                anchors.fill: parent
-                currentPlace: map.coordinate
-                onSelection: {
-                    drawer.open = false
-                    map.setLookAt(lat, lon)
-                    header.searchText = text
-                }
+	    opacity: mainMenu.active ? Theme.highlightBackgroundOpacity : 1.
+	    Behavior on opacity {
+                NumberAnimation {easing.type: Easing.InOutCubic}
             }
 
             GpsMap {
@@ -75,15 +66,7 @@ ApplicationWindow
                 onSearchRequest: { header.searchFocus = true }
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
-                onSearchResults: {
-                    header.searchResults(search_results)
-		    if (search_results.length > 0) { placeview.model = search_results
-                                                     drawer.open = true }
-		}
-	        Behavior on opacity {
-                    NumberAnimation {easing.type: Easing.InOutCubic}
-                }
-		onFocusChanged: { if (focus) { drawer.open = false } }
+                onSearchResults: header.searchResults(search_results)
                 onTrack_autosave_rateChanged: {
                     if (track) { track.autosavePeriod = track_autosave_rate }
                     conf.setInt("track_autosave_period", track_autosave_rate)
@@ -103,7 +86,7 @@ ApplicationWindow
                 slope: map.height / Theme.itemSizeMedium
                 direction: 2
                 sourceItem: map
-                clampMax: map.opacity
+                clampMax: parent.opacity
             }
 	    Row {
                 id: map_controls
@@ -112,8 +95,7 @@ ApplicationWindow
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
-                visible: !header.searchFocus && !header.trackFocus && !drawer.open
-                opacity: map.opacity
+                visible: !header.searchFocus && !header.trackFocus
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"
@@ -145,8 +127,10 @@ ApplicationWindow
             id: header
             anchors.top: parent.top
             width: page.width
+            clip: !mainMenu.active
 
             PullDownMenu {
+                id: mainMenu
                 MenuItem {
                     text: "About Mæp"
                     onClicked: pageStack.push(aboutpage)
@@ -186,20 +170,14 @@ ApplicationWindow
                     onClicked: {trackcheck.checked = !trackcheck.checked}
                 }
                 MenuItem {
+                    text: "import track from device"
+                    onClicked: page.importTrack()
+                }
+                /*MenuItem {
                     text: "Next action"
                     onClicked: header.nextAction()
-                }
-	        onActiveChanged: active ? map.opacity = Theme.highlightBackgroundOpacity : map.opacity = 1
+                }*/
             }
-
-            resultVisible: drawer.open
-            onSearchRequest: {
-                drawer.open = false
-                placeview.model = null
-                map.focus = true
-                map.setSearchRequest(text)
-            }
-            onShowResults: drawer.open = status
         }
     }
 

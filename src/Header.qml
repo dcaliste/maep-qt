@@ -20,50 +20,49 @@ import Sailfish.Silica 1.0
 
 SilicaFlickable {
     id: root
-    property int action: 0
-    function nextAction() {
-        action = (action + 1) % 2
-    }
-    function prevAction() {
-        action = (action - 1) % 2
-    }
     property alias trackFocus: track_details.wptFocus
 
     property alias searchFocus: placeHeader.searchFocus
     property alias searchText: placeHeader.text
-    property alias resultVisible: placeHeader.resultVisible
-    signal searchRequest(string text)
-    signal showResults(bool status)
+
     function searchResults(lst) {
         placeHeader.searchResults(lst)
     }
     
     // Tell SilicaFlickable the height of its content.
-    height: Math.min(content.height, 3 * Theme.itemSizeSmall + Theme.itemSizeMedium)
+    height: Math.min(content.height, content.maxHeight[content.currentIndex])
     contentHeight: content.height
+    contentWidth: content.width
     //clip: true
 
     Behavior on height {
         NumberAnimation { easing.type: Easing.InOutCubic }
     }
+    Behavior on contentX {
+        NumberAnimation { easing.type: Easing.InOutCubic }
+    }
 
-    Column {
+    Row {
         id: content
-        width: parent.width
+        height: currentItem.height
+        property int currentIndex: 0
+        property Item currentItem: placeHeader
+        property variant maxHeight: [5 * Theme.itemSizeSmall + Theme.itemSizeMedium,
+                                     3 * Theme.itemSizeSmall + Theme.itemSizeMedium]
         PlaceHeader {
             id: placeHeader
-            visible: action == 0
-            width: parent.width
-            height: Theme.itemSizeMedium
-            onSearchRequest: root.searchRequest(text)
-            onShowResults: root.showResults(status)
+            width: root.width
+            currentPlace: map.coordinate
+            onSearchRequest: {
+                map.focus = true
+                map.setSearchRequest(text)
+            }
+            onSelection: map.setLookAt(lat, lon)
         }
         Column {
-            id: action1
-            visible: action == 1
-            width: parent.width
+            id: trackView
+            width: root.width
             TrackHeader {
-                id: trackHolder
                 visible: !map.track
                 width: parent.width
             }
@@ -77,6 +76,21 @@ SilicaFlickable {
             }
         }
     }
+    onMovingHorizontallyChanged: if (movingHorizontally) { flickableDirection = Flickable.HorizontalFlick }
+    onMovingVerticallyChanged: if (movingVertically) { flickableDirection = Flickable.VerticalFlick }
+    onMovementEnded: {
+        if (contentX < root.width / 2) {
+            contentX = 0
+            content.currentIndex = 0
+            content.currentItem = placeHeader
+        } else {
+            contentX = root.width
+            content.currentIndex = 1
+            content.currentItem = trackView
+        }
+        flickableDirection = Flickable.HorizontalAndVerticalFlick
+    }
 
-    VerticalScrollDecorator { flickable: root; visible: root.contentHeight > root.height }
+    VerticalScrollDecorator { flickable: root
+                              visible: root.contentHeight > root.height }
 }

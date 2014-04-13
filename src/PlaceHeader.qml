@@ -18,61 +18,120 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-Item {
+Column {
     property alias text: search.text
     property alias searchFocus: search.focus
     property alias searchText: search.text
-    property bool resultVisible: false
+    property variant currentPlace
 
     signal searchRequest(string text)
-    signal showResults(bool status)
+    signal selection(string place, real lat, real lon)
 
     function searchResults(lst) {
         search.label = lst.length + " place(s) found"
 	busy.visible = false
         search_icon.visible = (lst.length > 0)
+        resultVisible = (lst.length > 0)
+        resultList.model = lst
     }
 
-    TextField {
-        id: search
-        width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
-        placeholderText: "Enter a place name"
-	label: "Place search"
-	anchors.verticalCenter: parent.verticalCenter
-	EnterKey.text: "search"
-	EnterKey.onClicked: {
-            search_icon.visible = false
-            busy.visible = true
-            label = "Searching…"
-            searchRequest(text)
-	}
-	onFocusChanged: { if (focus) { selectAll() } }
-    }
+    // private
+    property bool resultVisible: false
+
     Item {
-        anchors.right: maep.left
-        height: parent.height
-        width: search_icon.width
-	BusyIndicator {
-	    id: busy
-            visible: false
-            running: visible
-            size: BusyIndicatorSize.Small
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width
+        height: Theme.itemSizeMedium
+        TextField {
+            id: search
+            width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
+            placeholderText: "Enter a place name"
+	    label: "Place search"
+	    anchors.verticalCenter: parent.verticalCenter
+	    EnterKey.text: "search"
+	    EnterKey.onClicked: {
+                search_icon.visible = false
+                busy.visible = true
+                label = "Searching…"
+                resultList.model = undefined
+                searchRequest(text)
+	    }
+	    onFocusChanged: { if (focus) { selectAll() } }
         }
-        IconButton {
-            id: search_icon
-            icon.source: resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-            visible: false
-            onClicked: showResults(!resultVisible)
-            anchors.verticalCenter: parent.verticalCenter
+        Item {
+            anchors.right: maep.left
+            width: search_icon.width
+	    anchors.verticalCenter: parent.verticalCenter
+	    BusyIndicator {
+	        id: busy
+                visible: false
+                running: visible
+                size: BusyIndicatorSize.Small
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            IconButton {
+                id: search_icon
+                icon.source: resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+                visible: false
+                onClicked: resultVisible = !resultVisible
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+        PageHeader {
+            id: maep
+            width: 130
+            height: parent.height
+            title: "Mæp"
+            anchors.right: parent.right
         }
     }
-    PageHeader {
-        id: maep
-        width: 130
-        height: Theme.itemSizeMedium
-        title: "Mæp"
-        anchors.right: parent.right
+    Repeater {
+        id: resultList
+        
+        ListItem {
+	    visible: resultVisible
+	    contentHeight: Theme.itemSizeSmall
+            Image {
+                id: img_go
+                source: "image://theme/icon-m-right"
+                anchors.right: parent.right
+                anchors.leftMargin: Theme.paddingSmall
+                anchors.rightMargin: Theme.paddingSmall
+                anchors.verticalCenter: parent.verticalCenter
+            }
+	    Label {
+                text: model.name
+	        font.pixelSize: Theme.fontSizeSmall
+                truncationMode: TruncationMode.Fade
+                anchors.leftMargin: Theme.paddingSmall
+                anchors.left: parent.left
+                anchors.right: img_go.left
+                anchors.top: parent.top
+                anchors.topMargin: Theme.paddingMedium
+	        color: highlighted ? Theme.highlightColor : Theme.primaryColor
+	    }
+	    Label {
+                text: model.country
+	        font.pixelSize: Theme.fontSizeExtraSmall
+                anchors.leftMargin: Theme.paddingLarge
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+	        color: highlighted ? Theme.highlightColor : Theme.secondaryColor
+	    }
+	    Label {
+	        property real dist: currentPlace.distanceTo(model.coordinate)
+	        font.pixelSize: Theme.fontSizeExtraSmall
+	        text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
+	        color: Theme.secondaryColor
+	        anchors.right: img_go.left
+	        anchors.bottom: parent.bottom
+	    }
+	    onClicked: {
+                resultVisible = false
+                search.text = model.name
+                selection(model.name, model.coordinate.latitude,
+                          model.coordinate.longitude)
+            }
+        }
     }
 }
