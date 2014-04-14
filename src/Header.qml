@@ -73,9 +73,11 @@ SilicaFlickable {
                 track: map.track
                 tracking: map.track_capture
                 currentPlace: map.gps_coordinate
+                onWptMovingChanged: root.flickableDirection = (wptMoving) ? Flickable.VerticalFlick : Flickable.HorizontalAndVerticalFlick
             }
         }
     }
+    
     onMovingHorizontallyChanged: if (movingHorizontally) { flickableDirection = Flickable.HorizontalFlick }
     onMovingVerticallyChanged: if (movingVertically) { flickableDirection = Flickable.VerticalFlick }
     onMovementEnded: {
@@ -88,6 +90,7 @@ SilicaFlickable {
             content.currentIndex = 1
             content.currentItem = trackView
         }
+        track_details.wptMoving = false
         flickableDirection = Flickable.HorizontalAndVerticalFlick
     }
 

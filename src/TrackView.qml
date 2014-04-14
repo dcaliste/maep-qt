@@ -26,6 +26,7 @@ Column {
     property variant currentPlace
     property bool tracking: false
     property bool wptFocus: false
+    property bool wptMoving: false
     property bool detailVisible: false
 
     ListModel {
@@ -127,6 +128,7 @@ Column {
             }
             Image {
                 anchors.left: parent.left
+                visible: waypoints.count > 0
                 source: root.detailVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Theme.paddingMedium
@@ -170,6 +172,14 @@ Column {
                 if (currentIndex < track.getWayPointLength()) {
                     map.coordinate = track.getWayPointCoord(currentIndex)
                 }
+                wptMoving = false
+            }
+            MouseArea {
+                anchors.fill: parent
+                z: 1000
+                onPressed: wptMoving = true
+                onReleased: wptMoving = false
+                onClicked: parent.currentItem.forceActiveFocus()
             }
 
             delegate: TextField {
