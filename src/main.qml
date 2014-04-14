@@ -86,7 +86,6 @@ ApplicationWindow
                 slope: map.height / Theme.itemSizeMedium
                 direction: 2
                 sourceItem: map
-                clampMax: parent.opacity
             }
 	    Row {
                 id: map_controls
