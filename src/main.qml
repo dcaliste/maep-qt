@@ -253,7 +253,7 @@ ApplicationWindow
         enabled: true
         iconBackground: true
         CoverAction {
-            iconSource: "image://theme/icon-camera-zoom-wide"
+            iconSource: "file:///usr/share/harbour-maep-qt/icon-cover_remove.png"
             onTriggered: map.zoomOut()
         }
         CoverAction {
