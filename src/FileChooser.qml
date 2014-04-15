@@ -21,11 +21,12 @@ import Qt.labs.folderlistmodel 1.0
 
 Item {
     id: chooser_item
-    property Component title: chooser_title
+    property alias title: chooser_title.sourceComponent
     property alias folder: folderModel.folder
     property string selection
     property string entry
     property bool saveMode: false
+    property alias saveText: chooser_entry.text
 
     function getEntry() {
         if (chooser_entry.acceptableInput) {
@@ -39,7 +40,7 @@ Item {
 	id: chooser_header
 	width: chooser_item.width
 	Loader {
-            sourceComponent: chooser_item.title
+            id: chooser_title
             anchors.right: parent.right
             width: parent.width
         }
@@ -53,6 +54,7 @@ Item {
 		inputMethodHints: Qt.ImhNoPredictiveText
 		EnterKey.text: "save"
 		EnterKey.onClicked: { if (acceptableInput) { chooser_item.entry = folderModel.folder + "/" + text } }
+	        onFocusChanged: { if (focus) { selectAll() } }
 	    }
 	    IconButton {
 		id: chooser_adddir
@@ -108,8 +110,8 @@ Item {
 	function dirname() {
 	    var url = parentFolder.toString()
 	    if (url == "file:///home") {
-		return "file:///run/user/100000/media/sdcard"
-	    } else if (url == "file:///run/user/100000/media") {
+		return "file:///media/sdcard"
+	    } else if (url == "file:///media") {
 		return "file:///home/nemo"
 	    } else {
 		return url
@@ -123,10 +125,6 @@ Item {
 	    }
 	}
     }
-    Component {
-	id: chooser_title
-	Label { text: "Select a file" }
-    }
     SilicaListView {
 	id: chooser_list
         header: Item {
@@ -134,6 +132,7 @@ Item {
             width: chooser_header.width
             height: chooser_header.height
             Component.onCompleted: chooser_header.parent = header
+            onHeightChanged: chooser_list.contentY = - height
         }
 	anchors {
 	    fill: parent

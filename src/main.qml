@@ -67,6 +67,9 @@ ApplicationWindow
                 onWikiEntryChanged: { pageStack.push(wiki) }
 	        onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: header.searchResults(search_results)
+                onTrack_captureChanged: {
+                    if (!track_capture && track) { track.finalizeSegment() }
+                }
                 onTrack_autosave_rateChanged: {
                     if (track) { track.autosavePeriod = track_autosave_rate }
                     conf.setInt("track_autosave_period", track_autosave_rate)
@@ -502,6 +505,7 @@ ApplicationWindow
 		anchors.fill: parent
                 saveMode: true
 		title: DialogHeader { title: "Save current track" }
+                saveText: track.path.substring(track.path.lastIndexOf("/") + 1)
 		onSelectionChanged: { overwrite(selection) }
 		onEntryChanged: { save(entry) }
 	    }

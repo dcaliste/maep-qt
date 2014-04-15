@@ -79,11 +79,7 @@ Column {
                 }
                 MenuItem {
                     text: "save on device"
-                    onClicked: if (track && track.path.length == 0) {
-                        pageStack.push(tracksave, { track: track })
-                    } else {
-                        track.toFile(track.path)
-                    }
+                    onClicked: pageStack.push(tracksave, { track: track })
                 }
                 MenuItem {
                     text: "export to OSM"
