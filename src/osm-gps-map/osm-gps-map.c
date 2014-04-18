@@ -98,7 +98,7 @@ struct _OsmGpsMapPrivate
     //gps tracking state
     gboolean record_trip_history;
     gboolean show_trip_history;
-    track_state_t *trip_history;
+    MaepGeodata *trip_history;
     coord_t *gps;
     float gps_heading;
     gboolean gps_valid;
@@ -464,7 +464,7 @@ osm_gps_map_free_trip (OsmGpsMap *map)
     OsmGpsMapPrivate *priv = map->priv;
 
     if (priv->trip_history) {
-        track_state_unref(priv->trip_history);
+        g_object_unref(G_OBJECT(priv->trip_history));
         priv->trip_history = NULL;
     }
 }
@@ -479,7 +479,7 @@ osm_gps_map_free_tracks (OsmGpsMap *map)
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            track_state_unref((track_state_t*)tmp->data);
+            g_object_unref(G_OBJECT(tmp->data));
             tmp = g_slist_next(tmp);
         }
         g_slist_free(priv->tracks);
@@ -1190,10 +1190,10 @@ void osm_gps_map_get_tile_xy_at(OsmGpsMap *map, float lat, float lon,
 }
 
 static void
-osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
+osm_gps_map_print_track (OsmGpsMapPrivate *priv, MaepGeodata *track, int lw,
                          int *max_x, int *min_x, int *max_y, int *min_y)
 {
-    track_iter_t iter;
+    MaepGeodataTrackIter iter;
     const way_point_t *wpt;
     int x,y, map_x0, map_y0, st;
     guint i;
@@ -1208,8 +1208,8 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
     cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
     cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
     cairo_set_line_join (priv->cr, CAIRO_LINE_JOIN_ROUND);
-    track_iter_new(&iter, track);
-    while (track_iter_next(&iter, &st))
+    maep_geodata_track_iter_new(&iter, track);
+    while (maep_geodata_track_iter_next(&iter, &st))
         {
             x = lon2pixel(priv->map_zoom, iter.cur->coord.rlon) - map_x0;
             y = lat2pixel(priv->map_zoom, iter.cur->coord.rlat) - map_y0;
@@ -1227,11 +1227,11 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, track_state_t *track, int lw,
         }
 
     /* Draw all way points. */
-    iwpt = track_waypoint_get_highlight(track);
+    iwpt = maep_geodata_waypoint_get_highlight(track);
     cairo_set_line_width (priv->cr, 1);
     cairo_set_fill_rule (priv->cr, CAIRO_FILL_RULE_EVEN_ODD);
-    for (i = 0, wpt = track_waypoint_get(track, i); wpt;
-         wpt = track_waypoint_get(track, ++i))
+    for (i = 0, wpt = maep_geodata_waypoint_get(track, i); wpt;
+         wpt = maep_geodata_waypoint_get(track, ++i))
         {
             s = ((gint)i == iwpt) ? 16.66667 : 10.;
 
@@ -1269,7 +1269,7 @@ osm_gps_map_print_tracks (OsmGpsMap *map)
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            osm_gps_map_print_track(priv, (track_state_t*)tmp->data, lw,
+            osm_gps_map_print_track(priv, MAEP_GEODATA(tmp->data), lw,
                                     &max_x, &min_x, &max_y, &min_y);
             tmp = g_slist_next(tmp);
         }
@@ -2591,7 +2591,7 @@ osm_gps_map_adjust_to (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right)
 }
 
 void
-osm_gps_map_add_track (OsmGpsMap *map, track_state_t *track)
+osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
 {
     OsmGpsMapPrivate *priv;
 
@@ -2600,7 +2600,7 @@ osm_gps_map_add_track (OsmGpsMap *map, track_state_t *track)
 
     if (track) {
         priv->tracks = g_slist_append(priv->tracks, track);
-        track_state_ref(track);
+        g_object_ref(G_OBJECT(track));
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
     }
@@ -2701,9 +2701,9 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     //If trip marker add to list of gps points.
     if (priv->record_trip_history) {
         if (!priv->trip_history)
-            priv->trip_history = track_state_new();
-        track_point_new(priv->trip_history, latitude, longitude,
-                        G_MAXFLOAT, NAN, NAN, NAN, NAN);
+            priv->trip_history = maep_geodata_new();
+        maep_geodata_add_trackpoint(priv->trip_history, latitude, longitude,
+                                    G_MAXFLOAT, NAN, NAN, NAN, NAN);
     }
 
     // dont draw anything if we are dragging

@@ -197,64 +197,64 @@ public:
     FIELD_DESCRIPTION
   };
 
-  Q_INVOKABLE inline Track(track_state_t *track = NULL,
+  Q_INVOKABLE inline Track(MaepGeodata *track = NULL,
                QObject *parent = NULL) : QObject(parent)
   {
     if (track)
-      track_state_ref(track);
+      g_object_ref(G_OBJECT(track));
     else
-      track = track_state_new();
+      track = maep_geodata_new();
     this->track = track;
     autosavePeriod = 0;
   }
   inline ~Track()
   {
-    track_state_unref(track);
+    g_object_unref(G_OBJECT(track));
   }
-  inline track_state_t* get() const {
+  inline MaepGeodata* get() const {
     return track;
   }
   inline QString getPath() const {
     return source;
   }
   Q_INVOKABLE inline bool isEmpty() {
-    return track_length(track) == 0;
+    return maep_geodata_track_get_length(track) == 0;
   }
   inline unsigned int getAutosavePeriod() {
     return autosavePeriod;
   }
   inline unsigned int getMetricAccuracy() {
     gfloat value;
-    value = track_get_metric_accuracy(track);
+    value = maep_geodata_track_get_metric_accuracy(track);
     return (value == G_MAXFLOAT)?0.:(qreal)value;
   }
   inline qreal getLength() {
-    return (qreal)track_metric_length(track);
+    return (qreal)maep_geodata_track_get_metric_length(track);
   }
   inline unsigned int getDuration() {
-    return (unsigned int)track_duration(track);
+    return (unsigned int)maep_geodata_track_get_duration(track);
   }
   inline unsigned int getStartDate() {
-    return (unsigned int)track_start_timestamp(track);
+    return (unsigned int)maep_geodata_track_get_start_timestamp(track);
   }
   Q_INVOKABLE inline unsigned int getWayPointLength() {
-    return track_waypoint_length(track);
+    return maep_geodata_waypoint_get_length(track);
   }
   Q_INVOKABLE inline QGeoCoordinate getWayPointCoord(int index) {
     const way_point_t *wpt;
 
-    wpt = track_waypoint_get(track, (guint)index);
+    wpt = maep_geodata_waypoint_get(track, (guint)index);
     return (wpt) ? QGeoCoordinate(rad2deg(wpt->pt.coord.rlat),
                                   rad2deg(wpt->pt.coord.rlon)) : QGeoCoordinate();
   }
   Q_INVOKABLE inline QString getWayPoint(int index, WayPointField field) {
-    return QString(track_waypoint_get_field(track, (guint)index,
-                                            (way_point_field)field));
+    return QString(maep_geodata_waypoint_get_field(track, (guint)index,
+                                                   (way_point_field)field));
   }
   Q_INVOKABLE inline void setWayPoint(int index, WayPointField field,
                                       const QString &value) {
-    track_waypoint_set_field(track, (guint)index, (way_point_field)field,
-                             value.toLocal8Bit().data());
+    maep_geodata_waypoint_set_field(track, (guint)index, (way_point_field)field,
+                                    value.toLocal8Bit().data());
   }
 
 signals:
@@ -266,7 +266,7 @@ signals:
   void startDateSet(unsigned int value);
 
 public slots:
-  void set(track_state_t *track);
+  void set(MaepGeodata *track);
   bool set(const QString &filename);
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
@@ -278,7 +278,7 @@ public slots:
   bool setMetricAccuracy(qreal value);
 
 private:
-  track_state_t *track;
+  MaepGeodata *track;
   QString source;
   unsigned int autosavePeriod;
 };

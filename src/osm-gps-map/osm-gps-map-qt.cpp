@@ -43,27 +43,27 @@ QString Maep::GeonamesEntry::coordinateToString(QGeoCoordinate::CoordinateFormat
   return coordinate.toString(format);
 }
 
-void Maep::Track::set(track_state_t *t)
+void Maep::Track::set(MaepGeodata *t)
 {
   if (!t)
     return;
 
-  track_state_unref(track);
-  track_state_ref(t);
+  g_object_unref(G_OBJECT(track));
+  g_object_ref(G_OBJECT(t));
   track = t;
 }
 bool Maep::Track::set(const QString &filename)
 {
-  track_state_t *t;
+  MaepGeodata *t;
   GError *error;
 
   error = NULL;
-  t = track_read(filename.toLocal8Bit().data(), &error);
+  t = maep_geodata_new_from_file(filename.toLocal8Bit().data(), &error);
   if (t)
     {
       set(t);
       source = filename;
-      track_set_autosave_path(track, source.toLocal8Bit().data());
+      maep_geodata_set_autosave_path(track, source.toLocal8Bit().data());
       emit pathChanged();
       return true;
     }
@@ -80,7 +80,7 @@ bool Maep::Track::toFile(const QString &filename)
   bool res;
 
   error = NULL;
-  res = track_write(track, filename.toLocal8Bit().data(), &error);
+  res = maep_geodata_to_file(track, filename.toLocal8Bit().data(), &error);
   if (error)
     {
       emit fileError(QString(error->message));
@@ -89,7 +89,7 @@ bool Maep::Track::toFile(const QString &filename)
   else
     {
       source = filename;
-      track_set_autosave_path(track, source.toLocal8Bit().data());
+      maep_geodata_set_autosave_path(track, source.toLocal8Bit().data());
       emit pathChanged();
     }
   return res;
@@ -110,23 +110,23 @@ void Maep::Track::addPoint(QGeoPositionInfo &info)
   if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
     h_acc = info.attribute(QGeoPositionInfo::HorizontalAccuracy);
 
-  track_point_new(track, coord.latitude(), coord.longitude(), h_acc,
-                  coord.altitude(), speed, NAN, NAN);
+  maep_geodata_add_trackpoint(track, coord.latitude(), coord.longitude(), h_acc,
+                              coord.altitude(), speed, NAN, NAN);
 
-  emit characteristicsChanged((qreal)track_metric_length(track),
-                              (unsigned int)track_duration(track));
+  emit characteristicsChanged((qreal)maep_geodata_track_get_metric_length(track),
+                              (unsigned int)maep_geodata_track_get_duration(track));
 }
 void Maep::Track::finalizeSegment()
 {
   if (track)
-    track->current_seg = NULL;
+    maep_geodata_track_finalize_segment(track);
 }
 bool Maep::Track::setAutosavePeriod(unsigned int value)
 {
   bool ret;
 
   autosavePeriod = value;
-  ret = track_set_autosave_period(track, (guint)value);
+  ret = maep_geodata_set_autosave_period(track, (guint)value);
   if (ret)
     emit autosavePeriodChanged(value);
 
@@ -136,12 +136,12 @@ bool Maep::Track::setMetricAccuracy(qreal value)
 {
   bool ret;
 
-  ret = track_set_metric_accuracy(track, (value <= 0)?G_MAXFLOAT:(gfloat)value);
+  ret = maep_geodata_track_set_metric_accuracy(track, (value <= 0)?G_MAXFLOAT:(gfloat)value);
   if (ret)
     {
       emit metricAccuracyChanged(value);
-      emit characteristicsChanged((qreal)track_metric_length(track),
-                                  (unsigned int)track_duration(track));
+      emit characteristicsChanged((qreal)maep_geodata_track_get_metric_length(track),
+                                  (unsigned int)maep_geodata_track_get_duration(track));
     }
 
   return ret;
@@ -149,14 +149,14 @@ bool Maep::Track::setMetricAccuracy(qreal value)
 void Maep::Track::addWayPoint(const QGeoCoordinate &coord, const QString &name,
                               const QString &comment, const QString &description)
 {
-  track_waypoint_new(track, coord.latitude(), coord.longitude(),
-                     name.toLocal8Bit().data(),
-                     comment.toLocal8Bit().data(),
-                     description.toLocal8Bit().data());
+  maep_geodata_add_waypoint(track, coord.latitude(), coord.longitude(),
+                            name.toLocal8Bit().data(),
+                            comment.toLocal8Bit().data(),
+                            description.toLocal8Bit().data());
 }
 void Maep::Track::highlightWayPoint(int iwpt)
 {
-  track_waypoint_set_highlight(track, iwpt);
+  maep_geodata_waypoint_set_highlight(track, iwpt);
 }
 
 
@@ -878,7 +878,7 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       osm_gps_map_add_track(map, track->get());
 
       /* Adjust map zoom and location according to track bounding box. */
-      if (track_bounding_box(track->get(), &top_left, &bottom_right))
+      if (maep_geodata_get_bounding_box(track->get(), &top_left, &bottom_right))
         osm_gps_map_adjust_to(map, &top_left, &bottom_right);
     }
 }
