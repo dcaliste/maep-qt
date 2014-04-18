@@ -25,7 +25,7 @@ Column {
     property Track track: null
     property variant currentPlace
     property bool tracking: false
-    property bool wptFocus: false
+    property bool wptFocus: (wptview.currentItem) ? wptview.currentItem.activeFocus : false
     property bool wptMoving: false
     property bool detailVisible: false
 
@@ -173,9 +173,7 @@ Column {
             MouseArea {
                 anchors.fill: parent
                 z: 1000
-                onPressed: wptMoving = true
-                onReleased: wptMoving = false
-                onClicked: parent.currentItem.forceActiveFocus()
+                onPressed: { mouse.accepted = false; wptMoving = true }
             }
 
             delegate: TextField {
@@ -197,7 +195,7 @@ Column {
 	            }
                     map.focus = true
                 }
-                onActiveFocusChanged: wptFocus = activeFocus
+                onActiveFocusChanged: { wptMoving = false }
             }
 
         }
