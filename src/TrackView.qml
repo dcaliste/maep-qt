@@ -168,8 +168,8 @@ Column {
                 if (currentIndex < track.getWayPointLength()) {
                     map.coordinate = track.getWayPointCoord(currentIndex)
                 }
-                wptMoving = false
             }
+            onMovementEnded: wptMoving = false
             MouseArea {
                 anchors.fill: parent
                 z: 1000
