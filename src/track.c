@@ -134,6 +134,7 @@ enum
   {
     PROP_0,
     N_WPT_PROP,
+    I_WPT_HL_PROP,
     N_PROP
   };
 static GParamSpec *properties[N_PROP];
@@ -142,8 +143,8 @@ static void track_finalize(GObject* obj);
 static void track_dispose(GObject* obj);
 static void track_get_property(GObject* obj, guint property_id,
                                GValue *value, GParamSpec *pspec);
-/*static void track_set_property(GObject* obj, guint property_id,
-  const GValue *value, GParamSpec *pspec);*/
+static void track_set_property(GObject* obj, guint property_id,
+                               const GValue *value, GParamSpec *pspec);
 
 static void track_state_update_bb(MaepGeodata *track_state);
 static void track_state_update_length(MaepGeodata *track_state);
@@ -155,7 +156,7 @@ static void maep_geodata_class_init(MaepGeodataClass *klass)
   /* Connect freeing methods. */
   G_OBJECT_CLASS(klass)->dispose = track_dispose;
   G_OBJECT_CLASS(klass)->finalize = track_finalize;
-  /* G_OBJECT_CLASS(klass)->set_property = track_set_property; */
+  G_OBJECT_CLASS(klass)->set_property = track_set_property;
   G_OBJECT_CLASS(klass)->get_property = track_get_property;
 
   /**
@@ -170,6 +171,19 @@ static void maep_geodata_class_init(MaepGeodataClass *klass)
                                              0, G_MAXUINT, 0, G_PARAM_READABLE);
   g_object_class_install_property(G_OBJECT_CLASS(klass), N_WPT_PROP,
 				  properties[N_WPT_PROP]);
+  /**
+   * MaepGeodata::waypoint-highlight-index:
+   *
+   * Indicate highlighted waypoint.
+   *
+   * Since: 1.4
+   */
+  properties[I_WPT_HL_PROP] = g_param_spec_int("waypoint-highlight-index",
+                                                "Index of highlighted waypoint",
+                                                "Index of highlighted waypoint",
+                                                -1, G_MAXINT, -1, G_PARAM_READWRITE);
+  g_object_class_install_property(G_OBJECT_CLASS(klass), I_WPT_HL_PROP,
+				  properties[I_WPT_HL_PROP]);
 
   g_type_class_add_private(klass, sizeof(MaepGeodataPrivate));
 }
@@ -213,6 +227,25 @@ static void track_get_property(GObject* obj, guint property_id,
     {
     case N_WPT_PROP:
       g_value_set_uint(value, self->priv->way_points->len);
+      break;
+    case I_WPT_HL_PROP:
+      g_value_set_int(value, self->priv->iwpt_highlight);
+      break;
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, property_id, pspec);
+      break;
+    }
+}
+static void track_set_property(GObject* obj, guint property_id,
+                               const GValue *value, GParamSpec *pspec)
+{
+  MaepGeodata *self = MAEP_GEODATA(obj);
+
+  switch (property_id)
+    {
+    case I_WPT_HL_PROP:
+      maep_geodata_waypoint_set_highlight(self, g_value_get_int(value));
       break;
     default:
       /* We don't have any other property... */
@@ -1213,6 +1246,7 @@ gboolean maep_geodata_waypoint_set_highlight(MaepGeodata *track_state, gint iwpt
     return FALSE;
 
   track_state->priv->iwpt_highlight = (iwpt >= (gint)track_state->priv->way_points->len) ? -1 : iwpt;
+  g_object_notify_by_pspec(G_OBJECT(track_state), properties[I_WPT_HL_PROP]);
   return TRUE;
 }
 gint maep_geodata_waypoint_get_highlight(const MaepGeodata *track_state)

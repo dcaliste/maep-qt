@@ -2615,6 +2615,8 @@ osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
         g_object_ref(G_OBJECT(track));
         g_signal_connect_object(G_OBJECT(track), "notify::n-waypoints",
                                 G_CALLBACK(_on_track_changed), (gpointer)map, 0);
+        g_signal_connect_object(G_OBJECT(track), "notify::waypoint-highlight-index",
+                                G_CALLBACK(_on_track_changed), (gpointer)map, 0);
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
     }
