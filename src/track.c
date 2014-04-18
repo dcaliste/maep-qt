@@ -127,13 +127,23 @@ struct _MaepGeodataPrivate {
   gfloat metricLength;
   gfloat metricAccuracy;
 
-  /* Ref counted object. */
-  /* guint ref_count; */
   gboolean dispose_has_run;
 };
 
+enum
+  {
+    PROP_0,
+    N_WPT_PROP,
+    N_PROP
+  };
+static GParamSpec *properties[N_PROP];
+
 static void track_finalize(GObject* obj);
 static void track_dispose(GObject* obj);
+static void track_get_property(GObject* obj, guint property_id,
+                               GValue *value, GParamSpec *pspec);
+/*static void track_set_property(GObject* obj, guint property_id,
+  const GValue *value, GParamSpec *pspec);*/
 
 static void track_state_update_bb(MaepGeodata *track_state);
 static void track_state_update_length(MaepGeodata *track_state);
@@ -145,6 +155,21 @@ static void maep_geodata_class_init(MaepGeodataClass *klass)
   /* Connect freeing methods. */
   G_OBJECT_CLASS(klass)->dispose = track_dispose;
   G_OBJECT_CLASS(klass)->finalize = track_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = track_set_property; */
+  G_OBJECT_CLASS(klass)->get_property = track_get_property;
+
+  /**
+   * MaepGeodata::n-waypoints:
+   *
+   * Indicate the number of waypoints.
+   *
+   * Since: 1.4
+   */
+  properties[N_WPT_PROP] = g_param_spec_uint("n-waypoints", "Number of waypoints",
+                                             "number of stored waypoints",
+                                             0, G_MAXUINT, 0, G_PARAM_READABLE);
+  g_object_class_install_property(G_OBJECT_CLASS(klass), N_WPT_PROP,
+				  properties[N_WPT_PROP]);
 
   g_type_class_add_private(klass, sizeof(MaepGeodataPrivate));
 }
@@ -178,6 +203,22 @@ static void track_finalize(GObject *obj)
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(maep_geodata_parent_class)->finalize(obj);
+}
+static void track_get_property(GObject* obj, guint property_id,
+                               GValue *value, GParamSpec *pspec)
+{
+  MaepGeodata *self = MAEP_GEODATA(obj);
+
+  switch (property_id)
+    {
+    case N_WPT_PROP:
+      g_value_set_uint(value, self->priv->way_points->len);
+      break;
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(obj, property_id, pspec);
+      break;
+    }
 }
 
 static void maep_geodata_init(MaepGeodata *obj)
@@ -1095,6 +1136,7 @@ void maep_geodata_add_waypoint(MaepGeodata *track_state,
   new_point.description = g_strdup(description);
 
   g_array_append_val(track_state->priv->way_points, new_point);
+  g_object_notify_by_pspec(G_OBJECT(track_state), properties[N_WPT_PROP]);
 
   track_state->priv->dirty = TRUE;
 }

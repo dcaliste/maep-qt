@@ -2590,6 +2590,18 @@ osm_gps_map_adjust_to (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right)
         _update_screen_pos(map);
 }
 
+static void
+_on_track_changed (MaepGeodata *track_state, GParamSpec *pspec, OsmGpsMap *map)
+{
+    OsmGpsMapPrivate *priv;
+
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+    priv = map->priv;
+
+    if (!priv->idle_map_redraw)
+        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+}
+
 void
 osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
 {
@@ -2601,6 +2613,8 @@ osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
     if (track) {
         priv->tracks = g_slist_append(priv->tracks, track);
         g_object_ref(G_OBJECT(track));
+        g_signal_connect_object(G_OBJECT(track), "notify::n-waypoints",
+                                G_CALLBACK(_on_track_changed), (gpointer)map, 0);
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
     }
