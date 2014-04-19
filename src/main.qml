@@ -59,9 +59,6 @@ ApplicationWindow
                 property Conf conf: Conf {  }
                 property int track_autosave_rate: conf.getInt("track_autosave_period", 300)
                 property int track_metric_accuracy: conf.getInt("track_metric_accuracy", 30)
-                /*anchors.top: header.bottom
-                  width: page.width
-                  height: page.height - header.height*/
 	        anchors.fill: parent
                 onSearchRequest: { header.searchFocus = true }
                 onWikiEntryChanged: { pageStack.push(wiki) }
@@ -227,7 +224,7 @@ ApplicationWindow
                 }
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.pixelSize: Theme.fontSizeSmall
-	        text: if (map.track) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else ""
+	        text: if (map.track && map.track.duration > 0) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else "no accurate data"
             }
             Label {
                 function speed(length, time) {
@@ -247,7 +244,7 @@ ApplicationWindow
             height: coverTrack.height
             color: "#EA0000"
             opacity: 0.6
-            radius: 2
+            radius: Theme.paddingSmall / 2
         }
     }
 
@@ -255,7 +252,7 @@ ApplicationWindow
         enabled: true
         iconBackground: true
         CoverAction {
-            iconSource: "file:///usr/share/harbour-maep-qt/icon-cover_remove.png"
+            iconSource: "file:///usr/share/harbour-maep-qt/icon-cover-remove.png"
             onTriggered: map.zoomOut()
         }
         CoverAction {

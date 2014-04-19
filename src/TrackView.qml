@@ -25,9 +25,10 @@ Column {
     property Track track: null
     property variant currentPlace
     property bool tracking: false
-    property bool wptFocus: (wptview.currentItem) ? wptview.currentItem.activeFocus : false
+    property bool wptFocus: false
     property bool wptMoving: false
     property bool detailVisible: false
+    property bool menu: contextMenu.parent === track_button
 
     ListModel {
         id: waypoints
@@ -69,6 +70,7 @@ Column {
             RemorseItem { id: remorse }
 
             menu: ContextMenu {
+                id: contextMenu
                 MenuItem {
                     text: "clear"
                     onClicked: {
@@ -81,10 +83,10 @@ Column {
                     text: "save on device"
                     onClicked: pageStack.push(tracksave, { track: track })
                 }
-                MenuItem {
+                /*MenuItem {
                     text: "export to OSM"
                     enabled: false
-                }
+                }*/
             }
             PageHeader {
 	        function basename(url) {
@@ -124,7 +126,7 @@ Column {
             }
             Image {
                 anchors.left: parent.left
-                visible: waypoints.count > 0
+                visible: waypoints.count > 0 || (track && track.path.length > 0)
                 source: root.detailVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Theme.paddingMedium
@@ -177,6 +179,7 @@ Column {
             }
 
             delegate: TextField {
+                id: textField
                 property bool newWpt: tracking && (model.index == waypoints.count - 1)
                 enabled: wptview.currentIndex == model.index
                 opacity: enabled ? 1.0 : 0.4
@@ -184,18 +187,20 @@ Column {
                 placeholderText: "new waypoint description"
                 label: newWpt ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
                 text: (track) ? track.getWayPoint(model.index, Track.FIELD_NAME) : ""
-	        EnterKey.text: newWpt ? "add" : "update"
+	        EnterKey.text: text.length > 0 ? newWpt ? "add" : "update" : "cancel"
 	        EnterKey.onClicked: {
-                    if (newWpt) {
-                        track.addWayPoint(currentPlace, text, "", "")
-                        track.highlightWayPoint(model.index)
-                        waypoints.setEditable(true)
-                    } else {
-                        track.setWayPoint(model.index, Track.FIELD_NAME, text)
-	            }
+                    if (text.length > 0) {
+                        if (newWpt) {
+                            track.addWayPoint(currentPlace, text, "", "")
+                            track.highlightWayPoint(model.index)
+                            waypoints.setEditable(true)
+                        } else {
+                            track.setWayPoint(model.index, Track.FIELD_NAME, text)
+	                }
+                    }
                     map.focus = true
                 }
-                onActiveFocusChanged: { wptMoving = false }
+                onActiveFocusChanged: { if (textField === wptview.currentItem) {wptFocus = activeFocus }; wptMoving = false }
             }
 
         }

@@ -63,7 +63,7 @@ Column {
         }
         onClicked: page.importTrack()
     }
-    BackgroundItem {
+    /*BackgroundItem {
         id: item_osm
 	contentHeight: Theme.itemSizeSmall
         enabled: false
@@ -81,5 +81,5 @@ Column {
 		color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
-    }
+    }*/
 }

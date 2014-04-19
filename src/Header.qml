@@ -17,6 +17,7 @@
 
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import Maep 1.0
 
 SilicaFlickable {
     id: root
@@ -29,26 +30,52 @@ SilicaFlickable {
         placeHeader.searchResults(lst)
     }
     
-    // Tell SilicaFlickable the height of its content.
-    height: Math.min(content.height, content.maxHeight[content.currentIndex])
-    contentHeight: content.height
+    property Conf conf:  Conf {  }
+    property int currentIndex: {
+        var action = conf.getString("ui_start_action", "search")
+        var id = 0
+        if (action == "track") {
+            id = 1
+        }
+        setAction(id)
+        return id
+    }
+    function setAction(id) {
+        if (id == 1) {
+            contentX = root.width
+            contentHeight = Qt.binding(function() { return trackView.height })
+            height = Qt.binding(function() { return Math.min(trackView.height,
+                                                             3 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
+        } else {
+            contentX = 0
+            contentHeight = Qt.binding(function() { return placeHeader.height })
+            height = Qt.binding(function() { return Math.min(placeHeader.height,
+                                                             5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
+        } 
+    }
+    onCurrentIndexChanged: setAction(currentIndex)
+
+    Component.onDestruction: if (currentIndex == 0) {
+        conf.setString("ui_start_action", "search")
+    } else if (currentIndex == 1) {
+        conf.setString("ui_start_action", "track")
+    }
+    
+    height: Theme.itemSizeMedium
     contentWidth: content.width
-    //clip: true
 
     Behavior on height {
+        enabled: !track_details.menu
         NumberAnimation { easing.type: Easing.InOutCubic }
     }
+
     Behavior on contentX {
         NumberAnimation { easing.type: Easing.InOutCubic }
     }
 
     Row {
         id: content
-        height: currentItem.height
-        property int currentIndex: 0
-        property Item currentItem: placeHeader
-        property variant maxHeight: [5 * Theme.itemSizeSmall + Theme.itemSizeMedium,
-                                     3 * Theme.itemSizeSmall + Theme.itemSizeMedium]
+
         PlaceHeader {
             id: placeHeader
             width: root.width
@@ -83,12 +110,10 @@ SilicaFlickable {
     onMovementEnded: {
         if (contentX < root.width / 2) {
             contentX = 0
-            content.currentIndex = 0
-            content.currentItem = placeHeader
+            currentIndex = 0
         } else {
             contentX = root.width
-            content.currentIndex = 1
-            content.currentItem = trackView
+            currentIndex = 1
         }
         track_details.wptMoving = false
         flickableDirection = Flickable.HorizontalAndVerticalFlick
