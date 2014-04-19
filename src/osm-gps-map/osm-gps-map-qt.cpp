@@ -335,8 +335,8 @@ bool Maep::GpsMap::mapSized()
   if (width() < 1 || height() < 1)
     return false;
 
-  if (surf && (cairo_image_surface_get_width(surf) != width() &&
-               cairo_image_surface_get_height(surf) != height()))
+  if (surf && (cairo_image_surface_get_width(surf) != width() ||
+               cairo_image_surface_get_height(surf) < height()))
     {
       cairo_surface_destroy(surf);
       cairo_destroy(cr);
