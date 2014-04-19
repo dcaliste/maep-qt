@@ -184,22 +184,20 @@ Column {
                 enabled: wptview.currentIndex == model.index
                 opacity: enabled ? 1.0 : 0.4
                 width: wptview.width
-                placeholderText: "new waypoint description"
+                placeholderText: newWpt ? "new waypoint description" : "waypoint " + (model.index + 1) + "has no name"
                 label: newWpt ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
                 text: (track) ? track.getWayPoint(model.index, Track.FIELD_NAME) : ""
-	        EnterKey.text: text.length > 0 ? newWpt ? "add" : "update" : "cancel"
+	        EnterKey.text: newWpt ? text.length > 0 ? "add" : "cancel" : "update"
 	        EnterKey.onClicked: {
-                    if (text.length > 0) {
-                        if (newWpt) {
-                            track.addWayPoint(currentPlace, text, "", "")
-                            track.highlightWayPoint(model.index)
-                            waypoints.setEditable(true)
-                        } else {
-                            track.setWayPoint(model.index, Track.FIELD_NAME, text)
-	                }
+                    if (text.length > 0 && newWpt) {
+                        track.addWayPoint(currentPlace, text, "", "")
+                        track.highlightWayPoint(model.index)
+                        waypoints.setEditable(true)
                     }
                     map.focus = true
                 }
+                onTextChanged: if (!newWpt) { track.setWayPoint(model.index, Track.FIELD_NAME, text) }
+
                 onActiveFocusChanged: { if (textField === wptview.currentItem) {wptFocus = activeFocus }; wptMoving = false }
             }
 
