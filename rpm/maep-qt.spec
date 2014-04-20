@@ -13,8 +13,8 @@ Name: harbour-maep-qt
 #%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libgconf-2.*|libxml2.*|libQt5Positioning.*|libdl.*|libdbus-glib-1.*|libpixman-1.*|libfontconfig.*|libfreetype.*|libxcb-shm.*|libxcb-render.*|libxcb.*|libXrender.*|libX11.*|libXau.*|libexpat.*$
 
 Summary: Map browser with GPS capabilities
-Version: 1.3.7
-Release: 13
+Version: 1.4.0
+Release: 1
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -86,6 +86,16 @@ cd tmp
 /usr/bin
 
 %changelog
+* Sat Apr 19 2014 - Damien Caliste <dcaliste@free.fr> 1.4.0-1
+- rework the display layout, using swipe to switch from search to
+  track actions.
+- add support for waypoints in tracks. waypoints are editable
+  through the GUI (addition and modification). Close: #5
+- correct track segment handling for tracks, giving correct track duration.
+- use horizontal accuracy of GPS fix to enhanced track length and duration
+  calculation.
+- add track info on cover if available.
+
 * Fri Mar 21 2014 - Damien Caliste <dcaliste@free.fr> 1.3.7-13
 - modify the layout of the track management drawer to highlight possibilities when there is no track.
 - add creation time of track in the track management drawer.

@@ -24,7 +24,7 @@ DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += APP=\"\\\"\"maep\"\\\"\"
 DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += SAILFISH
-DEFINES += VERSION=\"\\\"\"1.3.7\"\\\"\"
+DEFINES += VERSION=\"\\\"\"1.4.0\"\\\"\"
 
 # Input
 HEADERS += misc.h net_io.h geonames.h search.h track.h img_loader.h icon.h converter.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-layer.h osm-gps-map/osm-gps-map-qt.h osm-gps-map/osm-gps-map-osd-classic.h osm-gps-map/layer-wiki.h

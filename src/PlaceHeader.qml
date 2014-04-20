@@ -35,7 +35,6 @@ Column {
         resultList.model = lst
     }
 
-    // private
     property bool resultVisible: false
 
     Item {
