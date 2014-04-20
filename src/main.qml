@@ -197,54 +197,58 @@ ApplicationWindow
             direction: 3
             sourceItem: coverMap
         }
-        Column {
-            id: coverTrack
+        Item {
             visible: map.track
-            anchors.top: parent.top
             width: parent.width
-            Label {
-                function duration(time) {
-                    if (time < 60) {
-                        return time + " s"
-                    } else if (time < 3600) {
-                        var m = Math.floor(time / 60)
-                        return  m + " min"
-                    } else {
-                        var h = Math.floor(time / 3600)
-                        var m = Math.floor((time - h * 3600) / 60)
-                        return h + " h " + m
+            
+            Column {
+                id: coverTrack
+                anchors.top: parent.top
+                width: parent.width
+                Label {
+                    function duration(time) {
+                        if (time < 60) {
+                            return time + " s"
+                        } else if (time < 3600) {
+                            var m = Math.floor(time / 60)
+                            return  m + " min"
+                        } else {
+                            var h = Math.floor(time / 3600)
+                            var m = Math.floor((time - h * 3600) / 60)
+                            return h + " h " + m
+                        }
                     }
-                }
-                function length(lg) {
-                    if (lg >= 1000) {
-                        return (lg / 1000).toFixed(1) + " km"
-                    } else {
-                        return lg.toFixed(0) + " m"
+                    function length(lg) {
+                        if (lg >= 1000) {
+                            return (lg / 1000).toFixed(1) + " km"
+                        } else {
+                            return lg.toFixed(0) + " m"
+                        }
                     }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: Theme.fontSizeSmall
+	            text: if (map.track && map.track.duration > 0) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else "no accurate data"
                 }
-                anchors.horizontalCenter: parent.horizontalCenter
-                font.pixelSize: Theme.fontSizeSmall
-	        text: if (map.track && map.track.duration > 0) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else "no accurate data"
+                Label {
+                    function speed(length, time) {
+                        if (time > 0) {
+                            return (length / time * 3.6).toFixed(2) + " km/h"
+                        } else {
+                            return ""
+                        }
+                    }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: Theme.fontSizeSmall
+	            text: if (map.track) { speed(map.track.length, map.track.duration) } else ""
+                }
             }
-            Label {
-                function speed(length, time) {
-                    if (time > 0) {
-                        return (length / time * 3.6).toFixed(2) + " km/h"
-                    } else {
-                        return ""
-                    }
-                }
-                anchors.horizontalCenter: parent.horizontalCenter
-                font.pixelSize: Theme.fontSizeSmall
-	        text: if (map.track) { speed(map.track.length, map.track.duration) } else ""
+            Rectangle {
+                width: Theme.paddingSmall
+                height: coverTrack.height
+                color: "#EA0000"
+                opacity: 0.6
+                radius: Theme.paddingSmall / 2
             }
-        }
-        Rectangle {
-            width: Theme.paddingSmall
-            height: coverTrack.height
-            color: "#EA0000"
-            opacity: 0.6
-            radius: Theme.paddingSmall / 2
         }
     }
 
