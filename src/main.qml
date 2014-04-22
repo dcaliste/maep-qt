@@ -94,7 +94,7 @@ ApplicationWindow
 		height: Theme.itemSizeMedium
 		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
-                visible: !header.searchFocus && !header.trackFocus
+                visible: !Qt.inputMethod.visible
 		IconButton {
 		    id: zoomout
 		    icon.source: "image://theme/icon-camera-zoom-wide"

@@ -25,7 +25,6 @@ Column {
     property Track track: null
     property variant currentPlace
     property bool tracking: false
-    property bool wptFocus: false
     property bool wptMoving: false
     property bool detailVisible: false
     property bool menu: contextMenu.parent === track_button
@@ -60,7 +59,7 @@ Column {
     Item {
         width: parent.width
         height: track_button.height
-        visible: !wptFocus
+        visible: !Qt.inputMethod.visible
         ListItem {
             id: track_button
             width: parent.width
@@ -137,7 +136,7 @@ Column {
 	function location(url, date) {
             return "in " + url.substring(0, url.lastIndexOf("/")) + " (" + formatter.formatDate(date, Formatter.TimepointRelative) + ")"
         }
-        visible: root.detailVisible && !wptFocus && track && track.path.length > 0
+        visible: root.detailVisible && !Qt.inputMethod.visible && track && track.path.length > 0
         color: Theme.secondaryColor
         font.pixelSize: Theme.fontSizeExtraSmall
         text: (track) ? location(track.path, new Date(track.startDate * 1000)) : ""
@@ -198,7 +197,7 @@ Column {
                 }
                 onTextChanged: if (!newWpt) { track.setWayPoint(model.index, Track.FIELD_NAME, text) }
 
-                onActiveFocusChanged: { if (textField === wptview.currentItem) {wptFocus = activeFocus }; wptMoving = false }
+                onActiveFocusChanged: wptMoving = false
             }
 
         }

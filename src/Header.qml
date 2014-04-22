@@ -21,7 +21,6 @@ import Maep 1.0
 
 SilicaFlickable {
     id: root
-    property alias trackFocus: track_details.wptFocus
 
     property alias searchFocus: placeHeader.searchFocus
     property alias searchText: placeHeader.text
