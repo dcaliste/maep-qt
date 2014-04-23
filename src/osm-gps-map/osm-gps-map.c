@@ -1122,9 +1122,9 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
             {
                 g_message("blank.");
                 //prevent some artifacts when drawing not yet loaded areas.
-                cairo_rectangle(priv->cr, offset_x, offset_y, TILESIZE, TILESIZE);
+                /*cairo_rectangle(priv->cr, offset_x, offset_y, TILESIZE, TILESIZE);
                 cairo_set_source_rgb(priv->cr, 1., 1., 1.);
-                cairo_fill(priv->cr);
+                cairo_fill(priv->cr);*/
             }
         }
     }
@@ -1313,9 +1313,14 @@ osm_gps_map_redraw (OsmGpsMap *map)
     /* isn't really usable. we'll just ignore this ... */
     if((priv->viewport_width < 2) ||
        (priv->viewport_height < 2)) {
-        printf("not a useful sized map yet ...\n");
+        g_message("not a useful sized map yet ...");
         return FALSE;
     }
+
+    /* Don't draw anything for a NULL source.
+       Caller is responsible for buffer filling. */
+    if (priv->map_source == OSM_GPS_MAP_SOURCE_NULL)
+        return FALSE;
 
     /* don't redraw the entire map while the OSD is doing */
     /* some animation or the like. This is to keep the animation */
@@ -1335,9 +1340,11 @@ osm_gps_map_redraw (OsmGpsMap *map)
 
     priv->redraw_cycle++;
 
-    /* draw white background to initialise pixmap */
-    cairo_set_source_rgb(priv->cr, 1., 1., 1.);
-    cairo_paint(priv->cr);
+    /* draw transparent background to initialise pixmap */
+    cairo_save (priv->cr);
+    cairo_set_operator (priv->cr, CAIRO_OPERATOR_CLEAR);
+    cairo_paint (priv->cr);
+    cairo_restore (priv->cr);
 
     osm_gps_map_fill_tiles_pixel(map);
 
@@ -1676,7 +1683,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
              g_warning("GObject property tile-cache-is-full-path depreciated");
              break;
         case PROP_ZOOM:
-            priv->map_zoom = g_value_get_int (value);
+            osm_gps_map_set_zoom(map, g_value_get_int (value));
             break;
         case PROP_MAX_ZOOM:
             priv->max_zoom = g_value_get_int (value);
@@ -1877,7 +1884,6 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
     g_signal_emit_by_name(map, "changed");
 }
 
-
 static void
 osm_gps_map_class_init (OsmGpsMapClass *klass)
 {
@@ -1979,7 +1985,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                MIN_ZOOM, /* minimum property value */
                                                MAX_ZOOM, /* maximum property value */
                                                3,
-                                               G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+                                               G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
                                      PROP_ZOOM,
                                      properties[PROP_ZOOM]);

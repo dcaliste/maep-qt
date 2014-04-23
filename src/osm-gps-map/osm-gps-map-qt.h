@@ -290,6 +290,7 @@ class GpsMap : public QQuickPaintedItem
   Q_ENUMS(Source)
 
   Q_PROPERTY(Source source READ source WRITE setSource NOTIFY sourceChanged)
+  Q_PROPERTY(Source overlaySource READ overlaySource WRITE setOverlaySource NOTIFY overlaySourceChanged)
   Q_PROPERTY(bool double_pixel READ doublePixel WRITE setDoublePixel NOTIFY doublePixelChanged)
 
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
@@ -405,6 +406,15 @@ class GpsMap : public QQuickPaintedItem
     g_object_get(map, "map-source", &source, NULL);
     return (Source)source;
   }
+  inline Source overlaySource() {
+    OsmGpsMapSource_t source;
+    if (overlay) {
+      g_object_get(overlay, "map-source", &source, NULL);
+      return (Source)source;
+    } else {
+      return SOURCE_NULL;
+    }
+  }
   Q_INVOKABLE inline QString sourceLabel(Source id) const {
     return QString(osm_gps_map_source_get_friendly_name((OsmGpsMapSource_t)id));
   }
@@ -438,6 +448,7 @@ class GpsMap : public QQuickPaintedItem
  signals:
   void mapChanged();
   void sourceChanged(Source source);
+  void overlaySourceChanged(Source source);
   void doublePixelChanged(bool status);
   void coordinateChanged();
   void gpsCoordinateChanged();
@@ -453,6 +464,7 @@ class GpsMap : public QQuickPaintedItem
 
  public slots:
   void setSource(Source source);
+  void setOverlaySource(Source source);
   void setDoublePixel(bool status);
   void setAutoCenter(bool status);
   void setScreenRotation(bool status);
@@ -489,11 +501,12 @@ class GpsMap : public QQuickPaintedItem
               self->searchRes[index]->getCoord().longitude(), index);
     return self->searchRes[index];
   }
+  void ensureOverlay(Source source);
   bool mapSized();
   void gpsToTrack();
 
   bool screenRotation;
-  OsmGpsMap *map;
+  OsmGpsMap *map, *overlay;
   QGeoCoordinate coordinate;
   osm_gps_map_osd_t *osd;
 

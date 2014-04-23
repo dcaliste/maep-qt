@@ -165,6 +165,8 @@ static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, O
 static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_source(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget,
+                                          GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
 static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
                                   GSList *places, MaepSearchContext *wiki);
@@ -203,6 +205,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                                  NULL));
   osm_gps_map_set_mapcenter(map, lat, lon, zoom);
   coordinate = QGeoCoordinate(lat, lon);
+  overlay = NULL;
 
   g_signal_connect_swapped(G_OBJECT(map), "dirty",
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
@@ -276,6 +279,8 @@ Maep::GpsMap::~GpsMap()
   gboolean dpix;
 
   /* get state information from map ... */
+  if (overlay)
+    g_object_unref(overlay);
   g_object_get(map, 
 	       "zoom", &zoom, 
 	       "map-source", &source, 
@@ -320,6 +325,55 @@ Maep::GpsMap::~GpsMap()
   gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
   g_object_unref(map);
+}
+static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
+{
+  Q_UNUSED(pspec);
+  /* get current map position */
+  gfloat lat, lon;
+  g_object_get(map, "latitude", &lat, "longitude", &lon, NULL);
+  
+  osm_gps_map_set_center(overlay, lat, lon);
+}
+void Maep::GpsMap::ensureOverlay(Source source)
+{
+  gchar *path;
+
+  if (overlay)
+    return;
+
+  path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
+  overlay = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
+                                     "map-source",               (guint)source,
+                                     "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
+                                     "tile-cache-base",          path,
+                                     "auto-center",              FALSE,
+                                     "record-trip-history",      FALSE, 
+                                     "show-trip-history",        FALSE, 
+                                     // proxy?"proxy-uri":NULL,     proxy,
+                                     NULL));
+  g_free(path);
+
+  g_object_bind_property(G_OBJECT(map), "double-pixel",
+                         G_OBJECT(overlay), "double-pixel",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  g_object_bind_property(G_OBJECT(map), "viewport-width",
+                         G_OBJECT(overlay), "viewport-width",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  g_object_bind_property(G_OBJECT(map), "viewport-height",
+                         G_OBJECT(overlay), "viewport-height",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  g_object_bind_property(G_OBJECT(map), "zoom", G_OBJECT(overlay), "zoom",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  /* Workaround to bind lat and lon together. */
+  g_signal_connect_object(G_OBJECT(map), "notify::latitude",
+                          G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
+  onLatLon(G_OBJECT(map), NULL, overlay);
+
+  g_signal_connect_swapped(G_OBJECT(overlay), "dirty",
+                           G_CALLBACK(osm_gps_map_qt_repaint), this);
+  g_signal_connect_swapped(G_OBJECT(overlay), "notify::map-source",
+                           G_CALLBACK(osm_gps_map_qt_overlay_source), this);
 }
 
 static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
@@ -369,7 +423,6 @@ void Maep::GpsMap::mapUpdate()
   cairo_surface_t *map_surf;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
-  cairo_set_source_rgba(cr, 1., 1., 1., 0.);
   cairo_paint(cr);
 
   map_surf = osm_gps_map_get_surface(map);
@@ -379,6 +432,17 @@ void Maep::GpsMap::mapUpdate()
   cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
   cairo_paint(cr);
   cairo_surface_destroy(map_surf);
+
+  if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
+    {
+      map_surf = osm_gps_map_get_surface(overlay);
+      cairo_set_source_surface(cr, map_surf,
+                               drag_mouse_dx - EXTRA_BORDER,
+                               drag_mouse_dy - EXTRA_BORDER);
+      cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
+      cairo_paint(cr);
+      cairo_surface_destroy(map_surf);
+    }
 
 #ifdef ENABLE_OSD
   cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
@@ -601,6 +665,32 @@ void Maep::GpsMap::setSource(Maep::GpsMap::Source value)
     return;
 
   g_object_set(map, "map-source", (OsmGpsMapSource_t)value, NULL);
+}
+static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget,
+                                          GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  widget->overlaySourceChanged(widget->overlaySource());
+}
+void Maep::GpsMap::setOverlaySource(Maep::GpsMap::Source value)
+{
+  Source orig;
+
+  orig = overlaySource();
+  if (orig == value)
+    return;
+
+  ensureOverlay(value);
+  g_object_set(overlay, "map-source", (OsmGpsMapSource_t)value, NULL);
+
+  // Overlay becoming NULL will never emit dirty, thus we redraw by hand
+  if (value == Maep::GpsMap::SOURCE_NULL)
+    {
+      mapUpdate();
+      update();
+    }
 }
 
 static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget,

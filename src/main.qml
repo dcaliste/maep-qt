@@ -267,15 +267,24 @@ ApplicationWindow
 
     ListModel {
         id: sourceModel
-	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP }
-	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP_RENDERER }
-	ListElement { source: GpsMap.SOURCE_OPENCYCLEMAP }
-        ListElement { source: GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT }
-        ListElement { source: GpsMap.SOURCE_GOOGLE_STREET }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID }
-        //ListElement { source: GpsMap.SOURCE_OPENSEAMAP }
+	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP
+                      section: "base tiles" }
+	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP_RENDERER
+                      section: "base tiles" }
+	ListElement { source: GpsMap.SOURCE_OPENCYCLEMAP
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_GOOGLE_STREET
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_OPENSEAMAP
+                      section: "overlay tiles" }
     }
 
     Component {
@@ -304,6 +313,15 @@ ApplicationWindow
                 }
                 model: sourceModel
 
+                section {
+                    property: 'section'
+
+                    delegate: SectionHeader {
+                        text: section
+                        height: Theme.itemSizeExtraSmall
+                    }
+                }
+
                 delegate: ListItem {
                     id: listItem
 		    menu: contextMenu
@@ -326,17 +344,35 @@ ApplicationWindow
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: Theme.paddingMedium
                     }
-                    Image { id: img
+                    Item {
+                        id: img
+                        width: Theme.itemSizeMedium * 1.5
+                        height: Theme.itemSizeMedium - Theme.paddingSmall
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.paddingSmall
+                        anchors.verticalCenter: parent.verticalCenter
+                        Image {
+                            visible: model.section == "base tiles"
+                            anchors.fill: parent
                             clip: true; fillMode: Image.Pad
-                            width: Theme.itemSizeMedium * 1.5
-                            height: Theme.itemSizeMedium - Theme.paddingSmall
-                            anchors.left: parent.left
-                            anchors.leftMargin: Theme.paddingSmall
-                            anchors.verticalCenter: parent.verticalCenter
-                            onVisibleChanged: {
-                                if (visible) { source = map.getCenteredTile(model.source) } }
-                          }
-                    onClicked: { map.source = model.source; sourcedialog.accept() }
+                            source: map.getCenteredTile(model.source)
+                              }
+                        Switch {
+                            visible: model.section == "overlay tiles"
+                            anchors.fill: parent
+                            //icon.clip: true; icon.fillMode: Image.Pad
+                            //icon.source: map.getCenteredTile(model.source)
+                            checked: map.overlaySource == model.source
+                        }
+                    }
+                    onClicked: {
+                        if (model.section == "base tiles") {
+                            map.source = model.source
+                        } else {
+                            map.overlaySource = (map.overlaySource) ? GpsMap.SOURCE_NULL : model.source
+                        }
+                        sourcedialog.accept()
+                    }
 
                     Component {
                         id: contextMenu
