@@ -696,17 +696,18 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
     else
         cairo_rectangle(priv->cr, offset_x, offset_y, TILESIZE, TILESIZE);
     cairo_save(priv->cr);
-    cairo_translate(priv->cr, offset_x, offset_y);
+    cairo_translate(priv->cr, offset_x - area_x * modulo, offset_y - area_y * modulo);
     cairo_scale(priv->cr, modulo, modulo);
-    cairo_set_source_surface(priv->cr, cr_surf, -area_x, -area_y);
+    cairo_set_source_surface(priv->cr, cr_surf, 0, 0);
+    cairo_pattern_set_filter(cairo_get_source(priv->cr), CAIRO_FILTER_NEAREST);
     /* cairo_fill_preserve(priv->cr); */
     cairo_fill(priv->cr);
     cairo_restore(priv->cr);
     /* cairo_set_source_rgb(priv->cr, 0., 0., 0.); */
     /* cairo_stroke(priv->cr); */
-    g_debug("Blit surface %p(%p) at %dx%d x%d %dx%d.",
-            (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y,
-            modulo, area_x, area_y);
+    /* g_message("Blit surface %p(%p) at %dx%d x%d %dx%d.", */
+    /*         (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y, */
+    /*         modulo, area_x, area_y); */
 }
 
 static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *ext)
@@ -899,7 +900,7 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
         dl->map = map;
         dl->redraw = redraw;
 
-        g_message("Download tile: %d,%d z:%d\n\t%s --> %s", x, y, zoom, dl->uri, dl->filename);
+        /* g_message("Download tile: %d,%d z:%d\n\t%s --> %s", x, y, zoom, dl->uri, dl->filename); */
 
         msg = soup_message_new (SOUP_METHOD_GET, dl->uri);
         if (msg) {
@@ -981,7 +982,7 @@ osm_gps_map_load_cached_tile (OsmGpsMap *map, const gchar *filename)
             tile->cr_surf = cr_surf;
             key = g_strdup(filename);
             g_hash_table_insert (priv->tile_cache, key, tile);
-            g_message("caching %s %p.", filename, (gpointer)cr_surf);
+            /* g_message("caching %s %p.", filename, (gpointer)cr_surf); */
         }
     }
     
@@ -1052,7 +1053,7 @@ osm_gps_map_render_missing_tile (OsmGpsMap *map, int zoom, int x, int y,
                                  int *modulo, int *area_x, int *area_y)
 {
     /* maybe TODO: render from downscaled tiles, if the following fails */
-    g_message("look for upscaled at %dx%d.", x, y);
+    /* g_message("look for upscaled at %dx%d.", x, y); */
     return osm_gps_map_render_missing_tile_upscaled (map, zoom, x, y,
                                                      modulo, area_x, area_y);
 }
