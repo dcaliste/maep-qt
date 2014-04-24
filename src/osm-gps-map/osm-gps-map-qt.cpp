@@ -25,6 +25,7 @@
 
 #define GCONF_KEY_ZOOM       "zoom"
 #define GCONF_KEY_SOURCE     "source"
+#define GCONF_KEY_OVERLAY_SOURCE "overlay-source"
 #define GCONF_KEY_LATITUDE   "latitude"
 #define GCONF_KEY_LONGITUDE  "longitude"
 #define GCONF_KEY_DOUBLEPIX  "double-pixel"
@@ -180,6 +181,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   char *path;
 
   gint source = gconf_get_int(GCONF_KEY_SOURCE, OSM_GPS_MAP_SOURCE_OPENSTREETMAP);
+  gint overlaySource = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, OSM_GPS_MAP_SOURCE_NULL);
   gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
@@ -203,9 +205,10 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                                  // proxy?"proxy-uri":NULL,     proxy,
                                  "double-pixel",             dpix,
                                  NULL));
+  g_free(path);
+
   osm_gps_map_set_mapcenter(map, lat, lon, zoom);
   coordinate = QGeoCoordinate(lat, lon);
-  overlay = NULL;
 
   g_signal_connect_swapped(G_OBJECT(map), "dirty",
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
@@ -218,7 +221,10 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_signal_connect_swapped(G_OBJECT(map), "notify::map-source",
                            G_CALLBACK(osm_gps_map_qt_source), this);
 
-  g_free(path);
+  if (overlaySource != OSM_GPS_MAP_SOURCE_NULL)
+    ensureOverlay((Maep::GpsMap::Source)overlaySource);
+  else
+    overlay = NULL;
 
   net_io_init();
   osd = osm_gps_map_osd_classic_init(map);
@@ -270,17 +276,20 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   track_capture = track;
   track_current = NULL;
-  // setTrackFromFile("/home/nemo/devel/Tinchebray");
 }
 Maep::GpsMap::~GpsMap()
 {
-  gint zoom, source;
+  gint zoom, source, overlaySource;
   gfloat lat, lon;
   gboolean dpix;
 
   /* get state information from map ... */
+  overlaySource = OSM_GPS_MAP_SOURCE_NULL;
   if (overlay)
-    g_object_unref(overlay);
+    {
+      g_object_get(overlay, "map-source", &overlaySource, NULL);
+      g_object_unref(overlay);
+    }
   g_object_get(map, 
 	       "zoom", &zoom, 
 	       "map-source", &source, 
@@ -299,8 +308,6 @@ Maep::GpsMap::~GpsMap()
     cairo_surface_destroy(surf);
   if (cr)
     cairo_destroy(cr);
-  // if (pat)
-  //   cairo_pattern_destroy(pat);
   if (img)
     delete(img);
   delete(white);
@@ -309,9 +316,12 @@ Maep::GpsMap::~GpsMap()
   if (track_current && track_current->parent() == this)
     delete(track_current);
 
+  g_object_unref(map);
+
   /* ... and store it in gconf */
   gconf_set_int(GCONF_KEY_ZOOM, zoom);
   gconf_set_int(GCONF_KEY_SOURCE, source);
+  gconf_set_int(GCONF_KEY_OVERLAY_SOURCE, overlaySource);
   gconf_set_float(GCONF_KEY_LATITUDE, lat);
   gconf_set_float(GCONF_KEY_LONGITUDE, lon);
   gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
@@ -324,7 +334,6 @@ Maep::GpsMap::~GpsMap()
 
   gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
-  g_object_unref(map);
 }
 static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
 {
@@ -354,6 +363,12 @@ void Maep::GpsMap::ensureOverlay(Source source)
                                      NULL));
   g_free(path);
 
+  g_object_bind_property(G_OBJECT(map), "zoom", G_OBJECT(overlay), "zoom",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  /* Workaround to bind lat and lon together. */
+  g_signal_connect_object(G_OBJECT(map), "notify::latitude",
+                          G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
+  onLatLon(G_OBJECT(map), NULL, overlay);
   g_object_bind_property(G_OBJECT(map), "double-pixel",
                          G_OBJECT(overlay), "double-pixel",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
@@ -363,12 +378,6 @@ void Maep::GpsMap::ensureOverlay(Source source)
   g_object_bind_property(G_OBJECT(map), "viewport-height",
                          G_OBJECT(overlay), "viewport-height",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
-  g_object_bind_property(G_OBJECT(map), "zoom", G_OBJECT(overlay), "zoom",
-                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
-  /* Workaround to bind lat and lon together. */
-  g_signal_connect_object(G_OBJECT(map), "notify::latitude",
-                          G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
-  onLatLon(G_OBJECT(map), NULL, overlay);
 
   g_signal_connect_swapped(G_OBJECT(overlay), "dirty",
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
@@ -488,9 +497,9 @@ void Maep::GpsMap::paintTo(QPainter *painter, int width, int height)
 
   w = cairo_image_surface_get_width(surf);
   h = cairo_image_surface_get_height(surf);
-  g_message("Paint to %dx%d from %fx%f - %fx%f.", width, height,
-            (w - width) * 0.5, (h - height) * 0.5,
-            (w + width) * 0.5, (h + height) * 0.5);
+  // g_message("Paint to %dx%d from %fx%f - %fx%f.", width, height,
+  //           (w - width) * 0.5, (h - height) * 0.5,
+  //           (w + width) * 0.5, (h + height) * 0.5);
   QRectF target(0, 0, width, height);
   QRectF source((w - width) * 0.5, (h - height) * 0.5,
                 width, height);
@@ -868,9 +877,9 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
     track = lastGps.coordinate().azimuthTo(info.coordinate());
   else
     track = OSM_GPS_MAP_INVALID;
-  g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
-            info.coordinate().longitude(), track,
-            info.attribute(QGeoPositionInfo::HorizontalAccuracy));
+  // g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
+  //           info.coordinate().longitude(), track,
+  //           info.attribute(QGeoPositionInfo::HorizontalAccuracy));
 
   lastGps = info;
   emit gpsCoordinateChanged();

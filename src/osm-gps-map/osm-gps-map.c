@@ -191,10 +191,12 @@ static void     osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, i
 static void     osm_gps_map_fill_tiles_pixel (OsmGpsMap *map);
 static gboolean osm_gps_map_idle_redraw(OsmGpsMap *map);
 
+static guint    osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source);
+
 static void
 cached_tile_free (OsmCachedTile *tile)
 {
-    g_message("destroying cached tile.");
+    /* g_message("destroying cached tile."); */
     cairo_surface_destroy (tile->cr_surf);
     g_slice_free (OsmCachedTile, tile);
 }
@@ -833,7 +835,8 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
     }
     else
     {
-        g_message("Error downloading tile: %d - %s", msg->status_code, msg->reason_phrase);
+        g_message("Error downloading tile: %d - %s (%s)",
+                  msg->status_code, msg->reason_phrase, dl->uri);
         if (msg->status_code == SOUP_STATUS_NOT_FOUND)
         {
             g_hash_table_insert(priv->missing_tiles, dl->uri, NULL);
@@ -896,7 +899,7 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
         dl->map = map;
         dl->redraw = redraw;
 
-        g_debug("Download tile: %d,%d z:%d\n\t%s --> %s", x, y, zoom, dl->uri, dl->filename);
+        g_message("Download tile: %d,%d z:%d\n\t%s --> %s", x, y, zoom, dl->uri, dl->filename);
 
         msg = soup_message_new (SOUP_METHOD_GET, dl->uri);
         if (msg) {
@@ -1060,12 +1063,12 @@ osm_gps_map_render_missing_tile (OsmGpsMap *map, int zoom, int x, int y,
 #endif
 
 static gboolean
-osm_gps_map_tile_age_exceeded(char *filename) 
+osm_gps_map_tile_age_exceeded(char *filename, guint period) 
 {
     struct stat buf;
     
     if(!g_stat(filename, &buf)) 
-        return(time(NULL) - buf.st_mtime > OSM_GPS_MAP_TILE_TTL);
+        return(time(NULL) - buf.st_mtime > period);
 
     return FALSE;
 }
@@ -1094,7 +1097,9 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
         tile = osm_gps_map_load_cached_tile(map, filename);
         if (!tile) g_warning("cannot load and cache %s!!!", filename);
 
-        needs_refresh = osm_gps_map_tile_age_exceeded(filename);
+        needs_refresh = osm_gps_map_tile_age_exceeded
+            (filename,
+             osm_gps_map_source_get_cache_period(priv->map_source));
         g_free(filename);
     }
 
@@ -1114,18 +1119,18 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
                                                     &modulo, &area_x, &area_y);
             if (tile)
             {
-                g_message("Tile not found, upscaling.");
+                /* g_message("Tile not found, upscaling."); */
                 osm_gps_map_blit_surface (map, tile->cr_surf, offset_x,offset_y,
                                           modulo, area_x, area_y);
             }
-            else
-            {
-                g_message("blank.");
+            /* else */
+            /* { */
+                /* g_message("blank."); */
                 //prevent some artifacts when drawing not yet loaded areas.
                 /*cairo_rectangle(priv->cr, offset_x, offset_y, TILESIZE, TILESIZE);
                 cairo_set_source_rgb(priv->cr, 1., 1., 1.);
                 cairo_fill(priv->cr);*/
-            }
+            /* } */
         }
     }
 }
@@ -2172,6 +2177,8 @@ osm_gps_map_source_get_friendly_name(OsmGpsMapSource_t source)
             return "Google Satellite";
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
             return "Google Hybrid";
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
+            return "Google traffic";
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
             return "Virtual Earth";
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
@@ -2223,12 +2230,15 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "http://maps-for-free.com/layer/relief/z#Z/row#Y/#Z_#X-#Y.jpg";
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
             return "http://mt#R.google.com/vt/v=w2.97&x=#X&y=#Y&z=#Z";
+            /* http://mt0.google.com/mapstt?zoom=13&x=1406&y=3272 */
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
             /* No longer working
                "http://mt#R.google.com/mt?n=404&v=w2t.99&x=#X&y=#Y&zoom=#S" */
             return NULL;
         case OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE:
             return "http://khm#R.google.com/kh/v=51&x=#X&y=#Y&z=#Z";
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
+            return "http://mt#R.google.com/mapstt?zoom=#Z&x=#X&y=#Y";
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
             return "http://a#R.ortho.tiles.virtualearth.net/tiles/r#W.jpeg?g=50";
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
@@ -2290,6 +2300,7 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
         case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
             return;
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
             *notice = "©2014 Google";
             *url    = "http://www.google.com/intl/fr_fr/help/legalnotices_maps.html";
             return;
@@ -2323,6 +2334,7 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
             return "png";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
@@ -2364,6 +2376,7 @@ osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
         case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
         case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
         case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
@@ -2383,6 +2396,39 @@ osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source)
             return 17;
     }
     return 17;
+}
+
+static guint 
+osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source)
+{
+    switch(source) {
+        case OSM_GPS_MAP_SOURCE_NULL:
+            return 0;
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+        case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
+        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID:
+        case OSM_GPS_MAP_SOURCE_YAHOO_STREET:
+        case OSM_GPS_MAP_SOURCE_YAHOO_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_YAHOO_HYBRID:
+        case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
+        case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE:
+            return OSM_GPS_MAP_TILE_TTL;
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
+            return 60*10;
+        case OSM_GPS_MAP_SOURCE_LAST:
+        default:
+            return 0;
+    }
+    return 0;
 }
 
 gboolean
@@ -2429,7 +2475,8 @@ osm_gps_map_download_maps (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_
                                     priv->image_format);
 
                     if ((!g_file_test(filename, G_FILE_TEST_EXISTS)) ||
-                        osm_gps_map_tile_age_exceeded(filename))
+                        osm_gps_map_tile_age_exceeded(filename,
+                                                      osm_gps_map_source_get_cache_period(priv->map_source)))
                     {
                         osm_gps_map_download_tile(map, zoom, i, j, FALSE);
                         num_tiles++;

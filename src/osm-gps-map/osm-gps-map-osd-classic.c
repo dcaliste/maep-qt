@@ -2150,7 +2150,7 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
 
     g_object_get(G_OBJECT(osd->map), "viewport-width", &width,
                  "viewport-height", &height, NULL);
-    g_message("%dx%d--------------------", width, height);
+    /* g_message("%dx%d--------------------", width, height); */
 #ifdef OSD_SCALE
     x =  OSD_X;
     y = -OSD_Y;

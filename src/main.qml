@@ -285,6 +285,8 @@ ApplicationWindow
                       section: "base tiles" }
         ListElement { source: GpsMap.SOURCE_OPENSEAMAP
                       section: "overlay tiles" }
+        ListElement { source: GpsMap.SOURCE_GOOGLE_TRAFFIC
+                      section: "overlay tiles" }
     }
 
     Component {
@@ -355,8 +357,8 @@ ApplicationWindow
                             visible: model.section == "base tiles"
                             anchors.fill: parent
                             clip: true; fillMode: Image.Pad
-                            source: map.getCenteredTile(model.source)
-                              }
+                            source: visible ? map.getCenteredTile(model.source) : ""
+                        }
                         Switch {
                             visible: model.section == "overlay tiles"
                             anchors.fill: parent
@@ -369,7 +371,7 @@ ApplicationWindow
                         if (model.section == "base tiles") {
                             map.source = model.source
                         } else {
-                            map.overlaySource = (map.overlaySource) ? GpsMap.SOURCE_NULL : model.source
+                            map.overlaySource = (map.overlaySource == model.source) ? GpsMap.SOURCE_NULL : model.source
                         }
                         sourcedialog.accept()
                     }
