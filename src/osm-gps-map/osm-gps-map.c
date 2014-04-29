@@ -58,6 +58,7 @@ struct _OsmGpsMapPrivate
     /* Dirty region. */
     cairo_region_t *dirty;
 
+    gfloat map_factor;
     int map_zoom;
     int max_zoom;
     int min_zoom;
@@ -154,6 +155,7 @@ enum
     PROP_ZOOM,
     PROP_MAX_ZOOM,
     PROP_MIN_ZOOM,
+    PROP_FACTOR,
     PROP_LATITUDE,
     PROP_LONGITUDE,
     PROP_MAP_X,
@@ -1310,6 +1312,30 @@ osm_gps_map_purge_cache (OsmGpsMap *map)
    g_hash_table_foreach_remove(priv->tile_cache, osm_gps_map_purge_cache_check, priv);
 }
 
+void osm_gps_map_blit(OsmGpsMap *map, cairo_t *cr, cairo_operator_t op,
+                      gint dx, gint dy)
+{
+    OsmGpsMapPrivate *priv;
+
+    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    priv = map->priv;
+
+    cairo_surface_flush(priv->cr_surf);
+
+    cairo_save(cr);
+    cairo_translate(cr, - (priv->map_factor - 1.) * priv->viewport_width / 2.,
+                    - (priv->map_factor - 1.) * priv->viewport_height / 2.);
+    cairo_scale(cr, priv->map_factor, priv->map_factor);
+
+    cairo_set_source_surface(cr, priv->cr_surf,
+                             dx / priv->map_factor - EXTRA_BORDER,
+                             dy / priv->map_factor - EXTRA_BORDER);
+    cairo_set_operator(cr, op);
+    cairo_paint(cr);
+
+    cairo_restore(cr);
+}
+
 static gboolean
 osm_gps_map_redraw (OsmGpsMap *map)
 {
@@ -1415,6 +1441,8 @@ osm_gps_map_init (OsmGpsMap *object)
 
     priv->cr_surf = NULL;
     priv->cr = NULL;
+
+    priv->map_factor = 1.;
 
     priv->trip_history = NULL;
     priv->gps = g_new0(coord_t, 1);
@@ -1697,6 +1725,9 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
         case PROP_MIN_ZOOM:
             priv->min_zoom = g_value_get_int (value);
             break;
+        case PROP_FACTOR:
+            osm_gps_map_set_factor(map, g_value_get_float (value));
+            break;
         case PROP_MAP_X:
             priv->map_x = g_value_get_int (value);
             g_message("set map_x at %d.", priv->map_x);
@@ -1806,6 +1837,9 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             break;
         case PROP_MIN_ZOOM:
             g_value_set_int(value, priv->min_zoom);
+            break;
+        case PROP_FACTOR:
+            g_value_set_float(value, priv->map_factor);
             break;
         case PROP_LATITUDE:
             g_value_set_float(value, rad2deg(priv->center_rlat));
@@ -1995,6 +2029,13 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
     g_object_class_install_property (object_class,
                                      PROP_ZOOM,
                                      properties[PROP_ZOOM]);
+
+    properties[PROP_FACTOR] = g_param_spec_float ("factor", "factor",
+                                                  "zooming adjustment factor",
+                                                  0.4, 2.8, 1., G_PARAM_READWRITE);
+    g_object_class_install_property (object_class,
+                                     PROP_FACTOR, properties[PROP_FACTOR]);
+
 
     g_object_class_install_property (object_class,
                                      PROP_MAX_ZOOM,
@@ -2595,6 +2636,30 @@ osm_gps_map_zoom_out (OsmGpsMap *map)
     return osm_gps_map_set_zoom(map, map->priv->map_zoom-1);
 }
 
+void 
+osm_gps_map_set_factor (OsmGpsMap *map, gfloat factor)
+{
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+
+    factor = CLAMP(factor, 0.4, 2.8);
+    if (factor == map->priv->map_factor)
+        return;
+    map->priv->map_factor = factor;
+
+    if (!map->priv->idle_map_redraw)
+        map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_FACTOR]);
+    g_signal_emit_by_name(map, "changed");
+}
+gfloat
+osm_gps_map_get_factor (OsmGpsMap *map)
+{
+    g_return_val_if_fail (OSM_IS_GPS_MAP (map), 1.f);
+    
+    return map->priv->map_factor;
+}
+
 void
 osm_gps_map_set_mapcenter (OsmGpsMap *map, float latitude, float longitude, int zoom)
 {
@@ -2878,8 +2943,8 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
     priv = map->priv;
 
     g_message("scroll of %dx%d.", dx, dy);
-    priv->map_x += dx;
-    priv->map_y += dy;
+    priv->map_x += dx / priv->map_factor;
+    priv->map_y += dy / priv->map_factor;
     center_coord_update(map);
 
     if (!priv->idle_map_redraw)

@@ -442,9 +442,7 @@ class GpsMap : public QQuickPaintedItem
  protected:
   void paint(QPainter *painter);
   void keyPressEvent(QKeyEvent * event);
-  void mousePressEvent(QMouseEvent *event);
-  void mouseReleaseEvent(QMouseEvent *event);
-  void mouseMoveEvent(QMouseEvent *event);
+  void touchEvent(QTouchEvent *touchEvent);
 
  signals:
   void mapChanged();
@@ -516,8 +514,8 @@ class GpsMap : public QQuickPaintedItem
   guint searchFinished;
 
   gboolean dragging;
-  int drag_start_mouse_x, drag_start_mouse_y;
   int drag_mouse_dx, drag_mouse_dy;
+  float factor0;
 
   /* Wiki entry. */
   bool wiki_enabled;

@@ -83,7 +83,7 @@ pixel2lon(  int zoom,
     float lon;
     int zoom_p = (1<<zoom) * TILESIZE/2;
 
-    lon = (pixel_x - zoom_p) / (zoom_p / M_PI) ;
+    lon = (float)(pixel_x - zoom_p) / (float)zoom_p * M_PI ;
 
     return lon;
 }
@@ -93,9 +93,9 @@ pixel2lat(  int zoom,
             int pixel_y)
 {
     float lat, lat_m;
+    int zoom_p = (1<<zoom) * TILESIZE/2;
 
-    lat_m = (-( pixel_y - ( (1<<zoom) * (TILESIZE/2) ) ) * (2*M_PI)) /
-        (TILESIZE * (1<<zoom));
+    lat_m = - (float)(pixel_y - zoom_p) / (float)zoom_p * M_PI;
 
     lat = asin(tanh(lat_m));
 

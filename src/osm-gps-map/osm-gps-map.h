@@ -126,6 +126,9 @@ void        osm_gps_map_set_center                  (OsmGpsMap *map, float latit
 int         osm_gps_map_set_zoom                    (OsmGpsMap *map, int zoom);
 int         osm_gps_map_zoom_in                     (OsmGpsMap *map);
 int         osm_gps_map_zoom_out                    (OsmGpsMap *map);
+void        osm_gps_map_set_factor                  (OsmGpsMap *map, gfloat factor);
+gfloat      osm_gps_map_get_factor                  (OsmGpsMap *map);
+
 void        osm_gps_map_adjust_to                   (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right);
 void        osm_gps_map_get_tile_xy_at              (OsmGpsMap *map,
                                                      float lat, float lon,
@@ -148,6 +151,9 @@ void        osm_gps_map_layer_changed               (OsmGpsMap *map, OsmGpsMapLa
 void        osm_gps_map_remove_layer                (OsmGpsMap *map, OsmGpsMapLayer *layer);
 cairo_surface_t* osm_gps_map_get_surface            (OsmGpsMap *map);
 void        osm_gps_map_set_viewport                (OsmGpsMap *map, guint width, guint height);
+void        osm_gps_map_blit                        (OsmGpsMap *map, cairo_t *cr,
+                                                     cairo_operator_t op,
+                                                     gint dx, gint dy);
 
 #ifdef ENABLE_OSD
 coord_t *osm_gps_map_get_gps (OsmGpsMap *map);

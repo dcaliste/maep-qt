@@ -241,8 +241,6 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_signal_connect_swapped(G_OBJECT(search), "download-error",
                            G_CALLBACK(osm_gps_map_qt_places_failure), this);
 
-  drag_start_mouse_x = 0;
-  drag_start_mouse_y = 0;
   drag_mouse_dx = 0;
   drag_mouse_dy = 0;
 
@@ -389,6 +387,7 @@ static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
 {
   Q_UNUSED(map);
 
+  // g_message("got dirty");
   widget->mapUpdate();
   widget->update();
 }
@@ -428,30 +427,13 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
-  // double w; //, h;
-  cairo_surface_t *map_surf;
-
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_paint(cr);
 
-  map_surf = osm_gps_map_get_surface(map);
-  cairo_set_source_surface(cr, map_surf,
-                           drag_mouse_dx - EXTRA_BORDER,
-                           drag_mouse_dy - EXTRA_BORDER);
-  cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-  cairo_paint(cr);
-  cairo_surface_destroy(map_surf);
-
+  // g_message("update at drag %dx%d", drag_mouse_dx, drag_mouse_dy);
+  osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE, drag_mouse_dx, drag_mouse_dy);
   if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
-    {
-      map_surf = osm_gps_map_get_surface(overlay);
-      cairo_set_source_surface(cr, map_surf,
-                               drag_mouse_dx - EXTRA_BORDER,
-                               drag_mouse_dy - EXTRA_BORDER);
-      cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
-      cairo_paint(cr);
-      cairo_surface_destroy(map_surf);
-    }
+    osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER, drag_mouse_dx, drag_mouse_dy);
 
 #ifdef ENABLE_OSD
   cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
@@ -534,10 +516,12 @@ void Maep::GpsMap::paint(QPainter *painter)
 
 void Maep::GpsMap::zoomIn()
 {
+  osm_gps_map_set_factor(map, 1.f);
   osm_gps_map_zoom_in(map);
 }
 void Maep::GpsMap::zoomOut()
 {
+  osm_gps_map_set_factor(map, 1.f);
   osm_gps_map_zoom_out(map);
 }
 
@@ -565,96 +549,188 @@ void Maep::GpsMap::keyPressEvent(QKeyEvent * event)
     emit searchRequest();
 }
 
-void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
-{
-// #ifdef ENABLE_OSD
-//   int step;
-//   osd_button_t but = 
-//     osd->check(osd, TRUE, event->x(), event->y());
+// void Maep::GpsMap::mousePressEvent(QMouseEvent *event)
+// {
+// // #ifdef ENABLE_OSD
+// //   int step;
+// //   osd_button_t but = 
+// //     osd->check(osd, TRUE, event->x(), event->y());
   
-//   dragging = FALSE;
+// //   dragging = FALSE;
 
-//   step = width() / OSM_GPS_MAP_SCROLL_STEP;
+// //   step = width() / OSM_GPS_MAP_SCROLL_STEP;
 
-//   if(but != OSD_NONE)
-//     switch(but)
-//       {
-//       case OSD_UP:
-//         osm_gps_map_scroll(map, 0, -step);
-//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-//         return;
+// //   if(but != OSD_NONE)
+// //     switch(but)
+// //       {
+// //       case OSD_UP:
+// //         osm_gps_map_scroll(map, 0, -step);
+// //         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+// //         return;
 
-//       case OSD_DOWN:
-//         osm_gps_map_scroll(map, 0, +step);
-//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-//         return;
+// //       case OSD_DOWN:
+// //         osm_gps_map_scroll(map, 0, +step);
+// //         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+// //         return;
 
-//       case OSD_LEFT:
-//         osm_gps_map_scroll(map, -step, 0);
-//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-//         return;
+// //       case OSD_LEFT:
+// //         osm_gps_map_scroll(map, -step, 0);
+// //         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+// //         return;
                 
-//       case OSD_RIGHT:
-//         osm_gps_map_scroll(map, +step, 0);
-//         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-//         return;
+// //       case OSD_RIGHT:
+// //         osm_gps_map_scroll(map, +step, 0);
+// //         g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
+// //         return;
                 
-//       case OSD_IN:
-//         osm_gps_map_zoom_in(map);
-//         return;
+// //       case OSD_IN:
+// //         osm_gps_map_zoom_in(map);
+// //         return;
                 
-//       case OSD_OUT:
-//         osm_gps_map_zoom_out(map);
-//         return;
+// //       case OSD_OUT:
+// //         osm_gps_map_zoom_out(map);
+// //         return;
 
-//       case OSD_GPS:
-//         if (lastGps.isValid())
-//           {
-//             osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
-//                                    lastGps.coordinate().longitude());
+// //       case OSD_GPS:
+// //         if (lastGps.isValid())
+// //           {
+// //             osm_gps_map_set_center(map, lastGps.coordinate().latitude(),
+// //                                    lastGps.coordinate().longitude());
 
-//             g_object_set(map, "auto-center", TRUE, NULL);
-//           }
-//         return;
+// //             g_object_set(map, "auto-center", TRUE, NULL);
+// //           }
+// //         return;
                 
-//       default:
-//         g_warning("Hey don't know what to do!");
-//         /* all custom buttons are forwarded to the application */
-//         // if(osd->cb)
-//         //   osd->cb(but, osd->data);
-//         return;
-//       }
-// #endif
-  if (osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
-                               event->x(), event->y(), TRUE))
-    return;
+// //       default:
+// //         g_warning("Hey don't know what to do!");
+// //         /* all custom buttons are forwarded to the application */
+// //         // if(osd->cb)
+// //         //   osd->cb(but, osd->data);
+// //         return;
+// //       }
+// // #endif
+//   g_message("press me");
+//   if (osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+//                                event->x(), event->y(), TRUE))
+//     return;
 
-  dragging = TRUE;
-  drag_start_mouse_x = event->x();
-  drag_start_mouse_y = event->y();
-}
-void Maep::GpsMap::mouseReleaseEvent(QMouseEvent *event)
+//   dragging = TRUE;
+//   drag_start_mouse_x = event->x();
+//   drag_start_mouse_y = event->y();
+// }
+// void Maep::GpsMap::mouseReleaseEvent(QMouseEvent *event)
+// {
+//   g_message("release me %d", dragging);
+//   if (dragging)
+//     {
+//       dragging = FALSE;
+//       osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
+//       drag_mouse_dx = 0;
+//       drag_mouse_dy = 0;
+//       g_object_set(map, "auto-center", FALSE, NULL);
+//     }
+//   osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+//                            event->x(), event->y(), FALSE);
+// }
+// void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
+// {
+//   g_message("dragging %d", dragging);
+//   if (dragging)
+//     {
+//       drag_mouse_dx = event->x() - drag_start_mouse_x;
+//       drag_mouse_dy = event->y() - drag_start_mouse_y;
+//       mapUpdate();
+//       update();
+//     }
+// }
+void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
 {
-  if (dragging)
+  qreal factor;
+  int zoom;
+
+  switch (touchEvent->type()) {
+  case QEvent::TouchBegin:
     {
-      dragging = FALSE;
-      osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
-      drag_mouse_dx = 0;
-      drag_mouse_dy = 0;
-      g_object_set(map, "auto-center", FALSE, NULL);
+      QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
+      // Drag/zoom if one or two finger and no wiki layer.
+      dragging = (touchPoints.count() == 2 ||
+                  (touchPoints.count() == 1 &&
+                   !osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+                                             touchPoints.first().pos().x(),
+                                             touchPoints.first().pos().y(), TRUE)));
+      factor0 = 0.f;
+      // g_message("touch begin %d", dragging);
+      return;
     }
-  osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
-                           event->x(), event->y(), FALSE);
-}
-void Maep::GpsMap::mouseMoveEvent(QMouseEvent *event)
-{
-  if (dragging)
+  case QEvent::TouchUpdate:
     {
-      drag_mouse_dx = event->x() - drag_start_mouse_x;
-      drag_mouse_dy = event->y() - drag_start_mouse_y;
-      mapUpdate();
-      update();
+      // g_message("touch update %d", haveMouseEvent);
+      if (!dragging)
+        return;
+      QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
+      if (touchPoints.count() == 2) {
+        // Zoom and drag case
+        const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
+        const QTouchEvent::TouchPoint &touchPoint1 = touchPoints.last();
+        factor =
+          QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
+          / QLineF(touchPoint0.startPos(), touchPoint1.startPos()).length();
+        if (factor0 == 0.f)
+          factor0 = osm_gps_map_get_factor(map);
+        osm_gps_map_set_factor(map, factor0 * factor);
+        QPointF delta = (touchPoint0.pos() + touchPoint1.pos() -
+                         touchPoint0.startPos() - touchPoint1.startPos()) * 0.5;
+        drag_mouse_dx = delta.x();
+        drag_mouse_dy = delta.y();
+        mapUpdate();
+        update();
+      }
+      else if (touchPoints.count() == 1) {
+        // Drag case only
+        const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
+        QPointF delta = touchPoint0.pos() - touchPoint0.startPos();
+        drag_mouse_dx = delta.x();
+        drag_mouse_dy = delta.y();
+        mapUpdate();
+        update();
+
+        factor0 = 0.f;
+      }
+      return;
     }
+  case QEvent::TouchEnd:
+    {
+      QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
+      // g_message("touch end %d", haveMouseEvent);
+      if (dragging)
+        {
+          dragging = FALSE;
+          osm_gps_map_scroll(map, -drag_mouse_dx, -drag_mouse_dy);
+          drag_mouse_dx = 0;
+          drag_mouse_dy = 0;
+          g_object_set(map, "auto-center", FALSE, NULL);
+
+          // Adjust zoom and factor.
+          factor = osm_gps_map_get_factor(map);
+          if (factor >= 1.5) {
+            g_object_get(map, "zoom", &zoom, NULL);
+            if (osm_gps_map_zoom_in(map) != zoom)
+              osm_gps_map_set_factor(map, factor / 2.);
+          } else if (factor <= 0.75) {
+            g_object_get(map, "zoom", &zoom, NULL);
+            if (osm_gps_map_zoom_out(map) != zoom)
+              osm_gps_map_set_factor(map, factor * 2.);
+          }
+        }
+      else if (touchPoints.count() == 1)
+        osm_gps_map_layer_button(OSM_GPS_MAP_LAYER(wiki),
+                                 touchPoints.first().pos().x(),
+                                 touchPoints.first().pos().y(), FALSE);
+    }
+  default:
+    QQuickItem::touchEvent(touchEvent);
+    break;
+  }
 }
 
 static void osm_gps_map_qt_source(Maep::GpsMap *widget,
