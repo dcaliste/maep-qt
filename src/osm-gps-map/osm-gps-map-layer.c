@@ -48,11 +48,9 @@ osm_gps_map_layer_render (OsmGpsMapLayer *self, OsmGpsMap *map)
 
 void
 osm_gps_map_layer_draw (OsmGpsMapLayer *self, cairo_t *cr,
-                        int width, int height,
-                        int map_x0, int map_y0, int zoom)
+                        int width, int height)
 {
-  OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->draw (self, cr, width, height,
-                                                map_x0, map_y0, zoom);
+  OSM_GPS_MAP_LAYER_GET_INTERFACE (self)->draw (self, cr, width, height);
 }
 
 gboolean

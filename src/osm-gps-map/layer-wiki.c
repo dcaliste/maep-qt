@@ -85,8 +85,7 @@ static void maep_wiki_context_finalize(GObject* obj);
 static void osm_gps_map_layer_interface_init(OsmGpsMapLayerIface *iface);
 static void maep_wiki_context_render(OsmGpsMapLayer *self, OsmGpsMap *map);
 static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
-                                   int width, int height,
-                                   int map_x0, int map_y0, int zoom);
+                                   int width, int height);
 static gboolean maep_wiki_context_busy(OsmGpsMapLayer *self);
 static gboolean maep_wiki_context_button(OsmGpsMapLayer *self, int x, int y, gboolean press);
 static void set_balloon (MaepWikiContextPrivate *priv,
@@ -190,10 +189,6 @@ static float get_distance(coord_t *c0, coord_t *c1) {
   return(aob * 6371000.0);     /* great circle radius in meters */
 }
 
-static int dist2pixel(OsmGpsMap *map, float m) {
-  return m/osm_gps_map_get_scale(map);
-}
-
 /* ------------- end of freeing ------------------ */
 
 static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
@@ -202,13 +197,14 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
   MaepWikiContextPrivate *priv = MAEP_WIKI_CONTEXT(self)->priv;
   MaepGeonamesEntry *nearest;
   coord_t coord;
-  float dst;
+  float dst, dist2pixel;
   gboolean is_in_balloon;
 
   if (!priv->map)
     return FALSE;
 
   coord = osm_gps_map_get_co_ordinates(priv->map, x, y);
+  dist2pixel = 1.f / osm_gps_map_get_scale(priv->map);
   is_in_balloon = FALSE;
 
   /* Test the baloon, if any. */
@@ -255,7 +251,7 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
     }
 
     /* check if click was close enough */
-    if(nearest && dist2pixel(priv->map, nearest_distance) >= ICON_SIZE/2)
+    if(nearest && (dist2pixel * nearest_distance >= ICON_SIZE/2))
       nearest = NULL;
     
     priv->balloon_src0 = nearest;
@@ -264,7 +260,7 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
     if (priv->balloon_src0)
       {
         dst = get_distance(&priv->balloon_src0->pos, &coord);
-        if (dist2pixel(priv->map, dst) < ICON_SIZE/2) {
+        if (dist2pixel * dst < ICON_SIZE/2) {
           priv->balloon_src = maep_geonames_entry_copy(priv->balloon_src0);
           set_balloon(priv, priv->balloon_src->pos.rlat,
                       priv->balloon_src->pos.rlon);
@@ -284,11 +280,10 @@ static void maep_wiki_context_render(OsmGpsMapLayer *self, OsmGpsMap *map)
 {
 }
 static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
-                                   int width, int height,
-                                   int map_x0, int map_y0, int zoom)
+                                   int width, int height)
 {
   GSList *list;
-  int w, h, x,y,pixel_x,pixel_y;
+  int w, h, pixel_x,pixel_y;
   MaepWikiContextPrivate *priv = MAEP_WIKI_CONTEXT(self)->priv;
 
   cairo_surface_t *cr_surf = icon_get_surface(G_OBJECT(self),
@@ -304,18 +299,13 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
       MaepGeonamesEntry *entry = (MaepGeonamesEntry*)list->data;
 
       // pixel_x,y, offsets
-      pixel_x = lon2pixel(zoom, entry->pos.rlon);
-      pixel_y = lat2pixel(zoom, entry->pos.rlat);
+      osm_gps_map_from_co_ordinates(priv->map, entry->pos, &pixel_x, &pixel_y);
 
-      x = pixel_x - map_x0;
-      y = pixel_y - map_y0;
+      g_message("Image %dx%d @: %f,%f (%d,%d)",
+                w, h, entry->pos.rlat, entry->pos.rlon, pixel_x, pixel_y);
 
-      g_message("Image %dx%d @: %f,%f (%d,%d,%d)",
-              w, h,
-              entry->pos.rlat, entry->pos.rlon,
-                x, y, zoom);
-
-      cairo_set_source_surface(cr, cr_surf, x - 0.5 * w, y - 0.5 * h);
+      cairo_set_source_surface(cr, cr_surf, pixel_x + EXTRA_BORDER - 0.5 * w,
+                               pixel_y + EXTRA_BORDER - 0.5 * h);
       cairo_paint(cr);
     }
 
@@ -323,19 +313,16 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
     {
       g_message("Draw balloon.");
 
-      pixel_x = lon2pixel(zoom, priv->balloon_src->pos.rlon);
-      pixel_y = lat2pixel(zoom, priv->balloon_src->pos.rlat);
+      osm_gps_map_from_co_ordinates(priv->map, priv->balloon_src->pos,
+                                    &pixel_x, &pixel_y);
 
-      x = pixel_x - map_x0;
-      y = pixel_y - map_y0;
-
-      render_balloon(priv, width, height, x - EXTRA_BORDER, y - EXTRA_BORDER);
-      priv->balloon.rect.x += x + priv->balloon.offset_x;
-      priv->balloon.rect.y += y + priv->balloon.offset_y;
+      render_balloon(priv, width, height, pixel_x, pixel_y);
+      priv->balloon.rect.x += pixel_x + EXTRA_BORDER + priv->balloon.offset_x;
+      priv->balloon.rect.y += pixel_y + EXTRA_BORDER + priv->balloon.offset_y;
 
       cairo_set_source_surface(cr, priv->balloon.surface, 
-                               x + priv->balloon.offset_x, 
-                               y + priv->balloon.offset_y);
+                               pixel_x + EXTRA_BORDER + priv->balloon.offset_x, 
+                               pixel_y + EXTRA_BORDER + priv->balloon.offset_y);
       cairo_paint(cr);
     }
 }
@@ -669,7 +656,7 @@ void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map)
       g_signal_connect(G_OBJECT(map), "changed",
                        G_CALLBACK(on_map_changed), context);
 
-    osm_gps_map_add_layer(context->priv->map, OSM_GPS_MAP_LAYER(context));
+    /* osm_gps_map_add_layer(context->priv->map, OSM_GPS_MAP_LAYER(context)); */
 
     /* only do request if map has a reasonable size. otherwise map may */
     /* still be in setup phase */

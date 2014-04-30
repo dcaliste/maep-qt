@@ -46,7 +46,7 @@ struct _OsmGpsMapLayerIface {
 
     void (*render) (OsmGpsMapLayer *self, OsmGpsMap *map);
     void (*draw) (OsmGpsMapLayer *self, cairo_t *cr,
-                  int width, int height, int map_x0, int map_y0, int zoom);
+                  int width, int height);
     gboolean (*busy) (OsmGpsMapLayer *self);
     gboolean (*button) (OsmGpsMapLayer *self, int x, int y, gboolean press);
 };
@@ -55,8 +55,7 @@ GType osm_gps_map_layer_get_type (void);
 
 void        osm_gps_map_layer_render (OsmGpsMapLayer *self, OsmGpsMap *map);
 void        osm_gps_map_layer_draw   (OsmGpsMapLayer *self, cairo_t *cr,
-                                      int width, int height,
-                                      int map_x0, int map_y0, int zoom);
+                                      int width, int height);
 gboolean    osm_gps_map_layer_busy   (OsmGpsMapLayer *self);
 gboolean    osm_gps_map_layer_button (OsmGpsMapLayer *self, int x, int y,
                                       gboolean press);
