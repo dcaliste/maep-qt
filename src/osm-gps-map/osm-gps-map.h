@@ -142,6 +142,8 @@ void        osm_gps_map_clear_images                (OsmGpsMap *map);
 void        osm_gps_map_draw_gps                    (OsmGpsMap *map, float latitude, float longitude, float heading);
 void        osm_gps_map_clear_gps                   (OsmGpsMap *map);
 coord_t     osm_gps_map_get_co_ordinates            (OsmGpsMap *map, int pixel_x, int pixel_y);
+void        osm_gps_map_from_co_ordinates           (OsmGpsMap *map, coord_t coord,
+                                                     int *pixel_x, int *pixel_y);
 void        osm_gps_map_screen_to_geographic        (OsmGpsMap *map, gint pixel_x, gint pixel_y, gfloat *latitude, gfloat *longitude);
 void        osm_gps_map_geographic_to_screen        (OsmGpsMap *map, gfloat latitude, gfloat longitude, gint *pixel_x, gint *pixel_y);
 void        osm_gps_map_scroll                      (OsmGpsMap *map, gint dx, gint dy);
@@ -152,8 +154,7 @@ void        osm_gps_map_remove_layer                (OsmGpsMap *map, OsmGpsMapLa
 cairo_surface_t* osm_gps_map_get_surface            (OsmGpsMap *map);
 void        osm_gps_map_set_viewport                (OsmGpsMap *map, guint width, guint height);
 void        osm_gps_map_blit                        (OsmGpsMap *map, cairo_t *cr,
-                                                     cairo_operator_t op,
-                                                     gint dx, gint dy);
+                                                     cairo_operator_t op);
 
 #ifdef ENABLE_OSD
 coord_t *osm_gps_map_get_gps (OsmGpsMap *map);

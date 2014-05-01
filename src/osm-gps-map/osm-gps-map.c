@@ -455,10 +455,10 @@ my_log_handler (const gchar * log_domain, GLogLevelFlags log_level, const gchar 
 }
 
 static float
-osm_gps_map_get_scale_at_lat(int zoom, float rlat)
+osm_gps_map_get_scale_at_lat(int zoom, gfloat factor, float rlat)
 {
     /* world at zoom 1 == 512 pixels */
-    return cos(rlat) * M_PI * OSM_EQ_RADIUS / (1<<(7+zoom));
+    return factor * cos(rlat) * M_PI * OSM_EQ_RADIUS / (1<<(7+zoom));
 }
 
 /* clears the trip list and all resources */
@@ -1312,8 +1312,7 @@ osm_gps_map_purge_cache (OsmGpsMap *map)
    g_hash_table_foreach_remove(priv->tile_cache, osm_gps_map_purge_cache_check, priv);
 }
 
-void osm_gps_map_blit(OsmGpsMap *map, cairo_t *cr, cairo_operator_t op,
-                      gint dx, gint dy)
+void osm_gps_map_blit(OsmGpsMap *map, cairo_t *cr, cairo_operator_t op)
 {
     OsmGpsMapPrivate *priv;
 
@@ -1323,13 +1322,12 @@ void osm_gps_map_blit(OsmGpsMap *map, cairo_t *cr, cairo_operator_t op,
     cairo_surface_flush(priv->cr_surf);
 
     cairo_save(cr);
-    cairo_translate(cr, - (priv->map_factor - 1.) * priv->viewport_width / 2.,
-                    - (priv->map_factor - 1.) * priv->viewport_height / 2.);
+    cairo_translate(cr,
+                    - (priv->map_factor - 1.) * priv->viewport_width * 0.5f,
+                    - (priv->map_factor - 1.) * priv->viewport_height * 0.5f);
     cairo_scale(cr, priv->map_factor, priv->map_factor);
 
-    cairo_set_source_surface(cr, priv->cr_surf,
-                             dx / priv->map_factor - EXTRA_BORDER,
-                             dy / priv->map_factor - EXTRA_BORDER);
+    cairo_set_source_surface(cr, priv->cr_surf, -EXTRA_BORDER, -EXTRA_BORDER);
     cairo_set_operator(cr, op);
     cairo_paint(cr);
 
@@ -1390,9 +1388,7 @@ osm_gps_map_redraw (OsmGpsMap *map)
         for(list = priv->layers; list != NULL; list = list->next) {
             OsmGpsMapLayer *layer = list->data;
             osm_gps_map_layer_draw(layer, priv->cr,
-                                   priv->viewport_width, priv->viewport_height,
-                                   priv->map_x - EXTRA_BORDER,
-                                   priv->map_y - EXTRA_BORDER, priv->map_zoom);
+                                   priv->viewport_width, priv->viewport_height);
         }
     }
 
@@ -2887,11 +2883,29 @@ coord_t
 osm_gps_map_get_co_ordinates (OsmGpsMap *map, int pixel_x, int pixel_y)
 {
     coord_t coord;
-    OsmGpsMapPrivate *priv = map->priv;
+    OsmGpsMapPrivate *priv;
 
-    coord.rlat = pixel2lat(priv->map_zoom, priv->map_y + pixel_y);
-    coord.rlon = pixel2lon(priv->map_zoom, priv->map_x + pixel_x);
+    g_return_val_if_fail(OSM_IS_GPS_MAP(map), coord);
+    priv = map->priv;
+
+    coord.rlat = pixel2lat(priv->map_zoom, priv->map_y + (pixel_y + (priv->map_factor - 1.f) * priv->viewport_height * 0.5f) / priv->map_factor);
+    coord.rlon = pixel2lon(priv->map_zoom, priv->map_x + (pixel_x + (priv->map_factor - 1.f) * priv->viewport_width * 0.5f) / priv->map_factor);
     return coord;
+}
+
+void
+osm_gps_map_from_co_ordinates (OsmGpsMap *map, coord_t coord,
+                               int *pixel_x, int *pixel_y)
+{
+    OsmGpsMapPrivate *priv;
+
+    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    priv = map->priv;
+
+    if (pixel_x)
+        *pixel_x = priv->map_factor * (lon2pixel(priv->map_zoom, coord.rlon) - priv->map_x) - (priv->map_factor - 1.f) * priv->viewport_width * 0.5f;
+    if (pixel_y)
+        *pixel_y = priv->map_factor * (lat2pixel(priv->map_zoom, coord.rlat) - priv->map_y) - (priv->map_factor - 1.f) * priv->viewport_height * 0.5f;
 }
 
 OsmGpsMap *
@@ -2942,7 +2956,7 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
     g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
 
-    g_message("scroll of %dx%d.", dx, dy);
+    g_message("scroll of %dx%d %g.", dx, dy, priv->map_factor);
     priv->map_x += dx / priv->map_factor;
     priv->map_y += dy / priv->map_factor;
     center_coord_update(map);
@@ -2962,7 +2976,8 @@ osm_gps_map_get_scale(OsmGpsMap *map)
     g_return_val_if_fail (OSM_IS_GPS_MAP (map), OSM_GPS_MAP_INVALID);
     priv = map->priv;
 
-    return osm_gps_map_get_scale_at_lat(priv->map_zoom, priv->center_rlat);
+    return osm_gps_map_get_scale_at_lat(priv->map_zoom, priv->map_factor,
+                                        priv->center_rlat);
 }
 
 cairo_surface_t*
