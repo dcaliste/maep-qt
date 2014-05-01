@@ -90,8 +90,8 @@ static gboolean maep_wiki_context_busy(OsmGpsMapLayer *self);
 static gboolean maep_wiki_context_button(OsmGpsMapLayer *self, int x, int y, gboolean press);
 static void set_balloon (MaepWikiContextPrivate *priv,
                          float latitude, float longitude);
-static void render_balloon(MaepWikiContextPrivate *priv,
-                           int width, int height, int xs, int ys);
+static gboolean render_balloon(MaepWikiContextPrivate *priv,
+                               int width, int height, int xs, int ys);
 static void clear_balloon (MaepWikiContextPrivate *priv);
 
 G_DEFINE_TYPE_WITH_CODE(MaepWikiContext, maep_wiki_context,
@@ -212,11 +212,12 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
       priv->balloon.rect.x != G_MAXINT && priv->balloon.rect.y != G_MAXINT)
     {
       is_in_balloon =
-        (x > priv->balloon.rect.x - EXTRA_BORDER) &&
-        (x < priv->balloon.rect.x - EXTRA_BORDER + priv->balloon.rect.w) &&
-        (y > priv->balloon.rect.y - EXTRA_BORDER) &&
-        (y < priv->balloon.rect.y - EXTRA_BORDER + priv->balloon.rect.h);
-      g_message("rect (%d) %dx%d , %dx%d at %dx%d", is_in_balloon, priv->balloon.rect.x - EXTRA_BORDER, priv->balloon.rect.y - EXTRA_BORDER,
+        (x > priv->balloon.rect.x) &&
+        (x < priv->balloon.rect.x + priv->balloon.rect.w) &&
+        (y > priv->balloon.rect.y) &&
+        (y < priv->balloon.rect.y + priv->balloon.rect.h);
+      g_message("rect (%d) %dx%d , %dx%d at %dx%d", is_in_balloon,
+                priv->balloon.rect.x, priv->balloon.rect.y,
                 priv->balloon.rect.w, priv->balloon.rect.h, x, y);
       if (is_in_balloon && !press)
         g_signal_emit(self, _signals[ENTRY_SELECTED_SIGNAL], 0,
@@ -292,8 +293,10 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
   w = cairo_image_surface_get_width(cr_surf);
   h = cairo_image_surface_get_height(cr_surf);
 
-  g_message("Draw a list of %d Wiki icons.", g_slist_length(priv->list));
+  g_message("Draw a list of %d Wiki icons (%dx%d).",
+            g_slist_length(priv->list), w, h);
 
+  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
   for(list = priv->list; list != NULL; list = list->next)
     {
       MaepGeonamesEntry *entry = (MaepGeonamesEntry*)list->data;
@@ -304,8 +307,8 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
       g_message("Image %dx%d @: %f,%f (%d,%d)",
                 w, h, entry->pos.rlat, entry->pos.rlon, pixel_x, pixel_y);
 
-      cairo_set_source_surface(cr, cr_surf, pixel_x + EXTRA_BORDER - 0.5 * w,
-                               pixel_y + EXTRA_BORDER - 0.5 * h);
+      cairo_set_source_surface(cr, cr_surf, pixel_x - 0.5 * w,
+                               pixel_y - 0.5 * h);
       cairo_paint(cr);
     }
 
@@ -316,13 +319,15 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
       osm_gps_map_from_co_ordinates(priv->map, priv->balloon_src->pos,
                                     &pixel_x, &pixel_y);
 
-      render_balloon(priv, width, height, pixel_x, pixel_y);
-      priv->balloon.rect.x += pixel_x + EXTRA_BORDER + priv->balloon.offset_x;
-      priv->balloon.rect.y += pixel_y + EXTRA_BORDER + priv->balloon.offset_y;
+      if (render_balloon(priv, width, height, pixel_x, pixel_y))
+        {
+          priv->balloon.rect.x += pixel_x + priv->balloon.offset_x;
+          priv->balloon.rect.y += pixel_y + priv->balloon.offset_y;
+        }
 
       cairo_set_source_surface(cr, priv->balloon.surface, 
-                               pixel_x + EXTRA_BORDER + priv->balloon.offset_x, 
-                               pixel_y + EXTRA_BORDER + priv->balloon.offset_y);
+                               pixel_x + priv->balloon.offset_x, 
+                               pixel_y + priv->balloon.offset_y);
       cairo_paint(cr);
     }
 }
@@ -404,12 +409,12 @@ osm_gps_map_draw_balloon_shape (cairo_t *cr, int x0, int y0, int x1, int y1,
     cairo_close_path (cr);
 }
 
-static void
+static gboolean
 render_balloon(MaepWikiContextPrivate *priv, int width, int height, int xs, int ys) {
   cairo_text_extents_t extents;
 
   if(!priv->balloon.surface)
-    return;
+    return FALSE;
 
   gint x0 = 1, y0 = 1;
 
@@ -448,7 +453,7 @@ render_balloon(MaepWikiContextPrivate *priv, int width, int height, int xs, int 
   /* if required orientation equals current one, then don't render */
   /* anything */
   if(orientation == priv->balloon.orientation) 
-    return;
+    return FALSE;
 
   priv->balloon.orientation = orientation;
 
@@ -476,10 +481,10 @@ render_balloon(MaepWikiContextPrivate *priv, int width, int height, int xs, int 
                                   pointer_x1 + BALLOON_SHADOW);
 
   cairo_set_source_rgba (cr, 0, 0, 0, BALLOON_SHADOW_TRANSPARENCY);
-  cairo_fill_preserve (cr);
-  cairo_set_source_rgba (cr, 1, 0, 0, 1.0);
-  cairo_set_line_width (cr, 0);
-  cairo_stroke (cr);
+  cairo_fill (cr);
+  /* cairo_set_source_rgba (cr, 1, 0, 0, 1.0); */
+  /* cairo_set_line_width (cr, 0); */
+  /* cairo_stroke (cr); */
     
   /* --------- draw main shape ----------- */
   osm_gps_map_draw_balloon_shape (cr, x0, y0, x1, y1,
@@ -492,7 +497,7 @@ render_balloon(MaepWikiContextPrivate *priv, int width, int height, int xs, int 
   cairo_set_line_width (cr, 1);
   cairo_stroke (cr);
 
-  g_message("Draw balloon.");
+  g_message("Draw balloon %dx%d.", priv->balloon.rect.x, priv->balloon.rect.y);
     
   cairo_select_font_face (cr, "Sans",
                           CAIRO_FONT_SLANT_NORMAL,
@@ -510,6 +515,8 @@ render_balloon(MaepWikiContextPrivate *priv, int width, int height, int xs, int 
   cairo_stroke (cr);
 
   cairo_destroy(cr);
+
+  return TRUE;
 }
 
 static void set_balloon (MaepWikiContextPrivate *priv,
@@ -615,6 +622,7 @@ wiki_timer_trigger(MaepWikiContext *context) {
 }
 
 static void on_map_changed(OsmGpsMap *map, gpointer data ) {
+  g_message("got map changed.");
   wiki_timer_trigger((MaepWikiContext*)data);
 }
 
