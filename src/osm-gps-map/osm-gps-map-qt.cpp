@@ -17,6 +17,7 @@
 
 #include "osm-gps-map-qt.h"
 #include "osm-gps-map.h"
+#include "osm-gps-map-layer.h"
 #undef WITH_GTK
 #include "net_io.h"
 
@@ -363,6 +364,8 @@ void Maep::GpsMap::ensureOverlay(Source source)
 
   g_object_bind_property(G_OBJECT(map), "zoom", G_OBJECT(overlay), "zoom",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  g_object_bind_property(G_OBJECT(map), "factor", G_OBJECT(overlay), "factor",
+                         (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
   /* Workaround to bind lat and lon together. */
   g_signal_connect_object(G_OBJECT(map), "notify::latitude",
                           G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
@@ -427,16 +430,29 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
+  guint w, h;
+  gfloat factor;
+
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_paint(cr);
 
-  // g_message("update at drag %dx%d", drag_mouse_dx, drag_mouse_dy);
-  osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE, drag_mouse_dx, drag_mouse_dy);
+  cairo_save(cr);
+  factor = 1.f / osm_gps_map_get_factor(map);
+  cairo_translate(cr, drag_mouse_dx, drag_mouse_dy);
+  // g_message("update at drag %dx%d %g", drag_mouse_dx, drag_mouse_dy, 1.f / factor);
+  osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE);
   if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
-    osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER, drag_mouse_dx, drag_mouse_dy);
+    osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER);
+
+  if (wiki_enabled)
+    {
+      g_object_get(G_OBJECT(map), "viewport-width", &w,
+                   "viewport-height", &h, NULL);
+      osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(wiki), cr, w, h);
+    }
+  cairo_restore(cr);
 
 #ifdef ENABLE_OSD
-  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
   osd->draw(osd, cr);
 #endif
 
@@ -516,13 +532,21 @@ void Maep::GpsMap::paint(QPainter *painter)
 
 void Maep::GpsMap::zoomIn()
 {
+  gfloat factor;
+
+  g_object_get(G_OBJECT(map), "factor", &factor, NULL);
   osm_gps_map_set_factor(map, 1.f);
-  osm_gps_map_zoom_in(map);
+  if (factor >= 1.)
+    osm_gps_map_zoom_in(map);
 }
 void Maep::GpsMap::zoomOut()
 {
+  gfloat factor;
+
+  g_object_get(G_OBJECT(map), "factor", &factor, NULL);
   osm_gps_map_set_factor(map, 1.f);
-  osm_gps_map_zoom_out(map);
+  if (factor <= 1.)
+    osm_gps_map_zoom_out(map);
 }
 
 #define OSM_GPS_MAP_SCROLL_STEP     (10)
@@ -701,7 +725,7 @@ void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
   case QEvent::TouchEnd:
     {
       QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
-      // g_message("touch end %d", haveMouseEvent);
+      // g_message("touch end %d", dragging);
       if (dragging)
         {
           dragging = FALSE;
