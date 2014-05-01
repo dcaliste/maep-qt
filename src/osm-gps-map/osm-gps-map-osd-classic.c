@@ -86,6 +86,7 @@ typedef struct {
     struct {
         cairo_surface_t *surface;
         int zoom;
+        gfloat factor;
     } scale;
 #endif
         
@@ -1819,12 +1820,14 @@ osd_render_scale(osm_gps_map_osd_t *osd)
         return;
 
     /* this only needs to be rendered if the zoom has changed */
-    gint zoom;
-    g_object_get(OSM_GPS_MAP(osd->map), "zoom", &zoom, NULL);
-    if(zoom == priv->scale.zoom)
-        return;
+    /* gint zoom; */
+    /* gfloat factor; */
+    /* g_object_get(OSM_GPS_MAP(osd->map), "zoom", &zoom, "factor", &factor, NULL); */
+    /* if(zoom == priv->scale.zoom && factor == priv->scale.factor) */
+    /*     return; */
 
-    priv->scale.zoom = zoom;
+    /* priv->scale.zoom = zoom; */
+    /* priv->scale.factor = factor; */
 
     float m_per_pix = osm_gps_map_get_scale(OSM_GPS_MAP(osd->map));
 
@@ -2119,6 +2122,7 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 
                                        OSD_SCALE_W, OSD_SCALE_H);
         priv->scale.zoom = -1;
+        priv->scale.factor = 0.f;
         osd_render_scale(osd);
     }
 #endif
@@ -2143,6 +2147,8 @@ osd_draw(osm_gps_map_osd_t *osd, cairo_t *cr)
         osd_render_coordinates(osd);
     }
 #endif
+
+    cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 
     // now draw this onto the original context 
     gint x, y;
@@ -2355,6 +2361,8 @@ osm_gps_map_osd_classic_init(OsmGpsMap *map)
     g_object_ref(map);
 #ifdef OSD_SCALE
     g_signal_connect(G_OBJECT(map), "notify::zoom",
+                     G_CALLBACK(onZoom), osd_classic);
+    g_signal_connect(G_OBJECT(map), "notify::factor",
                      G_CALLBACK(onZoom), osd_classic);
 #endif
 #ifdef OSD_COORDINATES
