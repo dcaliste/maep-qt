@@ -35,7 +35,7 @@ struct _MaepWikiContextPrivate
 
   OsmGpsMap *map;
   GSList *list;
-  gulong timer_id, changed_handler_id;
+  gulong timer_id, mapy_handler_id, factor_handler_id;
   gboolean downloading;
   
   /* Just a pointer on a list entry. */
@@ -73,6 +73,7 @@ struct _MaepWikiContextPrivate
 
 enum {
   ENTRY_SELECTED_SIGNAL,
+  DIRTY_SIGNAL,
   LAST_SIGNAL
 };
 static guint _signals[LAST_SIGNAL] = { 0 };
@@ -112,6 +113,12 @@ static void maep_wiki_context_class_init(MaepWikiContextClass *klass)
                   0 , NULL, NULL, g_cclosure_marshal_VOID__POINTER,
                   G_TYPE_NONE, 1, G_TYPE_POINTER);
 
+  _signals[DIRTY_SIGNAL] = 
+    g_signal_new ("dirty", G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                  0 , NULL, NULL, g_cclosure_marshal_VOID__VOID,
+                  G_TYPE_NONE, 0);
+
   g_type_class_add_private(klass, sizeof(MaepWikiContextPrivate));
 
   surface_test_font = 
@@ -137,7 +144,8 @@ static void maep_wiki_context_init(MaepWikiContext *obj)
   obj->priv->downloading = FALSE;
   obj->priv->balloon_src0 = NULL;
   obj->priv->balloon_src  = NULL;
-  obj->priv->changed_handler_id = 0;
+  obj->priv->mapy_handler_id = 0;
+  obj->priv->factor_handler_id = 0;
 }
 static void maep_wiki_context_dispose(GObject* obj)
 {
@@ -147,8 +155,8 @@ static void maep_wiki_context_dispose(GObject* obj)
     return;
   priv->dispose_has_run = TRUE;
 
-  if (priv->changed_handler_id)
-    g_signal_handler_disconnect(priv->map, priv->changed_handler_id);
+  if (priv->mapy_handler_id)
+    g_signal_handler_disconnect(priv->map, priv->mapy_handler_id);
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(maep_wiki_context_parent_class)->dispose(obj);
@@ -225,7 +233,7 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
       if (!press)
         {
           priv->balloon_src = NULL;
-          osm_gps_map_layer_changed(priv->map, self);
+          g_signal_emit(self, _signals[DIRTY_SIGNAL], 0, NULL);
         }
       if (is_in_balloon)
         return TRUE;
@@ -265,7 +273,7 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
           priv->balloon_src = maep_geonames_entry_copy(priv->balloon_src0);
           set_balloon(priv, priv->balloon_src->pos.rlat,
                       priv->balloon_src->pos.rlon);
-          osm_gps_map_layer_changed(priv->map, self);
+          g_signal_emit(self, _signals[DIRTY_SIGNAL], 0, NULL);
         }
         else
           priv->balloon_src0 = NULL;
@@ -564,7 +572,7 @@ static void geonames_wiki_cb(MaepWikiContext *context, GSList *list, GError *err
       
       /* render all icons */
       context->priv->list = list;
-      osm_gps_map_layer_changed(context->priv->map, OSM_GPS_MAP_LAYER(context));
+      g_signal_emit(context, _signals[DIRTY_SIGNAL], 0, NULL);
     }
   else
     {
@@ -621,20 +629,13 @@ wiki_timer_trigger(MaepWikiContext *context) {
     g_timeout_add_seconds(WIKI_UPDATE_TIMEOUT, wiki_update, context);
 }
 
-static void on_map_changed(OsmGpsMap *map, gpointer data ) {
-  g_message("got map changed.");
+static void on_map_changed(OsmGpsMap *map, GParamSpec *pspec, gpointer data ) {
   wiki_timer_trigger((MaepWikiContext*)data);
 }
 
 MaepWikiContext* maep_wiki_context_new(void)
 {
-  MaepWikiContext *context;
-
-  /* create and register a context */
-  g_message("create wiki context");
-  context = g_object_new(MAEP_TYPE_WIKI_CONTEXT, NULL);
-
-  return context;
+  return g_object_new(MAEP_TYPE_WIKI_CONTEXT, NULL);
 }
 
 /* the wikimedia icons are automagically updated after one second */
@@ -647,21 +648,27 @@ void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map)
 
   if (context->priv->map)
     {
-      osm_gps_map_remove_layer(context->priv->map, OSM_GPS_MAP_LAYER(context));
+      /* osm_gps_map_remove_layer(context->priv->map, OSM_GPS_MAP_LAYER(context)); */
       g_signal_handler_disconnect(G_OBJECT(context->priv->map),
-                                  context->priv->changed_handler_id);
+                                  context->priv->mapy_handler_id);
+      g_signal_handler_disconnect(G_OBJECT(context->priv->map),
+                                  context->priv->factor_handler_id);
       g_object_unref(context->priv->map);
     }
   context->priv->map = NULL;
-  context->priv->changed_handler_id = 0;
+  context->priv->mapy_handler_id = 0;
+  context->priv->factor_handler_id = 0;
 
   if(map) {
     g_object_ref(G_OBJECT(map));
     context->priv->map = map;
 
     /* trigger wiki data update either by "changed" events ... */
-    context->priv->changed_handler_id =
-      g_signal_connect(G_OBJECT(map), "changed",
+    context->priv->mapy_handler_id =
+      g_signal_connect(G_OBJECT(map), "notify::map_y",
+                       G_CALLBACK(on_map_changed), context);
+    context->priv->factor_handler_id =
+      g_signal_connect(G_OBJECT(map), "notify::factor",
                        G_CALLBACK(on_map_changed), context);
 
     /* osm_gps_map_add_layer(context->priv->map, OSM_GPS_MAP_LAYER(context)); */

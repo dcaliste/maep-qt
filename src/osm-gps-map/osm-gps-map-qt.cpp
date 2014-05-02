@@ -236,6 +236,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   wiki_entry = NULL;
   g_signal_connect_swapped(G_OBJECT(wiki), "entry-selected",
                            G_CALLBACK(osm_gps_map_qt_wiki), this);
+  g_signal_connect_swapped(G_OBJECT(wiki), "dirty",
+                           G_CALLBACK(osm_gps_map_qt_repaint), this);
   search = maep_search_context_new();
   g_signal_connect_swapped(G_OBJECT(search), "places-available",
                            G_CALLBACK(osm_gps_map_qt_places), this);
@@ -431,13 +433,11 @@ bool Maep::GpsMap::mapSized()
 void Maep::GpsMap::mapUpdate()
 {
   guint w, h;
-  gfloat factor;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_paint(cr);
 
   cairo_save(cr);
-  factor = 1.f / osm_gps_map_get_factor(map);
   cairo_translate(cr, drag_mouse_dx, drag_mouse_dy);
   // g_message("update at drag %dx%d %g", drag_mouse_dx, drag_mouse_dy, 1.f / factor);
   osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE);
@@ -968,8 +968,7 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 
   if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
     g_object_set(map, "gps-track-highlight-radius",
-                 (int)(info.attribute(QGeoPositionInfo::HorizontalAccuracy) /
-                       osm_gps_map_get_scale(map)), NULL);
+                 (int)(info.attribute(QGeoPositionInfo::HorizontalAccuracy)), NULL);
   if (info.hasAttribute(QGeoPositionInfo::Direction))
     track = info.attribute(QGeoPositionInfo::Direction);
   else if (lastGps.isValid())
