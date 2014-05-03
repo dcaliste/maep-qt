@@ -32,6 +32,7 @@
 #include "track.h"
 #include "osm-gps-map/osm-gps-map.h"
 #include "osm-gps-map/layer-wiki.h"
+#include "osm-gps-map/layer-gps.h"
 #include "osm-gps-map/osm-gps-map-osd-classic.h"
 
 namespace Maep {
@@ -503,6 +504,7 @@ class GpsMap : public QQuickPaintedItem
   void ensureOverlay(Source source);
   bool mapSized();
   void gpsToTrack();
+  void unsetGps();
 
   bool screenRotation;
   OsmGpsMap *map, *overlay;
@@ -533,6 +535,7 @@ class GpsMap : public QQuickPaintedItem
   unsigned int gpsRefreshRate_;
   QGeoPositionInfoSource *gps;
   QGeoPositionInfo lastGps;
+  MaepLayerGps *lgps;
 
   /* Tracks */
   bool track_capture;

@@ -27,8 +27,8 @@ DEFINES += SAILFISH
 DEFINES += VERSION=\"\\\"\"1.4.0\"\\\"\"
 
 # Input
-HEADERS += misc.h net_io.h geonames.h search.h track.h img_loader.h icon.h converter.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-layer.h osm-gps-map/osm-gps-map-qt.h osm-gps-map/osm-gps-map-osd-classic.h osm-gps-map/layer-wiki.h
-SOURCES += misc.c net_io.c geonames.c search.c track.c img_loader.c icon.c converter.c osm-gps-map/osm-gps-map.c osm-gps-map/osm-gps-map-layer.c osm-gps-map/osm-gps-map-qt.cpp osm-gps-map/osm-gps-map-osd-classic.c osm-gps-map/layer-wiki.c main.cpp
+HEADERS += misc.h net_io.h geonames.h search.h track.h img_loader.h icon.h converter.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-layer.h osm-gps-map/osm-gps-map-qt.h osm-gps-map/osm-gps-map-osd-classic.h osm-gps-map/layer-wiki.h osm-gps-map/layer-gps.h
+SOURCES += misc.c net_io.c geonames.c search.c track.c img_loader.c icon.c converter.c osm-gps-map/osm-gps-map.c osm-gps-map/osm-gps-map-layer.c osm-gps-map/osm-gps-map-qt.cpp osm-gps-map/osm-gps-map-osd-classic.c osm-gps-map/layer-wiki.c osm-gps-map/layer-gps.c main.cpp
 
 # For Harbour restrictions
 QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib

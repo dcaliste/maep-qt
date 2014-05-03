@@ -86,7 +86,7 @@ static void maep_wiki_context_finalize(GObject* obj);
 static void osm_gps_map_layer_interface_init(OsmGpsMapLayerIface *iface);
 static void maep_wiki_context_render(OsmGpsMapLayer *self, OsmGpsMap *map);
 static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
-                                   int width, int height);
+                                   OsmGpsMap *map);
 static gboolean maep_wiki_context_busy(OsmGpsMapLayer *self);
 static gboolean maep_wiki_context_button(OsmGpsMapLayer *self, int x, int y, gboolean press);
 static void set_balloon (MaepWikiContextPrivate *priv,
@@ -289,10 +289,11 @@ static void maep_wiki_context_render(OsmGpsMapLayer *self, OsmGpsMap *map)
 {
 }
 static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
-                                   int width, int height)
+                                   OsmGpsMap *map)
 {
   GSList *list;
   int w, h, pixel_x,pixel_y;
+  guint width, height;
   MaepWikiContextPrivate *priv = MAEP_WIKI_CONTEXT(self)->priv;
 
   cairo_surface_t *cr_surf = icon_get_surface(G_OBJECT(self),
@@ -301,8 +302,8 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
   w = cairo_image_surface_get_width(cr_surf);
   h = cairo_image_surface_get_height(cr_surf);
 
-  g_message("Draw a list of %d Wiki icons (%dx%d).",
-            g_slist_length(priv->list), w, h);
+  /* g_message("Draw a list of %d Wiki icons (%dx%d).", */
+  /*           g_slist_length(priv->list), w, h); */
 
   cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
   for(list = priv->list; list != NULL; list = list->next)
@@ -310,7 +311,7 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
       MaepGeonamesEntry *entry = (MaepGeonamesEntry*)list->data;
 
       // pixel_x,y, offsets
-      osm_gps_map_from_co_ordinates(priv->map, entry->pos, &pixel_x, &pixel_y);
+      osm_gps_map_from_co_ordinates(map, &entry->pos, &pixel_x, &pixel_y);
 
       g_message("Image %dx%d @: %f,%f (%d,%d)",
                 w, h, entry->pos.rlat, entry->pos.rlon, pixel_x, pixel_y);
@@ -324,8 +325,10 @@ static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
     {
       g_message("Draw balloon.");
 
-      osm_gps_map_from_co_ordinates(priv->map, priv->balloon_src->pos,
+      osm_gps_map_from_co_ordinates(map, &priv->balloon_src->pos,
                                     &pixel_x, &pixel_y);
+      g_object_get(G_OBJECT(map), "viewport-width", &width,
+                   "viewport-height", &height, NULL);
 
       if (render_balloon(priv, width, height, pixel_x, pixel_y))
         {

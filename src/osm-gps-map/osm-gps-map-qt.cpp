@@ -274,6 +274,9 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   else
     g_message("no gps source...");
   lastGps = QGeoPositionInfo();
+  lgps = maep_layer_gps_new();
+  g_signal_connect_swapped(G_OBJECT(lgps), "dirty",
+                           G_CALLBACK(osm_gps_map_qt_repaint), this);
 
   track_capture = track;
   track_current = NULL;
@@ -316,6 +319,7 @@ Maep::GpsMap::~GpsMap()
     delete(gps);
   if (track_current && track_current->parent() == this)
     delete(track_current);
+  g_object_unref(lgps);
 
   g_object_unref(map);
 
@@ -432,7 +436,8 @@ bool Maep::GpsMap::mapSized()
 
 void Maep::GpsMap::mapUpdate()
 {
-  guint w, h;
+  if (!cr)
+    return;
 
   cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
   cairo_paint(cr);
@@ -444,12 +449,9 @@ void Maep::GpsMap::mapUpdate()
   if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
     osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER);
 
+  osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(lgps), cr, map);
   if (wiki_enabled)
-    {
-      g_object_get(G_OBJECT(map), "viewport-width", &w,
-                   "viewport-height", &h, NULL);
-      osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(wiki), cr, w, h);
-    }
+    osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(wiki), cr, map);
   cairo_restore(cr);
 
 #ifdef ENABLE_OSD
@@ -964,41 +966,48 @@ static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, O
 
 void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
 {
-  float track;
+  float track, hprec;
 
+  // g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
+  //           info.coordinate().longitude(), track,
+  //           info.attribute(QGeoPositionInfo::HorizontalAccuracy));
+
+  // Redraw GPS position.
+  maep_layer_gps_set_active(lgps, TRUE);
+  hprec = 0.;
   if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
-    g_object_set(map, "gps-track-highlight-radius",
-                 (int)(info.attribute(QGeoPositionInfo::HorizontalAccuracy)), NULL);
+    hprec = info.attribute(QGeoPositionInfo::HorizontalAccuracy);
+  track = OSM_GPS_MAP_INVALID;
   if (info.hasAttribute(QGeoPositionInfo::Direction))
     track = info.attribute(QGeoPositionInfo::Direction);
   else if (lastGps.isValid())
     /* Approximate heading with last known position */
     track = lastGps.coordinate().azimuthTo(info.coordinate());
-  else
-    track = OSM_GPS_MAP_INVALID;
-  // g_message("position is %f %f, heading %g, h_acc %g", info.coordinate().latitude(),
-  //           info.coordinate().longitude(), track,
-  //           info.attribute(QGeoPositionInfo::HorizontalAccuracy));
+  maep_layer_gps_set_coordinates(lgps, info.coordinate().latitude(),
+                                 info.coordinate().longitude(), hprec, track);
+  // To generate auto-center if necessary.
+  osm_gps_map_set_gps(map, info.coordinate().latitude(),
+                      info.coordinate().longitude(), track);
 
   lastGps = info;
   emit gpsCoordinateChanged();
-
-  osm_gps_map_draw_gps(map, info.coordinate().latitude(),
-                       info.coordinate().longitude(), track);
 
   // Add track capture, if any.
   if (track_capture)
     gpsToTrack();
 }
-void Maep::GpsMap::positionLost()
+void Maep::GpsMap::unsetGps()
 {
   lastGps = QGeoPositionInfo();
   emit gpsCoordinateChanged();
 
-  osm_gps_map_clear_gps(map);
-
+  maep_layer_gps_set_active(lgps, FALSE);
+}
+void Maep::GpsMap::positionLost()
+{
   if (track_capture && track_current)
     track_current->finalizeSegment();
+  unsetGps();
 }
 void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
 {
@@ -1015,9 +1024,7 @@ void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
   if (rate == 0 && gps)
     {
       gps->stopUpdates();
-      lastGps = QGeoPositionInfo();
-      emit gpsCoordinateChanged();
-      osm_gps_map_clear_gps(map);
+      unsetGps();
     }
   else if (gps)
     {

@@ -458,7 +458,7 @@ static float
 osm_gps_map_get_scale_at_lat(int zoom, gfloat factor, float rlat)
 {
     /* world at zoom 1 == 512 pixels */
-    return factor * cos(rlat) * M_PI * OSM_EQ_RADIUS / (1<<(7+zoom));
+    return cos(rlat) * M_PI * OSM_EQ_RADIUS / (1<<(7+zoom)) / factor;
 }
 
 /* clears the trip list and all resources */
@@ -621,7 +621,7 @@ osm_gps_map_draw_gps_point (OsmGpsMap *map)
     if (priv->gps_valid) {
         int map_x0, map_y0;
         int x, y;
-        int r = priv->ui_gps_point_inner_radius;
+        int r = priv->ui_gps_point_inner_radius / priv->map_factor;
         int r2 = priv->ui_gps_point_outer_radius;
         int mr = MAX(3*r,r2);
         cairo_rectangle_int_t rect;
@@ -634,6 +634,9 @@ osm_gps_map_draw_gps_point (OsmGpsMap *map)
 
         // draw transparent area
         if (r2 > 0) {
+            /* Transform meters to pixel at current zoom and factor. */
+            r2 /= osm_gps_map_get_scale_at_lat(priv->map_zoom, priv->map_factor,
+                                               priv->gps->rlat);
             cairo_set_line_width (priv->cr, 1.5);
             cairo_set_source_rgba (priv->cr, 0.75, 0.75, 0.75, 0.4);
             cairo_arc (priv->cr, x, y, r2, 0, 2 * M_PI);
@@ -1338,6 +1341,7 @@ static gboolean
 osm_gps_map_redraw (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
+    GSList *list;
 
     /* on diablo the map comes up at 1x1 pixel size and */
     /* isn't really usable. we'll just ignore this ... */
@@ -1356,7 +1360,6 @@ osm_gps_map_redraw (OsmGpsMap *map)
     /* some animation or the like. This is to keep the animation */
     /* fluid */
     if (priv->layers) {
-        GSList *list;
         for(list = priv->layers; list != NULL; list = list->next) {
             OsmGpsMapLayer *layer = list->data;
             if (osm_gps_map_layer_busy(layer))
@@ -1383,14 +1386,8 @@ osm_gps_map_redraw (OsmGpsMap *map)
     osm_gps_map_draw_gps_point(map);
     osm_gps_map_print_images(map);
 
-    if (priv->layers) {
-        GSList *list;
-        for(list = priv->layers; list != NULL; list = list->next) {
-            OsmGpsMapLayer *layer = list->data;
-            osm_gps_map_layer_draw(layer, priv->cr,
-                                   priv->viewport_width, priv->viewport_height);
-        }
-    }
+    for(list = priv->layers; list != NULL; list = list->next)
+        osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(list->data), priv->cr, map);
 
     osm_gps_map_purge_cache(map);
 
@@ -1741,6 +1738,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             priv->ui_gps_point_inner_radius = g_value_get_int (value);
             break;
         case PROP_GPS_POINT_R2:
+            /* The value is given in meters. */
             priv->ui_gps_point_outer_radius = g_value_get_int (value);
             break;
         case PROP_MAP_SOURCE: {
@@ -2593,8 +2591,6 @@ static gboolean _set_zoom(OsmGpsMap *map, int zoom)
     zoom_old = priv->map_zoom;
     //constrain zoom min_zoom -> max_zoom
     priv->map_zoom = CLAMP(zoom, priv->min_zoom, priv->max_zoom);
-    /* adjust gps precision indicator */
-    priv->ui_gps_point_outer_radius *= pow(2, priv->map_zoom-zoom_old);
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_ZOOM]);
 
     return TRUE;
@@ -2817,7 +2813,7 @@ osm_gps_map_clear_images (OsmGpsMap *map)
 }
 
 void
-osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float heading)
+osm_gps_map_set_gps (OsmGpsMap *map, float latitude, float longitude, float heading)
 {
     OsmGpsMapPrivate *priv;
 
@@ -2826,7 +2822,6 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
 
     priv->gps->rlat = deg2rad(latitude);
     priv->gps->rlon = deg2rad(longitude);
-    priv->gps_valid = TRUE;
     priv->gps_heading = deg2rad(heading);
 
     //If trip marker add to list of gps points.
@@ -2847,34 +2842,34 @@ osm_gps_map_draw_gps (OsmGpsMap *map, float latitude, float longitude, float hea
     //Automatically center the map if the track approaches the edge
     if(priv->map_auto_center)   {
         // pixel_x,y, offsets
-        int pixel_x = lon2pixel(priv->map_zoom, priv->gps->rlon);
-        int pixel_y = lat2pixel(priv->map_zoom, priv->gps->rlat);
-        int x = pixel_x - priv->map_x;
-        int y = pixel_y - priv->map_y;
+        int x, y;
         int width = priv->viewport_width;
         int height = priv->viewport_height;
+
+        osm_gps_map_from_co_ordinates(map, priv->gps, &x, &y);
         if( x < (width/2 - width/8)     || x > (width/2 + width/8)  ||
             y < (height/2 - height/8)   || y > (height/2 + height/8)) {
-
-            priv->map_x = pixel_x - width/2;
-            priv->map_y = pixel_y - height/2;
-            center_coord_update(map);
+            if (_set_center(map, priv->gps->rlat, priv->gps->rlon))
+                _update_screen_pos(map);
         }
     }
 
     // this redraws the map (including the gps track, and adjusts the
     // map center if it was changed
-    if (!priv->idle_map_redraw)
+    if (!priv->idle_map_redraw && priv->gps_valid)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
 
 void
-osm_gps_map_clear_gps (OsmGpsMap *map)
+osm_gps_map_draw_gps (OsmGpsMap *map, gboolean status)
 {
-    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    OsmGpsMapPrivate *priv;
 
-    map->priv->gps_valid = FALSE;
-    osm_gps_map_free_trip(map);
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+    priv = map->priv;
+
+    priv->gps_valid = status;
+    
     if (!map->priv->idle_map_redraw)
         map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
@@ -2894,18 +2889,18 @@ osm_gps_map_get_co_ordinates (OsmGpsMap *map, int pixel_x, int pixel_y)
 }
 
 void
-osm_gps_map_from_co_ordinates (OsmGpsMap *map, coord_t coord,
+osm_gps_map_from_co_ordinates (OsmGpsMap *map, coord_t *coord,
                                int *pixel_x, int *pixel_y)
 {
     OsmGpsMapPrivate *priv;
 
-    g_return_if_fail(OSM_IS_GPS_MAP(map));
+    g_return_if_fail(OSM_IS_GPS_MAP(map) && coord);
     priv = map->priv;
 
     if (pixel_x)
-        *pixel_x = priv->map_factor * (lon2pixel(priv->map_zoom, coord.rlon) - priv->map_x) - (priv->map_factor - 1.f) * priv->viewport_width * 0.5f;
+        *pixel_x = priv->map_factor * (lon2pixel(priv->map_zoom, coord->rlon) - priv->map_x) - (priv->map_factor - 1.f) * priv->viewport_width * 0.5f;
     if (pixel_y)
-        *pixel_y = priv->map_factor * (lat2pixel(priv->map_zoom, coord.rlat) - priv->map_y) - (priv->map_factor - 1.f) * priv->viewport_height * 0.5f;
+        *pixel_y = priv->map_factor * (lat2pixel(priv->map_zoom, coord->rlat) - priv->map_y) - (priv->map_factor - 1.f) * priv->viewport_height * 0.5f;
 }
 
 OsmGpsMap *
@@ -2956,7 +2951,7 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
     g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
 
-    g_message("scroll of %dx%d %g.", dx, dy, priv->map_factor);
+    /* g_message("scroll of %dx%d %g.", dx, dy, priv->map_factor); */
     priv->map_x += dx / priv->map_factor;
     priv->map_y += dy / priv->map_factor;
     center_coord_update(map);
