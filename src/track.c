@@ -203,6 +203,8 @@ static void track_dispose(GObject *obj)
     return;
   MAEP_GEODATA(obj)->priv->dispose_has_run = TRUE;
 
+  g_message("dispose track.");
+
   /* Chain up to the parent class */
   G_OBJECT_CLASS(maep_geodata_parent_class)->dispose(obj);
 }
@@ -1123,6 +1125,7 @@ void maep_geodata_track_finalize_segment(MaepGeodata *track_state)
 {
   g_return_if_fail(MAEP_IS_GEODATA(track_state));
 
+  g_message("track: finalize segment.");
   track_state->priv->current_seg = NULL;
 }
 
@@ -1153,7 +1156,8 @@ void maep_geodata_add_trackpoint(MaepGeodata *track_state,
   track_state->priv->dirty = TRUE;
   track_state->priv->metricLength +=
     _seg_add_point(seg, &new_point, track_state->priv->metricAccuracy);
-  g_message("gps: creating new point %g", track_state->priv->metricLength);
+  g_message("gps: creating new point %g (%g)",
+            track_state->priv->metricLength, h_acc);
 
   /* Updating bounding box. */
   track_state_update_bb0(track_state, &new_point);

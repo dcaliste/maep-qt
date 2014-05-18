@@ -1005,6 +1005,7 @@ void Maep::GpsMap::unsetGps()
 }
 void Maep::GpsMap::positionLost()
 {
+  g_message("loosing position");
   if (track_capture && track_current)
     track_current->finalizeSegment();
   unsetGps();

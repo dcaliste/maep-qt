@@ -73,7 +73,7 @@ static void maep_layer_gps_class_init(MaepLayerGpsClass *klass)
 {
   GObjectClass *oclass = G_OBJECT_CLASS(klass);
 
-  g_message("Class init wiki context.");
+  g_message("Class init gps layer context.");
   /* Connect the overloading methods. */
   oclass->dispose      = maep_layer_gps_dispose;
   oclass->finalize     = maep_layer_gps_finalize;
@@ -104,7 +104,7 @@ static void maep_layer_gps_class_init(MaepLayerGpsClass *klass)
 }
 static void osm_gps_map_layer_interface_init(OsmGpsMapLayerIface *iface)
 {
-  g_message("setup layer interface for wiki context.");
+  g_message("setup layer interface for gps layer context.");
   iface->render = NULL;
   iface->draw = maep_layer_gps_draw;
   iface->busy = NULL;

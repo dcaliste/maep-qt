@@ -1288,7 +1288,7 @@ osm_gps_map_print_tracks (OsmGpsMap *map)
 
     if (priv->tracks || (priv->show_trip_history && priv->trip_history))
     {
-        g_message("Print a track list!");
+        /* g_message("Print a track list!"); */
 
         if (priv->show_trip_history)
             osm_gps_map_print_track(priv, priv->trip_history, lw,
@@ -1614,7 +1614,7 @@ osm_gps_map_dispose (GObject *object)
     if (priv->is_disposed)
         return;
 
-    g_message("disposing.");
+    g_message("disposing map.");
     priv->is_disposed = TRUE;
 
     soup_session_abort(priv->soup_session);
@@ -2774,26 +2774,24 @@ osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
     OsmGpsMapPrivate *priv;
     OsmTrackRef *st;
 
-    g_return_if_fail (OSM_IS_GPS_MAP (map));
+    g_return_if_fail (OSM_IS_GPS_MAP (map) && track);
     priv = map->priv;
 
-    if (track) {
-        g_object_ref(G_OBJECT(track));
-        st = g_slice_new (OsmTrackRef);
-        st->track = track;
-        st->nwp_prop =
-            g_signal_connect_object(G_OBJECT(track), "notify::n-waypoints",
-                                    G_CALLBACK(_on_track_changed), (gpointer)map, 0);
-        st->iwp_prop =
-            g_signal_connect_object(G_OBJECT(track), "notify::waypoint-highlight-index",
-                                    G_CALLBACK(_on_track_changed), (gpointer)map, 0);
-        st->dirty_sig =
-            g_signal_connect_object(G_OBJECT(track), "dirty",
-                                    G_CALLBACK(_on_track_dirty), (gpointer)map, 0);
-        priv->tracks = g_slist_append(priv->tracks, st);
-        if (!priv->idle_map_redraw)
-            priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-    }
+    g_object_ref(G_OBJECT(track));
+    st = g_slice_new (OsmTrackRef);
+    st->track = track;
+    st->nwp_prop =
+        g_signal_connect(G_OBJECT(track), "notify::n-waypoints",
+                         G_CALLBACK(_on_track_changed), (gpointer)map);
+    st->iwp_prop =
+        g_signal_connect(G_OBJECT(track), "notify::waypoint-highlight-index",
+                         G_CALLBACK(_on_track_changed), (gpointer)map);
+    st->dirty_sig =
+        g_signal_connect(G_OBJECT(track), "dirty",
+                         G_CALLBACK(_on_track_dirty), (gpointer)map);
+    priv->tracks = g_slist_append(priv->tracks, st);
+    if (!priv->idle_map_redraw)
+        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
 
 void
