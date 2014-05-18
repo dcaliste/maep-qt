@@ -138,6 +138,12 @@ enum
     N_PROP
   };
 static GParamSpec *properties[N_PROP];
+enum
+  {
+    DIRTY_SIG,
+    N_SIG
+  };
+static guint signals[N_SIG];
 
 static void track_finalize(GObject* obj);
 static void track_dispose(GObject* obj);
@@ -184,6 +190,10 @@ static void maep_geodata_class_init(MaepGeodataClass *klass)
                                                 -1, G_MAXINT, -1, G_PARAM_READWRITE);
   g_object_class_install_property(G_OBJECT_CLASS(klass), I_WPT_HL_PROP,
 				  properties[I_WPT_HL_PROP]);
+
+  signals[DIRTY_SIG] = g_signal_new ("dirty", MAEP_TYPE_GEODATA,
+                                     G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
+                                     g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
 
   g_type_class_add_private(klass, sizeof(MaepGeodataPrivate));
 }
@@ -1147,6 +1157,8 @@ void maep_geodata_add_trackpoint(MaepGeodata *track_state,
 
   /* Updating bounding box. */
   track_state_update_bb0(track_state, &new_point);
+
+  g_signal_emit(track_state, signals[DIRTY_SIG], 0, NULL);
 }
 
 void maep_geodata_add_waypoint(MaepGeodata *track_state,

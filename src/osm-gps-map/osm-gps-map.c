@@ -138,6 +138,12 @@ typedef struct
     guint redraw_cycle;
 } OsmCachedTile;
 
+typedef struct
+{
+    MaepGeodata *track;
+    gulong dirty_sig, nwp_prop, iwp_prop;
+} OsmTrackRef;
+
 enum
 {
     PROP_0,
@@ -201,6 +207,16 @@ cached_tile_free (OsmCachedTile *tile)
     /* g_message("destroying cached tile."); */
     cairo_surface_destroy (tile->cr_surf);
     g_slice_free (OsmCachedTile, tile);
+}
+
+static void
+track_ref_free (OsmTrackRef *st)
+{
+    g_signal_handler_disconnect(st->track, st->dirty_sig);
+    g_signal_handler_disconnect(st->track, st->nwp_prop);
+    g_signal_handler_disconnect(st->track, st->iwp_prop);
+    g_object_unref(st->track);
+    g_slice_free(OsmTrackRef, st);
 }
 
 /*
@@ -483,7 +499,7 @@ osm_gps_map_free_tracks (OsmGpsMap *map)
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            g_object_unref(G_OBJECT(tmp->data));
+            track_ref_free((OsmTrackRef*)tmp->data);
             tmp = g_slist_next(tmp);
         }
         g_slist_free(priv->tracks);
@@ -1074,7 +1090,7 @@ osm_gps_map_tile_age_exceeded(char *filename, guint period)
     struct stat buf;
     
     if(!g_stat(filename, &buf)) 
-        return(time(NULL) - buf.st_mtime > period);
+        return(time(NULL) - buf.st_mtime > (gint)period);
 
     return FALSE;
 }
@@ -1280,7 +1296,7 @@ osm_gps_map_print_tracks (OsmGpsMap *map)
         GSList* tmp = priv->tracks;
         while (tmp != NULL)
         {
-            osm_gps_map_print_track(priv, MAEP_GEODATA(tmp->data), lw,
+            osm_gps_map_print_track(priv, ((OsmTrackRef*)tmp->data)->track, lw,
                                     &max_x, &min_x, &max_y, &min_y);
             tmp = g_slist_next(tmp);
         }
@@ -2577,18 +2593,17 @@ static gboolean _set_center(OsmGpsMap *map, float rlat, float rlon)
 
 static gboolean _set_zoom(OsmGpsMap *map, int zoom)
 {
-    int zoom_old;
     OsmGpsMapPrivate *priv;
 
     g_return_val_if_fail (OSM_IS_GPS_MAP (map), FALSE);
     priv = map->priv;
 
+    //constrain zoom min_zoom -> max_zoom
+    zoom = CLAMP(zoom, priv->min_zoom, priv->max_zoom);
     if (zoom == priv->map_zoom)
         return FALSE;
 
-    zoom_old = priv->map_zoom;
-    //constrain zoom min_zoom -> max_zoom
-    priv->map_zoom = CLAMP(zoom, priv->min_zoom, priv->max_zoom);
+    priv->map_zoom = zoom;
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_ZOOM]);
 
     return TRUE;
@@ -2703,8 +2718,46 @@ osm_gps_map_adjust_to (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right)
         _update_screen_pos(map);
 }
 
+void
+osm_gps_map_auto_center_at(OsmGpsMap *map, float latitude, float longitude)
+{
+    OsmGpsMapPrivate *priv;
+
+    g_return_if_fail(OSM_IS_GPS_MAP (map));
+    priv = map->priv;
+
+    //Automatically center the map if the track approaches the edge
+    if(priv->map_auto_center)   {
+        // pixel_x,y, offsets
+        int x, y;
+        int width = priv->viewport_width;
+        int height = priv->viewport_height;
+        coord_t pos;
+
+        pos.rlat = deg2rad(latitude);
+        pos.rlon = deg2rad(longitude);
+        osm_gps_map_from_co_ordinates(map, &pos, &x, &y);
+        if( x < (width/2 - width/8)     || x > (width/2 + width/8)  ||
+            y < (height/2 - height/8)   || y > (height/2 + height/8)) {
+            if (_set_center(map, pos.rlat, pos.rlon))
+                _update_screen_pos(map);
+        }
+    }
+}
+
 static void
 _on_track_changed (MaepGeodata *track_state, GParamSpec *pspec, OsmGpsMap *map)
+{
+    OsmGpsMapPrivate *priv;
+
+    g_return_if_fail (OSM_IS_GPS_MAP (map));
+    priv = map->priv;
+
+    if (!priv->idle_map_redraw)
+        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+}
+static void
+_on_track_dirty (MaepGeodata *track_state, OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv;
 
@@ -2719,17 +2772,25 @@ void
 osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
 {
     OsmGpsMapPrivate *priv;
+    OsmTrackRef *st;
 
     g_return_if_fail (OSM_IS_GPS_MAP (map));
     priv = map->priv;
 
     if (track) {
-        priv->tracks = g_slist_append(priv->tracks, track);
         g_object_ref(G_OBJECT(track));
-        g_signal_connect_object(G_OBJECT(track), "notify::n-waypoints",
-                                G_CALLBACK(_on_track_changed), (gpointer)map, 0);
-        g_signal_connect_object(G_OBJECT(track), "notify::waypoint-highlight-index",
-                                G_CALLBACK(_on_track_changed), (gpointer)map, 0);
+        st = g_slice_new (OsmTrackRef);
+        st->track = track;
+        st->nwp_prop =
+            g_signal_connect_object(G_OBJECT(track), "notify::n-waypoints",
+                                    G_CALLBACK(_on_track_changed), (gpointer)map, 0);
+        st->iwp_prop =
+            g_signal_connect_object(G_OBJECT(track), "notify::waypoint-highlight-index",
+                                    G_CALLBACK(_on_track_changed), (gpointer)map, 0);
+        st->dirty_sig =
+            g_signal_connect_object(G_OBJECT(track), "dirty",
+                                    G_CALLBACK(_on_track_dirty), (gpointer)map, 0);
+        priv->tracks = g_slist_append(priv->tracks, st);
         if (!priv->idle_map_redraw)
             priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
     }

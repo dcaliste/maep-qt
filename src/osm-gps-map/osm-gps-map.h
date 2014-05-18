@@ -128,6 +128,8 @@ int         osm_gps_map_zoom_in                     (OsmGpsMap *map);
 int         osm_gps_map_zoom_out                    (OsmGpsMap *map);
 void        osm_gps_map_set_factor                  (OsmGpsMap *map, gfloat factor);
 gfloat      osm_gps_map_get_factor                  (OsmGpsMap *map);
+void        osm_gps_map_auto_center_at              (OsmGpsMap *map,
+                                                     float latitude, float longitude);
 
 void        osm_gps_map_adjust_to                   (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right);
 void        osm_gps_map_get_tile_xy_at              (OsmGpsMap *map,

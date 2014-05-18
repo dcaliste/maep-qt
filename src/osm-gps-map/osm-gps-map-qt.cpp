@@ -986,8 +986,8 @@ void Maep::GpsMap::positionUpdate(const QGeoPositionInfo &info)
   maep_layer_gps_set_coordinates(lgps, info.coordinate().latitude(),
                                  info.coordinate().longitude(), hprec, track);
   // To generate auto-center if necessary.
-  osm_gps_map_set_gps(map, info.coordinate().latitude(),
-                      info.coordinate().longitude(), track);
+  osm_gps_map_auto_center_at(map, info.coordinate().latitude(),
+                      info.coordinate().longitude());
 
   lastGps = info;
   emit gpsCoordinateChanged();
