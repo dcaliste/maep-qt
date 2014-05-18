@@ -89,7 +89,7 @@ typedef enum {
 #define OSM_GPS_MAP_CACHE_FRIENDLY  "friendly://"
 
 #define TILESIZE 256
-#define EXTRA_BORDER                (TILESIZE / 2)
+#define EXTRA_BORDER 0 /*                (TILESIZE / 2) */
 
 typedef struct {
     gint x, y, w, h;

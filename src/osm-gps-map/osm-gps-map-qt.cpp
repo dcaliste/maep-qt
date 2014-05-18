@@ -742,7 +742,7 @@ void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
             g_object_get(map, "zoom", &zoom, NULL);
             if (osm_gps_map_zoom_in(map) != zoom)
               osm_gps_map_set_factor(map, factor / 2.);
-          } else if (factor <= 0.75) {
+          } else if (factor <= 0.66666666666666667) {
             g_object_get(map, "zoom", &zoom, NULL);
             if (osm_gps_map_zoom_out(map) != zoom)
               osm_gps_map_set_factor(map, factor * 2.);

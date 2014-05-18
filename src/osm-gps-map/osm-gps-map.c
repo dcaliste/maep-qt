@@ -594,8 +594,8 @@ osm_gps_map_print_images (OsmGpsMap *map)
     cairo_rectangle_int_t rect;
     OsmGpsMapPrivate *priv = map->priv;
 
-    map_x0 = priv->map_x - EXTRA_BORDER;
-    map_y0 = priv->map_y - EXTRA_BORDER;
+    map_x0 = priv->map_x - 0.25 * priv->viewport_width - EXTRA_BORDER;
+    map_y0 = priv->map_y - 0.25 * priv->viewport_height - EXTRA_BORDER;
     for(list = priv->images; list != NULL; list = list->next)
     {
         image_t *im = list->data;
@@ -642,8 +642,8 @@ osm_gps_map_draw_gps_point (OsmGpsMap *map)
         int mr = MAX(3*r,r2);
         cairo_rectangle_int_t rect;
 
-        map_x0 = priv->map_x - EXTRA_BORDER;
-        map_y0 = priv->map_y - EXTRA_BORDER;
+        map_x0 = priv->map_x - 0.25 * priv->viewport_width - EXTRA_BORDER;
+        map_y0 = priv->map_y - 0.25 * priv->viewport_height - EXTRA_BORDER;
         x = lon2pixel(priv->map_zoom, priv->gps->rlon) - map_x0;
         y = lat2pixel(priv->map_zoom, priv->gps->rlat) - map_y0;
         cairo_pattern_t *pat;
@@ -723,12 +723,12 @@ osm_gps_map_blit_surface(OsmGpsMap *map, cairo_surface_t *cr_surf,
     cairo_pattern_set_filter(cairo_get_source(priv->cr), CAIRO_FILTER_NEAREST);
     /* cairo_fill_preserve(priv->cr); */
     cairo_fill(priv->cr);
-    cairo_restore(priv->cr);
-    /* cairo_set_source_rgb(priv->cr, 0., 0., 0.); */
+    /* cairo_set_source_rgb(priv->cr, 1., 1., 0.); */
     /* cairo_stroke(priv->cr); */
     /* g_message("Blit surface %p(%p) at %dx%d x%d %dx%d.", */
     /*         (gpointer)cr_surf, (gpointer)priv->null_tile, offset_x, offset_y, */
     /*         modulo, area_x, area_y); */
+    cairo_restore(priv->cr);
 }
 
 static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *ext)
@@ -1161,7 +1161,7 @@ static void
 osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
-    int i,j, tile_x0, tile_y0, tiles_nx, tiles_ny;
+    int i,j, tile_x0, tile_y0, tiles_nx, tiles_ny, fmap_x, fmap_y;
     int offset_xn = 0;
     int offset_yn = 0;
     int offset_x;
@@ -1171,20 +1171,22 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
     g_debug("Fill tiles: %d,%d z:%d", priv->map_x, priv->map_y, priv->map_zoom);
     tilesize = (priv->double_pixel)?TILESIZE * 2: TILESIZE;
     zoom     = (priv->double_pixel)?priv->map_zoom - 1:priv->map_zoom;
+    fmap_x   = priv->map_x + 0.5 * priv->viewport_width  * (1. - 1. / priv->map_factor);
+    fmap_y   = priv->map_y + 0.5 * priv->viewport_height * (1. - 1. / priv->map_factor);
 
-    offset_x = - priv->map_x % tilesize;
-    offset_y = - priv->map_y % tilesize;
+    offset_x = - fmap_x % tilesize;
+    offset_y = - fmap_y % tilesize;
     if (offset_x > 0) offset_x -= tilesize;
     if (offset_y > 0) offset_y -= tilesize;
 
-    offset_xn = offset_x + EXTRA_BORDER;
-    offset_yn = offset_y + EXTRA_BORDER;
+    offset_xn = offset_x + 0.5 * priv->viewport_width  * (1.5 - 1. / priv->map_factor);
+    offset_yn = offset_y + 0.5 * priv->viewport_height * (1.5 - 1. / priv->map_factor);
 
-    tiles_nx = (priv->viewport_width  - offset_x) / tilesize + 1;
-    tiles_ny = (priv->viewport_height - offset_y) / tilesize + 1;
+    tiles_nx = (priv->viewport_width / priv->map_factor  - offset_x) / tilesize + 1;
+    tiles_ny = (priv->viewport_height / priv->map_factor - offset_y) / tilesize + 1;
 
-    tile_x0 =  floor((float)priv->map_x / (float)tilesize);
-    tile_y0 =  floor((float)priv->map_y / (float)tilesize);
+    tile_x0 =  floor((float)fmap_x / (float)tilesize);
+    tile_y0 =  floor((float)fmap_y / (float)tilesize);
     //TODO: implement wrap around
     for (i=tile_x0; i<(tile_x0+tiles_nx);i++) {
         for (j=tile_y0;  j<(tile_y0+tiles_ny); j++) {
@@ -1199,7 +1201,7 @@ osm_gps_map_fill_tiles_pixel (OsmGpsMap *map)
             offset_yn += tilesize;
         }
         offset_xn += tilesize;
-        offset_yn = offset_y + EXTRA_BORDER;
+        offset_yn = offset_y + 0.5 * priv->viewport_height * (1.5 - 1. / priv->map_factor);
     }
 }
 
@@ -1227,8 +1229,8 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, MaepGeodata *track, int lw,
     double s;
     gint iwpt;
 
-    map_x0 = priv->map_x - EXTRA_BORDER;
-    map_y0 = priv->map_y - EXTRA_BORDER;
+    map_x0 = priv->map_x - 0.25 * priv->viewport_width - EXTRA_BORDER;
+    map_y0 = priv->map_y - 0.25 * priv->viewport_height - EXTRA_BORDER;
 
     /* Draw all segments. */
     cairo_set_line_width (priv->cr, lw);
@@ -1342,11 +1344,11 @@ void osm_gps_map_blit(OsmGpsMap *map, cairo_t *cr, cairo_operator_t op)
 
     cairo_save(cr);
     cairo_translate(cr,
-                    - (priv->map_factor - 1.) * priv->viewport_width * 0.5f,
-                    - (priv->map_factor - 1.) * priv->viewport_height * 0.5f);
+                    - (1.5 * priv->map_factor - 1.) * priv->viewport_width * 0.5f,
+                    - (1.5 * priv->map_factor - 1.) * priv->viewport_height * 0.5f);
     cairo_scale(cr, priv->map_factor, priv->map_factor);
 
-    cairo_set_source_surface(cr, priv->cr_surf, -EXTRA_BORDER, -EXTRA_BORDER);
+    cairo_set_source_surface(cr, priv->cr_surf, 0., 0.);
     cairo_set_operator(cr, op);
     cairo_paint(cr);
 
@@ -1916,8 +1918,8 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
         cairo_surface_destroy(priv->cr_surf);
     priv->cr_surf = cairo_image_surface_create
         (CAIRO_FORMAT_ARGB32,
-         priv->viewport_width + EXTRA_BORDER * 2,
-         priv->viewport_height + EXTRA_BORDER * 2);
+         1.5 * priv->viewport_width + EXTRA_BORDER * 2,
+         1.5 * priv->viewport_height + EXTRA_BORDER * 2);
     if (priv->cr)
         cairo_destroy (priv->cr);
     priv->cr = cairo_create (priv->cr_surf);
