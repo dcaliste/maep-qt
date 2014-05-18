@@ -2572,8 +2572,6 @@ static gboolean _set_center(OsmGpsMap *map, float rlat, float rlon)
     map->priv->center_rlon = rlon;
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_LATITUDE]);
 
-    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
-
     return TRUE;
 }
 
@@ -2599,6 +2597,7 @@ static gboolean _set_zoom(OsmGpsMap *map, int zoom)
 void
 osm_gps_map_set_center (OsmGpsMap *map, float latitude, float longitude)
 {
+    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
     if (_set_center(map, deg2rad(latitude), deg2rad(longitude)))
         _update_screen_pos(map);
 }
@@ -2657,6 +2656,7 @@ osm_gps_map_set_mapcenter (OsmGpsMap *map, float latitude, float longitude, int 
 {
     gboolean update;
 
+    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
     update = _set_center(map, deg2rad(latitude), deg2rad(longitude));
     update = _set_zoom(map, zoom) || update;
     if (update)
@@ -2693,6 +2693,8 @@ osm_gps_map_adjust_to (OsmGpsMap *map, coord_t *top_left, coord_t *bottom_right)
     g_message("Fit lat zoom to %d", size);
     for (zoom_lat = 0; size > 1; zoom_lat++)
         size = (size >> 1);
+
+    g_object_set(G_OBJECT(map), "auto-center", FALSE, NULL);
 
     g_message("Set fitting zoom from %d x %d", zoom_lat, zoom_lon);
     update = _set_center(map, lat0, lon0);
