@@ -668,7 +668,7 @@ void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map)
 
     /* trigger wiki data update either by "changed" events ... */
     context->priv->mapy_handler_id =
-      g_signal_connect(G_OBJECT(map), "notify::map_y",
+      g_signal_connect(G_OBJECT(map), "notify::map-y",
                        G_CALLBACK(on_map_changed), context);
     context->priv->factor_handler_id =
       g_signal_connect(G_OBJECT(map), "notify::factor",
