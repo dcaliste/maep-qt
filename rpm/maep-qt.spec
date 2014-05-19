@@ -13,7 +13,7 @@ Name: harbour-maep-qt
 #%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libgconf-2.*|libxml2.*|libQt5Positioning.*|libdl.*|libdbus-glib-1.*|libpixman-1.*|libfontconfig.*|libfreetype.*|libxcb-shm.*|libxcb-render.*|libxcb.*|libXrender.*|libX11.*|libXau.*|libexpat.*$
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.0
+Version: 1.4.1
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
@@ -86,6 +86,12 @@ cd tmp
 /usr/bin
 
 %changelog
+* Mon May 19 2014 - Damien Caliste <dcaliste@free.fr> 1.4.1-1
+- implement two fingers gesture for zomming and translating. Close: #3
+- implement map layer, apply it for OpenSeaMap and Google traffic. Close: #4, #6
+- correct rendering issue when bigger scale tiles are used to renderer
+  smaller zooms.
+
 * Sat Apr 19 2014 - Damien Caliste <dcaliste@free.fr> 1.4.0-1
 - rework the display layout, using swipe to switch from search to
   track actions.
