@@ -292,7 +292,7 @@ ApplicationWindow
     Component {
         id: sources
 
-        Dialog {
+        Page {
 	    id: sourcedialog
             allowedOrientations: page.allowedOrientations
             
@@ -302,7 +302,7 @@ ApplicationWindow
 
                 header: Column {
                     width: parent.width
-                    DialogHeader {
+                    PageHeader {
                         title: "Select a tile source"
                     }
                     Label {
@@ -373,7 +373,7 @@ ApplicationWindow
                         } else {
                             map.overlaySource = (map.overlaySource == model.source) ? GpsMap.SOURCE_NULL : model.source
                         }
-                        sourcedialog.accept()
+                        pageStack.pop()
                     }
 
                     Component {
