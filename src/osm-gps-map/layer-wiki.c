@@ -682,6 +682,7 @@ void maep_wiki_context_enable(MaepWikiContext *context, OsmGpsMap *map)
                  "viewport-height", &height, NULL);
     if(width > 1 && height > 1)
       wiki_update(context);
-
   }
+  else
+    g_signal_emit(context, _signals[DIRTY_SIGNAL], 0, NULL);
 }
