@@ -30,6 +30,7 @@ struct _MaepLayerGpsPrivate
 
   coord_t gps;
   float gps_heading;
+  float compass_azimuth;
   gboolean gps_valid;
 
   guint ui_gps_point_inner_radius;
@@ -240,6 +241,21 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
         cairo_stroke(cr);
       }
 
+    if(!isnan(priv->compass_azimuth))
+      {
+        cairo_move_to (cr, -r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
+        cairo_line_to (cr, 3*r*sin(priv->compass_azimuth), -3*r*cos(priv->compass_azimuth));
+        cairo_line_to (cr, r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
+        cairo_close_path (cr);
+
+        cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 0.5);
+        cairo_fill_preserve (cr);
+
+        cairo_set_line_width (cr, 1.0);
+        cairo_set_source_rgba (cr, 0.0, 0.5, 0.0, 0.5);
+        cairo_stroke(cr);
+      }
+
     cairo_set_source_surface (cr, priv->surf, -r - 1, -r - 1);
     cairo_paint(cr);
   }
@@ -306,6 +322,20 @@ gboolean maep_layer_gps_set_coordinates(MaepLayerGps *gps, gfloat lat, gfloat lo
     g_signal_emit(gps, _signals[DIRTY_SIGNAL], 0, NULL);
 
   return changed;
+}
+
+gboolean maep_layer_gps_set_azimuth(MaepLayerGps *gps, gfloat azimuth)
+{
+  g_return_val_if_fail(MAEP_IS_LAYER_GPS(gps), FALSE);
+
+  azimuth = deg2rad(azimuth);
+  if (gps->priv->compass_azimuth != azimuth)
+    {
+      gps->priv->compass_azimuth = azimuth;
+      g_signal_emit(gps, _signals[DIRTY_SIGNAL], 0, NULL);
+      return TRUE;
+    }
+  return FALSE;
 }
 
 gboolean maep_layer_gps_set_active(MaepLayerGps *gps, gboolean status)

@@ -56,6 +56,7 @@ MaepLayerGps* maep_layer_gps_new(void);
 gboolean maep_layer_gps_set_coordinates(MaepLayerGps *gps, gfloat lat, gfloat lon,
                                         gfloat hprec, gfloat heading);
 gboolean maep_layer_gps_set_active(MaepLayerGps *gps, gboolean status);
+gboolean maep_layer_gps_set_azimuth(MaepLayerGps *gps, gfloat azimuth);
 
 G_END_DECLS
 

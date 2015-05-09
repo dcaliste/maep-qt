@@ -4,7 +4,7 @@ DEPENDPATH += .
 INCLUDEPATH += .
 CONFIG += link_pkgconfig
 PKGCONFIG += gobject-2.0 cairo libsoup-2.4 gconf-2.0 libxml-2.0 libcurl
-QT += qml quick positioning #declarative
+QT += qml quick positioning sensors
 LIBS += -ljpeg
 
 packagesExist(qdeclarative5-boostable) {

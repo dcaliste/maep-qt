@@ -46,6 +46,13 @@ SilicaFlickable {
             width: parent.width
         }
 
+        TextSwitch {
+            text: "Enable compass"
+            checked: map.enable_compass
+            onClicked: map.enable_compass = checked
+            width: parent.width
+        }
+
         Item {
             width: parent.width
             height: childrenRect.height

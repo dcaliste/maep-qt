@@ -35,6 +35,7 @@
 #define GCONF_KEY_TRACK_PATH "track_path"
 #define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
 #define GCONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
+#define GCONF_KEY_COMPASS_ENABLED "compass-enabled"
 
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
@@ -178,6 +179,8 @@ static void osm_gps_map_qt_places_failure(Maep::GpsMap *widget,
 
 Maep::GpsMap::GpsMap(QQuickItem *parent)
     : QQuickPaintedItem(parent)
+    , compass(parent)
+    , compassEnabled_(FALSE)
 {
   char *path;
 
@@ -191,6 +194,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
+  bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
+
 
   path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
 
@@ -278,6 +283,10 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_signal_connect_swapped(G_OBJECT(lgps), "dirty",
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
 
+  maep_layer_gps_set_azimuth(lgps, NAN);
+  connect(&compass, SIGNAL(readingChanged()), this, SLOT(compassReadingChanged()));
+  enableCompass(compassEnabled);
+
   track_capture = track;
   track_current = NULL;
 }
@@ -285,7 +294,7 @@ Maep::GpsMap::~GpsMap()
 {
   gint zoom, source, overlaySource;
   gfloat lat, lon;
-  gboolean dpix;
+  gboolean dpix, compassEnabled;
 
   /* get state information from map ... */
   overlaySource = OSM_GPS_MAP_SOURCE_NULL;
@@ -294,6 +303,9 @@ Maep::GpsMap::~GpsMap()
       g_object_get(overlay, "map-source", &overlaySource, NULL);
       g_object_unref(overlay);
     }
+
+  compass.stop();
+
   g_object_get(map, 
 	       "zoom", &zoom, 
 	       "map-source", &source, 
@@ -339,6 +351,7 @@ Maep::GpsMap::~GpsMap()
 
   gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
+  gconf_set_bool(GCONF_KEY_COMPASS_ENABLED, compassEnabled_);
 }
 static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
 {
@@ -1003,6 +1016,45 @@ void Maep::GpsMap::unsetGps()
 
   maep_layer_gps_set_active(lgps, FALSE);
 }
+void Maep::GpsMap::compassReadingChanged()
+{
+  // Apparently this event fires spuriously once when the class is initialized, so double-check
+  // if we're really activated.
+  if (compassEnabled() && compass.isActive())
+    {
+      QCompassReading *compass_reading = compass.reading();
+      if (compass_reading)
+        {
+          maep_layer_gps_set_azimuth(lgps, static_cast<gfloat>(compass_reading->azimuth()));
+        }
+    }
+}
+void Maep::GpsMap::enableCompass(bool enable)
+{
+  if (switchCompass(enable))
+    emit enableCompassChanged(enable);
+}
+bool Maep::GpsMap::switchCompass(bool enable)
+{
+  if (compassEnabled_ != enable)
+    {
+      if (!enable)
+        {
+          g_message("Disabling compass.");
+          compass.stop();
+          maep_layer_gps_set_azimuth(lgps, NAN);
+        }
+      else
+        {
+          g_message("Enabling compass.");
+          compass.start();
+        }
+      compassEnabled_ = enable;
+      return true;
+    }
+  else return false;
+}
+
 void Maep::GpsMap::positionLost()
 {
   g_message("loosing position");

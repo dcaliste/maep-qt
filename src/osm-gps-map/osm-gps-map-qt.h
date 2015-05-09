@@ -26,6 +26,7 @@
 #include <QGeoCoordinate>
 #include <QGeoPositionInfoSource>
 #include <QColor>
+#include <QCompass>
 #include <cairo.h>
 #include "misc.h"
 #include "search.h"
@@ -308,6 +309,7 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(Maep::Track *track READ getTrack WRITE setTrack NOTIFY trackChanged)
 
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
+  Q_PROPERTY(bool enable_compass READ compassEnabled WRITE enableCompass NOTIFY enableCompassChanged)
 
   Q_PROPERTY(unsigned int gps_refresh_rate READ gpsRefreshRate WRITE setGpsRefreshRate NOTIFY gpsRefreshRateChanged)
 
@@ -439,6 +441,9 @@ class GpsMap : public QQuickPaintedItem
   inline unsigned int gpsRefreshRate() {
     return gpsRefreshRate_;
   }
+  inline bool compassEnabled() {
+    return compassEnabled_;
+  }
 
  protected:
   void paint(QPainter *painter);
@@ -461,6 +466,7 @@ class GpsMap : public QQuickPaintedItem
   void trackChanged(bool available);
   void screenRotationChanged(bool status);
   void gpsRefreshRateChanged(unsigned int rate);
+  void enableCompassChanged(bool enable);
 
  public slots:
   void setSource(Source source);
@@ -484,6 +490,8 @@ class GpsMap : public QQuickPaintedItem
   void setTrackCapture(bool status);
   void setTrack(Maep::Track *track = NULL);
   void setGpsRefreshRate(unsigned int rate);
+  void compassReadingChanged();
+  void enableCompass(bool enable);
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -505,10 +513,13 @@ class GpsMap : public QQuickPaintedItem
   bool mapSized();
   void gpsToTrack();
   void unsetGps();
+  bool switchCompass(bool enable);
 
   bool screenRotation;
   OsmGpsMap *map, *overlay;
   QGeoCoordinate coordinate;
+  QCompass compass;
+  bool compassEnabled_;
   osm_gps_map_osd_t *osd;
 
   MaepSearchContext *search;
