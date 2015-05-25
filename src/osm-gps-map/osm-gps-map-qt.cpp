@@ -315,7 +315,7 @@ Maep::GpsMap::~GpsMap()
 	       "double-pixel", &dpix,
 	       NULL);
   osm_gps_map_osd_classic_free(osd);
-  maep_wiki_context_enable(wiki, NULL);
+  //maep_wiki_context_enable(wiki, NULL);
   g_object_unref(wiki);
   if (wiki_entry)
     delete(wiki_entry);
