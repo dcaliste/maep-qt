@@ -23,6 +23,8 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QDebug>
+#include <cmath>
 
 #define GCONF_KEY_ZOOM       "zoom"
 #define GCONF_KEY_SOURCE     "source"
@@ -294,7 +296,7 @@ Maep::GpsMap::~GpsMap()
 {
   gint zoom, source, overlaySource;
   gfloat lat, lon;
-  gboolean dpix, compassEnabled;
+  gboolean dpix;
 
   /* get state information from map ... */
   overlaySource = OSM_GPS_MAP_SOURCE_NULL;
@@ -835,7 +837,6 @@ void Maep::GpsMap::setDoublePixel(bool status)
 
   g_object_set(map, "double-pixel", status, NULL);
 }
-
 static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget,
                                        GParamSpec *pspec, OsmGpsMap *map)
 {
@@ -1025,7 +1026,12 @@ void Maep::GpsMap::compassReadingChanged()
       QCompassReading *compass_reading = compass.reading();
       if (compass_reading)
         {
-          maep_layer_gps_set_azimuth(lgps, static_cast<gfloat>(compass_reading->azimuth()));
+          qreal azimuth = compass_reading->azimuth();
+          if (std::abs(lastAzimuth - azimuth) > 2)
+            {
+              maep_layer_gps_set_azimuth(lgps, static_cast<gfloat>(azimuth));
+              lastAzimuth = azimuth;
+            }
         }
     }
 }
@@ -1040,13 +1046,18 @@ bool Maep::GpsMap::switchCompass(bool enable)
     {
       if (!enable)
         {
-          g_message("Disabling compass.");
+          qDebug() << "Disabling compass.";
           compass.stop();
           maep_layer_gps_set_azimuth(lgps, NAN);
         }
       else
         {
-          g_message("Enabling compass.");
+          qDebug() << "Enabling compass.";
+          if (compass.isFeatureSupported(QCompass::SkipDuplicates))
+            {
+              qDebug() << "Enabling compass powersaving.";
+              compass.setSkipDuplicates(true);
+            }
           compass.start();
         }
       compassEnabled_ = enable;

@@ -520,6 +520,8 @@ class GpsMap : public QQuickPaintedItem
   QGeoCoordinate coordinate;
   QCompass compass;
   bool compassEnabled_;
+  qreal lastAzimuth;
+
   osm_gps_map_osd_t *osd;
 
   MaepSearchContext *search;
