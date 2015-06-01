@@ -225,6 +225,33 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
 
   // draw ball gradient
   if (r > 0) {
+    // draw magnetic compass
+    if(!isnan(priv->compass_azimuth))
+      {
+        cairo_move_to (cr, -r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
+        cairo_line_to (cr, -4.0*r*sin(priv->compass_azimuth), -4.0*r*cos(priv->compass_azimuth));
+        cairo_line_to (cr, r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
+        cairo_close_path (cr);
+
+        cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 0.5);
+        cairo_fill_preserve (cr);
+
+        cairo_set_line_width (cr, 1.0);
+        cairo_set_source_rgba (cr, 0.0, 0.5, 0.0, 0.5);
+        cairo_stroke(cr);
+
+        cairo_move_to (cr, r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
+        cairo_line_to (cr, 4.0*r*sin(priv->compass_azimuth), 4.0*r*cos(priv->compass_azimuth));
+        cairo_line_to (cr, -r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
+        cairo_close_path (cr);
+
+        cairo_set_source_rgba (cr, 1.0, 0.3, 0.3, 0.5);
+        cairo_fill_preserve (cr);
+
+        cairo_set_line_width (cr, 1.0);
+        cairo_set_source_rgba (cr, 0.5, 0.0, 0.0, 0.5);
+        cairo_stroke(cr);
+      }
     // draw direction arrow
     if(!isnan(priv->gps_heading)) 
       {
@@ -238,21 +265,6 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
 
         cairo_set_line_width (cr, 1.0);
         cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 0.5);
-        cairo_stroke(cr);
-      }
-
-    if(!isnan(priv->compass_azimuth))
-      {
-        cairo_move_to (cr, -r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
-        cairo_line_to (cr, 3*r*sin(priv->compass_azimuth), -3*r*cos(priv->compass_azimuth));
-        cairo_line_to (cr, r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
-        cairo_close_path (cr);
-
-        cairo_set_source_rgba (cr, 0.3, 1.0, 0.3, 0.5);
-        cairo_fill_preserve (cr);
-
-        cairo_set_line_width (cr, 1.0);
-        cairo_set_source_rgba (cr, 0.0, 0.5, 0.0, 0.5);
         cairo_stroke(cr);
       }
 
