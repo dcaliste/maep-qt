@@ -315,7 +315,8 @@ Maep::GpsMap::~GpsMap()
 	       "double-pixel", &dpix,
 	       NULL);
   osm_gps_map_osd_classic_free(osd);
-  //maep_wiki_context_enable(wiki, NULL);
+  osd = NULL;
+  maep_wiki_context_enable(wiki, NULL);
   g_object_unref(wiki);
   if (wiki_entry)
     delete(wiki_entry);
@@ -470,7 +471,8 @@ void Maep::GpsMap::mapUpdate()
   cairo_restore(cr);
 
 #ifdef ENABLE_OSD
-  osd->draw(osd, cr);
+  if (osd)
+    osd->draw(osd, cr);
 #endif
 
   // w = cairo_image_surface_get_width(surf);
@@ -1027,7 +1029,7 @@ void Maep::GpsMap::compassReadingChanged()
       if (compass_reading)
         {
           qreal azimuth = compass_reading->azimuth();
-          if (std::abs(lastAzimuth - azimuth) > 2)
+          if (lastAzimuth == -1. || std::abs(lastAzimuth - azimuth) > 2)
             {
               maep_layer_gps_set_azimuth(lgps, static_cast<gfloat>(azimuth));
               lastAzimuth = azimuth;
@@ -1037,33 +1039,28 @@ void Maep::GpsMap::compassReadingChanged()
 }
 void Maep::GpsMap::enableCompass(bool enable)
 {
-  if (switchCompass(enable))
-    emit enableCompassChanged(enable);
-}
-bool Maep::GpsMap::switchCompass(bool enable)
-{
-  if (compassEnabled_ != enable)
+  if (compassEnabled_ == enable)
+    return;
+  
+  compassEnabled_ = enable;
+  if (!enable)
     {
-      if (!enable)
-        {
-          qDebug() << "Disabling compass.";
-          compass.stop();
-          maep_layer_gps_set_azimuth(lgps, NAN);
-        }
-      else
-        {
-          qDebug() << "Enabling compass.";
-          if (compass.isFeatureSupported(QCompass::SkipDuplicates))
-            {
-              qDebug() << "Enabling compass powersaving.";
-              compass.setSkipDuplicates(true);
-            }
-          compass.start();
-        }
-      compassEnabled_ = enable;
-      return true;
+      qDebug() << "Disabling compass.";
+      compass.stop();
+      maep_layer_gps_set_azimuth(lgps, NAN);
     }
-  else return false;
+  else
+    {
+      qDebug() << "Enabling compass.";
+      if (compass.isFeatureSupported(QCompass::SkipDuplicates))
+        {
+          qDebug() << "Enabling compass powersaving.";
+          compass.setSkipDuplicates(true);
+        }
+      lastAzimuth = -1.;
+      compass.start();
+    }
+  emit enableCompassChanged(enable);
 }
 
 void Maep::GpsMap::positionLost()

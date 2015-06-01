@@ -13,7 +13,7 @@ Name: harbour-maep-qt
 #%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libgconf-2.*|libxml2.*|libQt5Positioning.*|libdl.*|libdbus-glib-1.*|libpixman-1.*|libfontconfig.*|libfreetype.*|libxcb-shm.*|libxcb-render.*|libxcb.*|libXrender.*|libX11.*|libXau.*|libexpat.*$
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.1
+Version: 1.4.2
 Release: 1
 Group: Applications/Engineering
 License: GPLv2

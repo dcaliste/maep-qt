@@ -513,7 +513,6 @@ class GpsMap : public QQuickPaintedItem
   bool mapSized();
   void gpsToTrack();
   void unsetGps();
-  bool switchCompass(bool enable);
 
   bool screenRotation;
   OsmGpsMap *map, *overlay;
