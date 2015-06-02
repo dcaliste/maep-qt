@@ -302,9 +302,11 @@ Maep::GpsMap::~GpsMap()
   overlaySource = OSM_GPS_MAP_SOURCE_NULL;
   if (overlay)
     {
+      /* Retrieve it to store it in gconf later. */
       g_object_get(overlay, "map-source", &overlaySource, NULL);
       g_object_unref(overlay);
     }
+  overlay = NULL;
 
   compass.stop();
 
@@ -388,10 +390,6 @@ void Maep::GpsMap::ensureOverlay(Source source)
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
   g_object_bind_property(G_OBJECT(map), "factor", G_OBJECT(overlay), "factor",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
-  /* Workaround to bind lat and lon together. */
-  g_signal_connect_object(G_OBJECT(map), "notify::latitude",
-                          G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
-  onLatLon(G_OBJECT(map), NULL, overlay);
   g_object_bind_property(G_OBJECT(map), "double-pixel",
                          G_OBJECT(overlay), "double-pixel",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
@@ -401,6 +399,10 @@ void Maep::GpsMap::ensureOverlay(Source source)
   g_object_bind_property(G_OBJECT(map), "viewport-height",
                          G_OBJECT(overlay), "viewport-height",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
+  /* Workaround to bind lat and lon together. */
+  g_signal_connect_object(G_OBJECT(map), "notify::latitude",
+                          G_CALLBACK(onLatLon), (gpointer)overlay, (GConnectFlags)0);
+  onLatLon(G_OBJECT(map), NULL, overlay);
 
   g_signal_connect_swapped(G_OBJECT(overlay), "dirty",
                            G_CALLBACK(osm_gps_map_qt_repaint), this);
@@ -1178,7 +1180,7 @@ QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
                                             cache_dir, zoom, x, y);
   g_free(cache_dir);
   if (file) {
-    g_message("Get cached file for source %d: %s.", source, file);
+    // g_message("Get cached file for source %d: %s.", source, file);
     out = QString(file);
     g_free(file);
     return out;
@@ -1186,7 +1188,7 @@ QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
   
   uri = osm_gps_map_source_get_tile_uri((OsmGpsMapSource_t)source,
                                         zoom, x, y);
-  g_message("Get uri for source %d: %s.", source, uri);
+  // g_message("Get uri for source %d: %s.", source, uri);
   out = QString(uri);
   g_free(uri);
   return out;

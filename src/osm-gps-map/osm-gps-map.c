@@ -200,6 +200,7 @@ static void     osm_gps_map_fill_tiles_pixel (OsmGpsMap *map);
 static gboolean osm_gps_map_idle_redraw(OsmGpsMap *map);
 
 static guint    osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source);
+static gboolean osm_gps_map_source_get_cache_policy(OsmGpsMapSource_t source);
 
 static void
 cached_tile_free (OsmCachedTile *tile)
@@ -894,6 +895,7 @@ osm_gps_map_download_tile (OsmGpsMap *map, int zoom, int x, int y, gboolean redr
     //calculate the uri to download
     dl->uri = get_tile_uri(priv->repo_uri, priv->uri_format,
                            priv->max_zoom, zoom, x, y);
+    /* g_message("Downloading '%s'", dl->uri); */
 
 #if USE_LIBSOUP22
     dl->session = priv->soup_session;
@@ -1115,13 +1117,18 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
     gboolean needs_refresh = FALSE;
     if (filename) {
         g_debug("Found file %s", filename);
-        /* try to get file from internal cache first */
-        tile = osm_gps_map_load_cached_tile(map, filename);
-        if (!tile) g_warning("cannot load and cache %s!!!", filename);
 
         needs_refresh = osm_gps_map_tile_age_exceeded
             (filename,
              osm_gps_map_source_get_cache_period(priv->map_source));
+
+        /* try to get file from internal cache first */
+        if (!needs_refresh ||
+            osm_gps_map_source_get_cache_policy(priv->map_source)) {
+            tile = osm_gps_map_load_cached_tile(map, filename);
+            if (!tile) g_warning("cannot load and cache %s!!!", filename);
+        }
+
         g_free(filename);
     }
 
@@ -1134,7 +1141,8 @@ osm_gps_map_load_tile (OsmGpsMap *map, int zoom, int x, int y, int offset_x, int
         if (priv->map_auto_download)
             osm_gps_map_download_tile(map, zoom, x, y, TRUE);
 
-        if(!needs_refresh) {
+        if(!needs_refresh &&
+           osm_gps_map_source_get_cache_policy(priv->map_source)) {
             /* try to render the tile by scaling cached tiles from other zoom
              * levels */
             tile = osm_gps_map_render_missing_tile (map, zoom, x, y,
@@ -1233,7 +1241,6 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, MaepGeodata *track, int lw,
     map_y0 = priv->map_y - 0.25 * priv->viewport_height - EXTRA_BORDER;
 
     /* Draw all segments. */
-    cairo_set_line_width (priv->cr, lw);
     cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
     cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
     cairo_set_line_join (priv->cr, CAIRO_LINE_JOIN_ROUND);
@@ -1244,10 +1251,23 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, MaepGeodata *track, int lw,
             y = lat2pixel(priv->map_zoom, iter.cur->coord.rlat) - map_y0;
                     
             if (st & TRACK_POINT_START)
-                cairo_move_to(priv->cr, x, y);
+                {
+                    cairo_move_to(priv->cr, x, y);
+                    cairo_line_to(priv->cr, x, y);
+                    cairo_set_line_width (priv->cr, lw * 3);
+                    cairo_stroke(priv->cr);
+                    cairo_move_to(priv->cr, x, y);
+                }
             cairo_line_to(priv->cr, x, y);
             if (st & TRACK_POINT_STOP)
-                cairo_stroke(priv->cr);
+                {
+                    cairo_set_line_width (priv->cr, lw);
+                    cairo_stroke(priv->cr);
+                    cairo_move_to(priv->cr, x, y);
+                    cairo_line_to(priv->cr, x, y);
+                    cairo_set_line_width (priv->cr, lw * 3);
+                    cairo_stroke(priv->cr);
+                }
 
             *max_x = MAX(x,*max_x);
             *min_x = MIN(x,*min_x);
@@ -1365,7 +1385,7 @@ osm_gps_map_redraw (OsmGpsMap *map)
     /* isn't really usable. we'll just ignore this ... */
     if((priv->viewport_width < 2) ||
        (priv->viewport_height < 2)) {
-        g_message("not a useful sized map yet ...");
+        g_message("not a useful sized map yet for source %d ...", priv->map_source);
         return FALSE;
     }
 
@@ -1638,7 +1658,7 @@ osm_gps_map_dispose (GObject *object)
         cairo_surface_destroy (priv->cr_surf);
     
     if (priv->null_tile)
-        g_object_unref (priv->null_tile);
+        cairo_surface_destroy (priv->null_tile);
 
     if (priv->idle_map_redraw != 0)
         g_source_remove (priv->idle_map_redraw);
@@ -1905,12 +1925,12 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
     g_return_if_fail(OSM_IS_GPS_MAP(map));
     priv = map->priv;
 
+    g_message("Set view port to %dx%d for source %d.", width, height, priv->map_source);
     if (priv->viewport_width == width &&
         priv->viewport_height == height)
         return;
 
     /* Set viewport. */
-    g_message("Set view port to %dx%d.", width, height);
     priv->viewport_width = width;
     priv->viewport_height = height;
 
@@ -1931,6 +1951,8 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
     priv->map_x = pixel_x - priv->viewport_width/2;
     priv->map_y = pixel_y - priv->viewport_height/2;
 
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_VIEWPORT_WIDTH]);
+    g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_VIEWPORT_HEIGHT]);
     osm_gps_map_redraw(map);
 
     g_signal_emit_by_name(map, "changed");
@@ -2173,25 +2195,27 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           OSM_IMAGE_FORMAT,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+    properties[PROP_VIEWPORT_WIDTH] = g_param_spec_uint ("viewport-width",
+                                                         "Viewport width",
+                                                         "width of the viewable area",
+                                                         1, /* minimum property value */
+                                                         2048, /* maximum property value */
+                                                         1,
+                                                         G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
                                      PROP_VIEWPORT_WIDTH,
-                                     g_param_spec_uint ("viewport-width",
-                                                       "Viewport width",
-                                                       "width of the viewable area",
-                                                       1, /* minimum property value */
-                                                       2048, /* maximum property value */
-                                                       1,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                     properties[PROP_VIEWPORT_WIDTH]);
 
+    properties[PROP_VIEWPORT_HEIGHT] = g_param_spec_uint ("viewport-height",
+                                                          "Viewport height",
+                                                          "height of the viewable area",
+                                                          1, /* minimum property value */
+                                                          2048, /* maximum property value */
+                                                          1,
+                                                          G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
                                      PROP_VIEWPORT_HEIGHT,
-                                     g_param_spec_uint ("viewport-height",
-                                                       "Viewport height",
-                                                       "height of the viewable area",
-                                                       1, /* minimum property value */
-                                                       2048, /* maximum property value */
-                                                       1,
-                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                     properties[PROP_VIEWPORT_HEIGHT]);
 
     g_signal_new ("changed", OSM_TYPE_GPS_MAP,
                   G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
@@ -2481,6 +2505,40 @@ osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_LAST:
         default:
             return 0;
+    }
+    return 0;
+}
+
+static gboolean 
+osm_gps_map_source_get_cache_policy(OsmGpsMapSource_t source)
+{
+    /* Return TRUE to display out of date cache. */
+    switch(source) {
+        case OSM_GPS_MAP_SOURCE_NULL:
+            return FALSE;
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+        case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
+        case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
+        case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
+        case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
+        case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_STREET:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID:
+        case OSM_GPS_MAP_SOURCE_YAHOO_STREET:
+        case OSM_GPS_MAP_SOURCE_YAHOO_SATELLITE:
+        case OSM_GPS_MAP_SOURCE_YAHOO_HYBRID:
+        case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
+        case OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE:
+        case OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE:
+            return TRUE;
+        case OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC:
+            return FALSE;
+        case OSM_GPS_MAP_SOURCE_LAST:
+        default:
+            return FALSE;
     }
     return 0;
 }
