@@ -3,7 +3,7 @@ TARGET = harbour-maep-qt
 DEPENDPATH += .
 INCLUDEPATH += .
 CONFIG += link_pkgconfig
-PKGCONFIG += gobject-2.0 cairo libsoup-2.4 gconf-2.0 libxml-2.0 libcurl
+PKGCONFIG += gobject-2.0 cairo libsoup-2.4 dconf libxml-2.0 libcurl
 QT += qml quick positioning sensors
 LIBS += -ljpeg
 
@@ -24,7 +24,7 @@ DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += APP=\"\\\"\"maep\"\\\"\"
 DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += SAILFISH
-DEFINES += VERSION=\"\\\"\"1.4.1\"\\\"\"
+DEFINES += VERSION=\"\\\"\"1.4.2\"\\\"\"
 
 # Input
 HEADERS += misc.h net_io.h geonames.h search.h track.h img_loader.h icon.h converter.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-layer.h osm-gps-map/osm-gps-map-qt.h osm-gps-map/osm-gps-map-osd-classic.h osm-gps-map/layer-wiki.h osm-gps-map/layer-gps.h

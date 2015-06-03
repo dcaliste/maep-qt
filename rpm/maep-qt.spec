@@ -31,7 +31,7 @@ BuildRequires: pkgconfig(Qt5Positioning)
 BuildRequires: pkgconfig(gobject-2.0)
 BuildRequires: pkgconfig(cairo)
 BuildRequires: pkgconfig(libsoup-2.4)
-BuildRequires: pkgconfig(gconf-2.0)
+BuildRequires: pkgconfig(dconf)
 BuildRequires: pkgconfig(libxml-2.0)
 BuildRequires: pkgconfig(libcurl)
 BuildRequires: libjpeg-turbo-devel
