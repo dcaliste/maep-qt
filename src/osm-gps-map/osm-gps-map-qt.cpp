@@ -198,7 +198,6 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
   bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
 
-
   path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
 
   screenRotation = orientation;
@@ -229,10 +228,9 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_signal_connect_swapped(G_OBJECT(map), "notify::map-source",
                            G_CALLBACK(osm_gps_map_qt_source), this);
 
+  overlay = NULL;
   if (overlaySource != OSM_GPS_MAP_SOURCE_NULL)
     ensureOverlay((Maep::GpsMap::Source)overlaySource);
-  else
-    overlay = NULL;
 
   net_io_init();
   osd = osm_gps_map_osd_classic_init(map);
@@ -341,6 +339,7 @@ Maep::GpsMap::~GpsMap()
   g_object_unref(map);
 
   /* ... and store it in gconf */
+  g_message("Storing configuration.");
   gconf_set_int(GCONF_KEY_ZOOM, zoom);
   gconf_set_int(GCONF_KEY_SOURCE, source);
   gconf_set_int(GCONF_KEY_OVERLAY_SOURCE, overlaySource);
@@ -357,6 +356,7 @@ Maep::GpsMap::~GpsMap()
   gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
   gconf_set_bool(GCONF_KEY_COMPASS_ENABLED, compassEnabled_);
+  g_message("Storing configuration done.");
 }
 static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
 {
@@ -374,6 +374,7 @@ void Maep::GpsMap::ensureOverlay(Source source)
   if (overlay)
     return;
 
+  g_message("Creating overlay %d", (guint)source);
   path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
   overlay = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
                                      "map-source",               (guint)source,
