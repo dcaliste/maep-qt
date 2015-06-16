@@ -28,7 +28,7 @@ SilicaFlickable {
 
     PullDownMenu {
         MenuItem {
-            text: "Miscelaneous"
+            text: "Miscellaneous"
             onClicked: { viewable = "info" }
         }
         MenuItem {
