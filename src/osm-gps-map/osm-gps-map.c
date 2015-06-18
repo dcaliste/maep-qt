@@ -2235,6 +2235,12 @@ osm_gps_map_source_get_friendly_name(OsmGpsMapSource_t source)
             return "None";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
             return "OpenStreetMap I";
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+            return "Peruskartta";
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+            return "Ortoilmakuva";
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
+            return "Taustakartta";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER:
             return "OpenStreetMap II";
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
@@ -2289,6 +2295,12 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "none://";
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
             return OSM_REPO_URI;
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+            return "http://tiles.kartat.kapsi.fi/peruskartta/#Z/#X/#Y.png";
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+            return "http://tiles.kartat.kapsi.fi/ortokuva/#Z/#X/#Y.png";
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
+            return "http://tiles.kartat.kapsi.fi/taustakartta/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
             /* OpenAerialMap is down, offline till furthur notice
                http://openaerialmap.org/pipermail/talk_openaerialmap.org/2008-December/000055.html */
@@ -2356,6 +2368,12 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
             *notice = "© OpenStreetMap contributors";
             *url    = "http://www.openstreetmap.org/copyright";
             return;
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
+            *notice = "CC 4.0 licence (© Maanmittauslaitos)";
+            *url    = "http://www.maanmittauslaitos.fi/avoimen-tietoaineiston-cc-40-lisenssi";
+            return;
         case OSM_GPS_MAP_SOURCE_OPENAERIALMAP:
             return;
         case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
@@ -2407,6 +2425,9 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
     switch(source) {
         case OSM_GPS_MAP_SOURCE_NULL:
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
@@ -2469,6 +2490,10 @@ osm_gps_map_source_get_max_zoom(OsmGpsMapSource_t source)
             return 11;
         case OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE:
             return 18;
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
+            return 20;
         case OSM_GPS_MAP_SOURCE_LAST:
         default:
             return 17;
@@ -2483,6 +2508,9 @@ osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_NULL:
             return 0;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
@@ -2517,6 +2545,9 @@ osm_gps_map_source_get_cache_policy(OsmGpsMapSource_t source)
         case OSM_GPS_MAP_SOURCE_NULL:
             return FALSE;
         case OSM_GPS_MAP_SOURCE_OPENSTREETMAP:
+        case OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA:
+        case OSM_GPS_MAP_SOURCE_MML_ORTOKUVA:
+        case OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA:
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
         case OSM_GPS_MAP_SOURCE_OPENSEAMAP:
