@@ -269,17 +269,17 @@ ApplicationWindow
         id: sourceModel
 	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP
                       section: "base tiles" }
-    ListElement { source: GpsMap.SOURCE_MML_PERUSKARTTA
-                      section: "base tiles" }
-    ListElement { source: GpsMap.SOURCE_MML_ORTOKUVA
-                      section: "base tiles" }
-    ListElement { source: GpsMap.SOURCE_MML_TAUSTAKARTTA
-                      section: "base tiles" }
 	ListElement { source: GpsMap.SOURCE_OPENSTREETMAP_RENDERER
                       section: "base tiles" }
 	ListElement { source: GpsMap.SOURCE_OPENCYCLEMAP
                       section: "base tiles" }
         ListElement { source: GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_MML_PERUSKARTTA
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_MML_ORTOKUVA
+                      section: "base tiles" }
+        ListElement { source: GpsMap.SOURCE_MML_TAUSTAKARTTA
                       section: "base tiles" }
         ListElement { source: GpsMap.SOURCE_GOOGLE_STREET
                       section: "base tiles" }
