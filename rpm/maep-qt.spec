@@ -11,6 +11,9 @@ Name: harbour-maep-qt
 # Harbour requirements.
 #%define __provides_exclude_from ^%{_datadir}/.*$
 #%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libgconf-2.*|libxml2.*|libQt5Positioning.*|libdl.*|libdbus-glib-1.*|libpixman-1.*|libfontconfig.*|libfreetype.*|libxcb-shm.*|libxcb-render.*|libxcb.*|libXrender.*|libX11.*|libXau.*|libexpat.*$
+%{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
+%{!?qtc_make:%define qtc_make make}
+%{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
 Version: 1.4.2
@@ -47,15 +50,11 @@ rm -rf $RPM_BUILD_ROOT
 %setup -q -n %{name}-%{version}
 
 %build
-rm -rf tmp
-mkdir tmp
-cd tmp
-%qmake5 -o Makefile ../src/maep.pro
-make %{?jobs:-j%jobs}
+%qtc_qmake5
+%qtc_make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
-cd tmp
 %qmake5_install
 # Copy here the blacklisted libraries
 #install -d %{buildroot}/usr/share/%{name}/lib

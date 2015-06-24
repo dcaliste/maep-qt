@@ -17,7 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h" 
+#include "../config.h" 
+#include "../converter.h"
 
 #include <stdlib.h>  // abs
 #include <string.h>
@@ -30,9 +31,9 @@
 #include <cairo.h>
 
 #include "osm-gps-map.h"
-#include "converter.h"
 #include "osm-gps-map-osd-classic.h"
 
+#ifdef OSD_SOURCE_SEL
 static OsmGpsMapSource_t map_sources[] = {
     OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
     OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA,
@@ -46,7 +47,6 @@ static OsmGpsMapSource_t map_sources[] = {
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
     OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID
 };
-#ifdef OSD_SOURCE_SEL
 static int num_map_sources = sizeof(map_sources)/sizeof(map_sources[0]);
 #endif
 

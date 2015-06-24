@@ -24,8 +24,8 @@
 #define LAYER_WIKI_H
 
 #include <glib-object.h>
-#include "osm-gps-map/osm-gps-map.h"
-#include "geonames.h"
+#include "osm-gps-map.h"
+#include "../geonames.h"
 
 G_BEGIN_DECLS
 

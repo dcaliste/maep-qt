@@ -22,7 +22,9 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "../config.h"
+#include "../img_loader.h"
+#include "../converter.h"
 
 #include <fcntl.h>
 #include <math.h>
@@ -37,8 +39,6 @@
 #include <libsoup/soup.h>
 #include <cairo.h>
 
-#include "img_loader.h"
-#include "converter.h"
 #include "osm-gps-map-types.h"
 #include "osm-gps-map.h"
 

@@ -24,7 +24,7 @@
 #ifndef _OSM_GPS_MAP_TYPES_H_
 #define _OSM_GPS_MAP_TYPES_H_
 
-#include "config.h"
+#include "../config.h"
 
 /* #include <gdk/gdk.h> */
 #include <cairo.h>

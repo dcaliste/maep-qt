@@ -28,13 +28,13 @@
 #include <QColor>
 #include <QCompass>
 #include <cairo.h>
-#include "misc.h"
-#include "search.h"
-#include "track.h"
-#include "osm-gps-map/osm-gps-map.h"
-#include "osm-gps-map/layer-wiki.h"
-#include "osm-gps-map/layer-gps.h"
-#include "osm-gps-map/osm-gps-map-osd-classic.h"
+#include "../misc.h"
+#include "../search.h"
+#include "../track.h"
+#include "osm-gps-map.h"
+#include "layer-wiki.h"
+#include "layer-gps.h"
+#include "osm-gps-map-osd-classic.h"
 
 namespace Maep {
 

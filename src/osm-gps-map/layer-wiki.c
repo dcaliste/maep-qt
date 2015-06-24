@@ -23,11 +23,11 @@
 #include <string.h>
 #include <math.h>
 
-#include "misc.h"
-#include "icon.h"
-#include "converter.h"
+#include "../misc.h"
+#include "../icon.h"
+#include "../converter.h"
 #include "layer-wiki.h"
-#include "osm-gps-map/osm-gps-map-types.h"
+#include "osm-gps-map-types.h"
 
 struct _MaepWikiContextPrivate
 {

@@ -25,14 +25,14 @@
 #ifndef _OSM_GPS_MAP_H_
 #define _OSM_GPS_MAP_H_
 
-#include "config.h"
+#include "../config.h"
 
 #include <glib.h>
 #include <glib-object.h>
 #include <cairo.h>
 
-#include "converter.h"
-#include "track.h"
+#include "../converter.h"
+#include "../track.h"
 
 G_BEGIN_DECLS
 

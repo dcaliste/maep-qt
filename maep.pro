@@ -27,8 +27,8 @@ DEFINES += SAILFISH
 DEFINES += VERSION=\"\\\"\"1.4.2\"\\\"\"
 
 # Input
-HEADERS += misc.h net_io.h geonames.h search.h track.h img_loader.h icon.h converter.h osm-gps-map/osm-gps-map.h osm-gps-map/osm-gps-map-layer.h osm-gps-map/osm-gps-map-qt.h osm-gps-map/osm-gps-map-osd-classic.h osm-gps-map/layer-wiki.h osm-gps-map/layer-gps.h
-SOURCES += misc.c net_io.c geonames.c search.c track.c img_loader.c icon.c converter.c osm-gps-map/osm-gps-map.c osm-gps-map/osm-gps-map-layer.c osm-gps-map/osm-gps-map-qt.cpp osm-gps-map/osm-gps-map-osd-classic.c osm-gps-map/layer-wiki.c osm-gps-map/layer-gps.c main.cpp
+HEADERS += src/config.h src/misc.h src/net_io.h src/geonames.h src/search.h src/track.h src/img_loader.h src/icon.h src/converter.h src/osm-gps-map/osm-gps-map.h src/osm-gps-map/osm-gps-map-layer.h src/osm-gps-map/osm-gps-map-qt.h src/osm-gps-map/osm-gps-map-osd-classic.h src/osm-gps-map/layer-wiki.h src/osm-gps-map/layer-gps.h
+SOURCES += src/misc.c src/net_io.c src/geonames.c src/search.c src/track.c src/img_loader.c src/icon.c src/converter.c src/osm-gps-map/osm-gps-map.c src/osm-gps-map/osm-gps-map-layer.c src/osm-gps-map/osm-gps-map-qt.cpp src/osm-gps-map/osm-gps-map-osd-classic.c src/osm-gps-map/layer-wiki.c src/osm-gps-map/layer-gps.c src/main.cpp
 
 # For Harbour restrictions
 QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
@@ -37,15 +37,17 @@ QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
 target.path = $$PREFIX/bin
 
 desktop.path = $$PREFIX/share/applications
-desktop.files = ../data/harbour-maep-qt.desktop
+desktop.files = data/harbour-maep-qt.desktop
 
 icon.path = $$PREFIX/share/icons/hicolor/86x86/apps
-icon.files = ../data/harbour-maep-qt.png
+icon.files = data/harbour-maep-qt.png
 
 qml.path = $$DEPLOYMENT_PATH
-qml.files = ../src/main.qml ../src/Header.qml ../src/PlaceHeader.qml ../src/TrackHeader.qml ../src/TrackView.qml ../src/About.qml ../src/Settings.qml ../src/FileChooser.qml 
+qml.files = src/main.qml src/Header.qml src/PlaceHeader.qml src/TrackHeader.qml src/TrackView.qml src/About.qml src/Settings.qml src/FileChooser.qml 
 
 resources.path = $$DEPLOYMENT_PATH
-resources.files = ../data/wikipedia_w.48.png ../data/icon-cover-remove.png ../data/AUTHORS ../data/COPYING
+resources.files = data/wikipedia_w.48.png data/icon-cover-remove.png data/AUTHORS data/COPYING
 
 INSTALLS += target desktop icon qml resources
+
+OTHER_FILES += rpm/maep-qt.spec

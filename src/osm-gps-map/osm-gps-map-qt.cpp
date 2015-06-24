@@ -19,7 +19,7 @@
 #include "osm-gps-map.h"
 #include "osm-gps-map-layer.h"
 #undef WITH_GTK
-#include "net_io.h"
+#include "../net_io.h"
 
 #include <QPainter>
 #include <QPainterPath>
