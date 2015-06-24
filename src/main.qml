@@ -18,7 +18,7 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import Maep 1.0
-
+import org.nemomobile.notifications 1.0
 import QtPositioning 5.0
 
 ApplicationWindow
@@ -562,8 +562,8 @@ ApplicationWindow
 
 	Dialog {
 	    property Track track: Track { onFileError: { console.log(errorMsg);
-                                                         banner.text = errorMsg;
-                                                         banner.active = true } }
+                                                         notification.previewBody = errorMsg;
+                                                         notification.publish() } }
 	    property Conf conf:  Conf {  }
 	    
 	    function load(url) {
@@ -579,10 +579,11 @@ ApplicationWindow
 		title: DialogHeader { title: "Select a track file" }
 		onSelectionChanged: { load(selection) }
 	    }
-	    Notification {
-		id: banner
-		anchors.fill: parent
-	    }
+            
+            Notification {
+                id: notification
+                previewSummary: "Loading a track file"
+            }
 	}
     }
 
