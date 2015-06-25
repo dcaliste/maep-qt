@@ -26,10 +26,11 @@ ApplicationWindow
     id: main
     initialPage: page
     cover: coverPage
+    _defaultPageOrientations: Orientation.All
 
     Page {
         id: page
-	allowedOrientations: map.screen_rotation ? Orientation.All : main.deviceOrientation
+	allowedOrientations: map.screen_rotation ? Orientation.All : pageStack.currentOrientation
 
         function importTrack() {
             var dialog = pageStack.push(trackopen)
@@ -590,7 +591,6 @@ ApplicationWindow
     Component {
         id: aboutpage
         Page {
-            anchors.fill: parent
             About {
                 anchors.fill: parent
                 version: map.version
@@ -604,7 +604,6 @@ ApplicationWindow
     Component {
         id: settingspage
         Page {
-            anchors.fill: parent
             Settings {
                 anchors.fill: parent
             }
