@@ -3162,3 +3162,27 @@ osm_gps_map_get_gps (OsmGpsMap *map)
 }
 
 #endif
+
+struct _OsmGpsMapSource
+{
+    guint id;
+    
+    gchar *name;
+    gchar *repo_uri;
+    gchar *image_format;
+
+    gchar *copyright_notice;
+    gchar *copyright_url;
+
+    guint min_zoom, max_zoom;
+};
+
+const OsmGpsMapSource* osm_gps_map_source_new(const gchar *name,
+                                              const gchar repo_uri,
+                                              const gchar *image_format,
+                                              const gchar *copyright_notice,
+                                              const gchar *copyright_url,
+                                              guint min_zoom, guint max_zoom)
+{
+    
+}

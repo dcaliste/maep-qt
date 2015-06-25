@@ -85,6 +85,7 @@ typedef enum {
     OSM_GPS_MAP_SOURCE_MML_ORTOKUVA,
     OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA,
 
+    OSM_GPS_MAP_SOURCE_USER_DEFINED = 100,
     OSM_GPS_MAP_SOURCE_LAST
 } OsmGpsMapSource_t;
 
@@ -95,16 +96,14 @@ typedef enum {
 #define TILESIZE 256
 #define EXTRA_BORDER 0 /*                (TILESIZE / 2) */
 
-typedef struct {
-    gint x, y, w, h;
-} OsmGpsMapRect_t;
+typedef struct _OsmGpsMapSource OsmGpsMapSource;
 
-GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
-
-OsmGpsMap*  osm_gps_map_new                         (void);
-
-char*       osm_gps_map_get_default_cache_directory (void);
-
+const OsmGpsMapSource* osm_gps_map_source_new       (const gchar *name,
+                                                     const gchar repo_uri,
+                                                     const gchar *image_format,
+                                                     const gchar *copyright_notice,
+                                                     const gchar *copyright_url,
+                                                     guint min_zoom, guint max_zoom);
 const char* osm_gps_map_source_get_friendly_name    (OsmGpsMapSource_t source);
 const char* osm_gps_map_source_get_repo_uri         (OsmGpsMapSource_t source);
 const char* osm_gps_map_source_get_image_format     (OsmGpsMapSource_t source);
@@ -122,6 +121,15 @@ gchar*      osm_gps_map_source_get_tile_uri         (OsmGpsMapSource_t source,
 gchar*      osm_gps_map_source_get_cached_file      (OsmGpsMapSource_t source,
                                                      const gchar *cache_dir,
                                                      int zoom, int x, int y);
+typedef struct {
+    gint x, y, w, h;
+} OsmGpsMapRect_t;
+
+GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
+
+OsmGpsMap*  osm_gps_map_new                         (void);
+
+char*       osm_gps_map_get_default_cache_directory (void);
 
 void        osm_gps_map_download_maps               (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_start, int zoom_end);
 void        osm_gps_map_get_bbox                    (OsmGpsMap *map, coord_t *pt1, coord_t *pt2);
