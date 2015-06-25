@@ -49,6 +49,8 @@ SilicaFlickable {
         TextSwitch {
             text: "Enable compass"
             checked: map.enable_compass
+            description: "Display a compass arrow under the GPS point" +
+            " (green points in the north direction)."
             onClicked: map.enable_compass = checked
             width: parent.width
         }
