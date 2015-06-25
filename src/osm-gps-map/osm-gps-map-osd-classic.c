@@ -523,6 +523,7 @@ osd_zoom_shape(cairo_t *cr, gint x, gint y)
 
 /* ------------------- color/shadow functions ----------------- */
 
+#if defined(OSD_CONTROLS) || defined(OSD_SOURCE_SEL)
 #ifndef OSD_COLOR
 /* if no color has been specified we just use the default colors */
 static void
@@ -587,7 +588,7 @@ osd_shape(cairo_t *cr) {
     cairo_stroke (cr);
 }
 #endif
-
+#endif
 
 static gboolean
 osm_gps_map_in_circle(gint x, gint y, gint cx, gint cy, gint rad) 
@@ -631,6 +632,7 @@ osd_check_dpad(gint x, gint y)
 }
 #endif
 
+#ifdef OSD_CONTROLS
 /* check whether x/y is within the zoom pads */
 static osd_button_t
 osd_check_zoom(gint x, gint y) {
@@ -661,6 +663,7 @@ osd_check_zoom(gint x, gint y) {
  
     return OSD_NONE;
 }
+#endif
 
 #ifdef OSD_SOURCE_SEL
 
@@ -1118,7 +1121,7 @@ osd_dpad_labels(cairo_t *cr, gint x, gint y) {
 }
 #endif
 
-#ifdef OSD_GPS_BUTTON
+#if defined(OSD_GPS_BUTTON) && defined(OSD_CONTROLS)
 /* draw the satellite dish icon in the center of the dpad */
 #define GPS_V0  (D_RAD/7)
 #define GPS_V1  (D_RAD/10)
@@ -1150,6 +1153,7 @@ osd_dpad_gps(cairo_t *cr, gint x, gint y) {
 
 #define Z_LEN  (2*Z_RAD/3)
 
+#ifdef OSD_CONTROLS
 static void
 osd_zoom_labels(cairo_t *cr, gint x, gint y) {
     cairo_move_to (cr, x + Z_LEFT  - Z_LEN, y + Z_MID);
@@ -1160,6 +1164,7 @@ osd_zoom_labels(cairo_t *cr, gint x, gint y) {
     cairo_move_to (cr, x + Z_RIGHT - Z_LEN, y + Z_MID);
     cairo_line_to (cr, x + Z_RIGHT + Z_LEN, y + Z_MID);
 }
+#endif
 
 #ifdef OSD_COORDINATES
 
@@ -1324,7 +1329,8 @@ osd_render_coordinates(osm_gps_map_osd_t *osd)
 
     cairo_destroy(cr);
 }
-static void onLatLon(GObject *obj, GParamSpec *pspec, gpointer user_data)
+static void onLatLon(G_GNUC_UNUSED GObject *obj,
+                     G_GNUC_UNUSED GParamSpec *pspec, gpointer user_data)
 {
     osm_gps_map_osd_t *osd = (osm_gps_map_osd_t*)user_data;
 
@@ -1948,7 +1954,8 @@ osd_render_scale(osm_gps_map_osd_t *osd)
     cairo_destroy(cr);
 }
 
-static void onZoom(GObject *gobject, GParamSpec *pspec, gpointer user_data)
+static void onZoom(G_GNUC_UNUSED GObject *gobject,
+                   G_GNUC_UNUSED GParamSpec *pspec, gpointer user_data)
 {
     osm_gps_map_osd_t *osd = (osm_gps_map_osd_t*)user_data;
 

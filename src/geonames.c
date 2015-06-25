@@ -113,7 +113,8 @@ static MaepGeonamesPlace *nominatim_parse_place(xmlDocPtr doc, xmlNode *a_node) 
   return geoname;
 }
 
-static MaepGeonamesPlace *geonames_parse_geoname(xmlDocPtr doc, xmlNode *a_node) {
+static MaepGeonamesPlace *geonames_parse_geoname(G_GNUC_UNUSED xmlDocPtr doc,
+                                                 xmlNode *a_node) {
   xmlNode *cur_node = NULL;
   MaepGeonamesPlace *geoname = g_new0(MaepGeonamesPlace, 1);
   geoname->pos.rlat = geoname->pos.rlon = OSM_GPS_MAP_INVALID;
@@ -139,7 +140,8 @@ static MaepGeonamesPlace *geonames_parse_geoname(xmlDocPtr doc, xmlNode *a_node)
   return geoname;
 }
 
-static MaepGeonamesEntry *geonames_parse_entry(xmlDocPtr doc, xmlNode *a_node) {
+static MaepGeonamesEntry *geonames_parse_entry(G_GNUC_UNUSED xmlDocPtr doc,
+                                               xmlNode *a_node) {
   xmlNode *cur_node = NULL;
   MaepGeonamesEntry *entry = g_new0(MaepGeonamesEntry, 1);
   entry->pos.rlat = entry->pos.rlon = OSM_GPS_MAP_INVALID;

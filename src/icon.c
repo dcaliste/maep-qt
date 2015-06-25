@@ -64,7 +64,7 @@ typedef struct {
   char *name, *fullname;
 } icon_reg_t;
 
-static void icon_free(gpointer data, gpointer user_data) {
+static void icon_free(gpointer data, G_GNUC_UNUSED gpointer user_data) {
   icon_reg_t *icon_reg = (icon_reg_t*)data;
 
   cairo_surface_destroy(icon_reg->cr_surf);

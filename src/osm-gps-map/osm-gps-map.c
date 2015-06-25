@@ -553,7 +553,7 @@ osm_gps_map_add_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
     priv->layers = g_slist_prepend(priv->layers, layer);
 }
 void
-osm_gps_map_layer_changed(OsmGpsMap *map, OsmGpsMapLayer *layer)
+osm_gps_map_layer_changed(OsmGpsMap *map, G_GNUC_UNUSED OsmGpsMapLayer *layer)
 {
     OsmGpsMapPrivate *priv;
     
@@ -1335,7 +1335,7 @@ osm_gps_map_print_tracks (OsmGpsMap *map)
 }
 
 static gboolean
-osm_gps_map_purge_cache_check(gpointer key, gpointer value, gpointer user)
+osm_gps_map_purge_cache_check(G_GNUC_UNUSED gpointer key, gpointer value, gpointer user)
 {
    return (((OsmCachedTile*)value)->redraw_cycle != ((OsmGpsMapPrivate*)user)->redraw_cycle);
 }
@@ -2456,7 +2456,7 @@ osm_gps_map_source_get_image_format(OsmGpsMapSource_t source)
 
 
 int 
-osm_gps_map_source_get_min_zoom(OsmGpsMapSource_t source)
+osm_gps_map_source_get_min_zoom(G_GNUC_UNUSED OsmGpsMapSource_t source)
 {
     return 1;
 }
@@ -2837,7 +2837,8 @@ osm_gps_map_auto_center_at(OsmGpsMap *map, float latitude, float longitude)
 }
 
 static void
-_on_track_changed (MaepGeodata *track_state, GParamSpec *pspec, OsmGpsMap *map)
+_on_track_changed (G_GNUC_UNUSED MaepGeodata *track_state,
+                   G_GNUC_UNUSED GParamSpec *pspec, OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv;
 
@@ -2848,7 +2849,7 @@ _on_track_changed (MaepGeodata *track_state, GParamSpec *pspec, OsmGpsMap *map)
         priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
 }
 static void
-_on_track_dirty (MaepGeodata *track_state, OsmGpsMap *map)
+_on_track_dirty (G_GNUC_UNUSED MaepGeodata *track_state, OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv;
 

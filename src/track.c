@@ -352,7 +352,7 @@ static gboolean track_get_prop_pos(xmlNode *node, coord_t *pos) {
   return TRUE;
 }
 
-static void track_parse_tpext(xmlDocPtr doc, xmlNode *a_node, 
+static void track_parse_tpext(G_GNUC_UNUSED xmlDocPtr doc, xmlNode *a_node, 
 			      track_point_t *point) {
   
   /* scan for children */
@@ -789,7 +789,7 @@ static void track_save_waypoints(GArray *array, xmlNodePtr node) {
 }
 
 gboolean maep_geodata_to_file(MaepGeodata *track_state,
-                              const char *name, GError **error) {
+                              const char *name, G_GNUC_UNUSED GError **error) {
   g_return_val_if_fail(MAEP_IS_GEODATA(track_state), FALSE);
 
   LIBXML_TEST_VERSION;

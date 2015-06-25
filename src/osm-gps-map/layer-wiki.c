@@ -281,11 +281,12 @@ static gboolean maep_wiki_context_button(OsmGpsMapLayer *self,
   }
   return (priv->balloon_src0 != NULL);
 }
-static gboolean maep_wiki_context_busy(OsmGpsMapLayer *self)
+static gboolean maep_wiki_context_busy(G_GNUC_UNUSED OsmGpsMapLayer *self)
 {
   return FALSE;
 }
-static void maep_wiki_context_render(OsmGpsMapLayer *self, OsmGpsMap *map)
+static void maep_wiki_context_render(G_GNUC_UNUSED OsmGpsMapLayer *self,
+                                     G_GNUC_UNUSED OsmGpsMap *map)
 {
 }
 static void maep_wiki_context_draw(OsmGpsMapLayer *self, cairo_t *cr,
@@ -632,7 +633,8 @@ wiki_timer_trigger(MaepWikiContext *context) {
     g_timeout_add_seconds(WIKI_UPDATE_TIMEOUT, wiki_update, context);
 }
 
-static void on_map_changed(OsmGpsMap *map, GParamSpec *pspec, gpointer data ) {
+static void on_map_changed(G_GNUC_UNUSED OsmGpsMap *map,
+                           G_GNUC_UNUSED GParamSpec *pspec, gpointer data ) {
   wiki_timer_trigger((MaepWikiContext*)data);
 }
 
