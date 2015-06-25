@@ -21,7 +21,7 @@ isEmpty(PREFIX)
 
 DEPLOYMENT_PATH = $$PREFIX/share/$$TARGET
 DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
-DEFINES += APP=\"\\\"\"maep\"\\\"\"
+DEFINES += APP=\"\\\"\"$${TARGET}\"\\\"\"
 DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += SAILFISH
 DEFINES += VERSION=\"\\\"\"1.4.2\"\\\"\"

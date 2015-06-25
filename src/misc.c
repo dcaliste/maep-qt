@@ -41,6 +41,7 @@
 #endif
 
 #define GCONF_PATH         "/apps/" APP "/%s"
+#define OLD_PATH         "/apps/maep/%s"
 
 static DConfClient* dconfClient = NULL;
 static DConfClient* dconf_client_get_default()
@@ -79,8 +80,13 @@ char *gconf_get_string(const char *m_key) {
   GVariant *value = dconf_client_read(client, key);
   if(!value) {
     g_free(key);
-    return NULL;
-  }
+    key = g_strdup_printf(OLD_PATH, m_key);
+    value = dconf_client_read(client, key);
+    if (!value) {
+      g_free(key);
+      return NULL;
+    }
+  }  
 
   /* char *ret = gconf_client_get_string(client, key, NULL); */
   gsize len;
@@ -114,8 +120,12 @@ gboolean gconf_get_bool(const char *m_key, gboolean default_value) {
   /* GConfValue *value = gconf_client_get(client, key, NULL); */
   GVariant *value = dconf_client_read(client, key);
   if(!value) {
-    g_free(key);
-    return default_value;
+    key = g_strdup_printf(OLD_PATH, m_key);
+    value = dconf_client_read(client, key);
+    if (!value) {
+      g_free(key);
+      return default_value;
+    }
   }
 
   if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
@@ -152,13 +162,15 @@ gint gconf_get_int(const char *m_key, gint def_value) {
   DConfClient *client = dconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
-  g_message("looking for int key '%s'", key);
   /* GConfValue *value = gconf_client_get(client, key, NULL); */
   GVariant *value = dconf_client_read(client, key);
   if(!value) {
-    g_message("not found returning %d", def_value);
-    g_free(key);
-    return def_value;
+    key = g_strdup_printf(OLD_PATH, m_key);
+    value = dconf_client_read(client, key);
+    if (!value) {
+      g_free(key);
+      return def_value;
+    }
   }
 
   /* gint ret = gconf_client_get_int(client, key, NULL); */
@@ -169,7 +181,6 @@ gint gconf_get_int(const char *m_key, gint def_value) {
     return def_value;
   }
   gint ret = g_variant_get_int32(value);
-  g_message("found returning %d", ret);
   g_free(key);
   g_variant_unref(value);
   return ret;
@@ -196,13 +207,15 @@ gfloat gconf_get_float(const char *m_key, gfloat def_value) {
   DConfClient *client = dconf_client_get_default();
 
   char *key = g_strdup_printf(GCONF_PATH, m_key);
-  g_message("looking for int key '%s'", key);
   /* GConfValue *value = gconf_client_get(client, key, NULL); */
   GVariant *value = dconf_client_read(client, key);
   if(!value) {
-    g_message("not found returning %g", def_value);
-    g_free(key);
-    return def_value;
+    key = g_strdup_printf(OLD_PATH, m_key);
+    value = dconf_client_read(client, key);
+    if (!value) {
+      g_free(key);
+      return def_value;
+    }
   }
 
   if(!g_variant_is_of_type(value, G_VARIANT_TYPE_DOUBLE)) {
@@ -213,7 +226,6 @@ gfloat gconf_get_float(const char *m_key, gfloat def_value) {
   }
   /* gfloat ret = gconf_client_get_float(client, key, NULL); */
   gfloat ret = g_variant_get_double(value);
-  g_message("found returning %g", ret);
   g_free(key);
   g_variant_unref(value);
   return ret;

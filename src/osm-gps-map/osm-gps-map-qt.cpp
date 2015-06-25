@@ -15,6 +15,7 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib/gstdio.h>
 #include "osm-gps-map-qt.h"
 #include "osm-gps-map.h"
 #include "osm-gps-map-layer.h"
@@ -184,7 +185,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
     , compass(parent)
     , compassEnabled_(FALSE)
 {
-  char *path;
+  char *path, *oldPath;
 
   gint source = gconf_get_int(GCONF_KEY_SOURCE, OSM_GPS_MAP_SOURCE_OPENSTREETMAP);
   gint overlaySource = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, OSM_GPS_MAP_SOURCE_NULL);
@@ -198,7 +199,13 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
   bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
 
-  path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
+  path = g_build_filename(g_get_user_data_dir(), APP, NULL);
+
+  /* Backward compatibility, move old path. */
+  oldPath = g_build_filename(g_get_user_data_dir(), "maep", NULL);
+  if (g_file_test(oldPath, G_FILE_TEST_IS_DIR))
+    g_rename(oldPath, path);
+  g_free(oldPath);
 
   screenRotation = orientation;
   map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
