@@ -85,6 +85,11 @@ rm -rf %{buildroot}
 /usr/bin
 
 %changelog
+* Thu Jun 25 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-1
+- [Victor Mataré] implement a compass displayed under the GPS point.
+- [Jonni Nakari] add Kapsi / the National Land Survey of Finland topographic
+  map & aerial picture layers.
+
 * Mon May 19 2014 - Damien Caliste <dcaliste@free.fr> 1.4.1-1
 - implement two fingers gesture for zomming and translating. Close: #3
 - implement map layer, apply it for OpenSeaMap and Google traffic. Close: #4, #6
