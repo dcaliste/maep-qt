@@ -199,7 +199,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
   bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
 
-  path = g_build_filename(g_get_user_data_dir(), APP, NULL);
+  path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
 
   /* Backward compatibility, move old path. */
   oldPath = g_build_filename(g_get_user_data_dir(), "maep", NULL);
