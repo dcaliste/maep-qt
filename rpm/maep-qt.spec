@@ -10,7 +10,7 @@ Name: harbour-maep-qt
 
 # Harbour requirements.
 %define __provides_exclude_from ^%{_datadir}/.*$
-%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libsqlite3.*|libpixman-1.*|libfreetype.*|libicui18n.*|libicuuc.*|libicudata.*$
+%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libsqlite3.*|libpixman-1.*|libfreetype.*|libicui18n.*|libicuuc.*|libicudata.*|libc.*$
 %{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
