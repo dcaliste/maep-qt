@@ -43,6 +43,8 @@ QQuickView *Maep::createView(const QString &file)
     
     QString path;
 
+    QQuickWindow::setDefaultAlphaBuffer(true);
+
     if (isDesktop)
       {
         path = qApp->applicationDirPath() + QDir::separator();
@@ -62,11 +64,15 @@ QQuickView *Maep::createView(const QString &file)
             // parse the base path from application binary's path and use it as base
             QString basePath = QCoreApplication::applicationFilePath();
             basePath.chop(basePath.length() -  basePath.indexOf("/", 9)); // first index after /opt/sdk/
+            view->engine()->addImportPath(basePath + path);
             view->setSource(QUrl::fromLocalFile(basePath + path + file));
           }
         else
-          // Otherwise use deployement path as is
-          view->setSource(QUrl::fromLocalFile(path + QDir::separator() + file));
+          {
+            view->engine()->addImportPath(path);
+            // Otherwise use deployement path as is
+            view->setSource(QUrl::fromLocalFile(path + QDir::separator() + file));
+          }
       }
     return view;
 }
@@ -88,16 +94,16 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 {
   bool isDesktop;
 
-  qmlRegisterType<Maep::Conf>("Maep", 1, 0, "Conf");
-  qmlRegisterType<Maep::GeonamesPlace>("Maep", 1, 0, "GeonamesPlace");
-  qmlRegisterType<Maep::GeonamesEntry>("Maep", 1, 0, "GeonamesEntry");
-  qmlRegisterType<Maep::Track>("Maep", 1, 0, "Track");
-  qmlRegisterType<Maep::GpsMap>("Maep", 1, 0, "GpsMap");
-  qmlRegisterType<Maep::GpsMapCover>("Maep", 1, 0, "GpsMapCover");
+  qRegisterMetaType<QGeoCoordinate>("QGeoCoordinate");
+  qmlRegisterType<Maep::Conf>("harbour.maep.qt", 1, 0, "Conf");
+  qmlRegisterType<Maep::GeonamesPlace>("harbour.maep.qt", 1, 0, "GeonamesPlace");
+  qmlRegisterType<Maep::GeonamesEntry>("harbour.maep.qt", 1, 0, "GeonamesEntry");
+  qmlRegisterType<Maep::Track>("harbour.maep.qt", 1, 0, "Track");
+  qmlRegisterType<Maep::GpsMap>("harbour.maep.qt", 1, 0, "GpsMap");
+  qmlRegisterType<Maep::GpsMapCover>("harbour.maep.qt", 1, 0, "GpsMapCover");
 
   QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
-  QQuickWindow::setDefaultAlphaBuffer(true);
 
   QScopedPointer<QQuickView> view(Maep::createView((isDesktop)?"main-nosilica.qml":"main.qml"));
   Maep::showView(view.data());
