@@ -77,7 +77,7 @@ class GeonamesPlace: public QObject
   Q_OBJECT
   Q_PROPERTY(QString name READ getName NOTIFY nameChanged)
   Q_PROPERTY(QString country READ getCountry NOTIFY countryChanged)
-  Q_PROPERTY(QGeoCoordinate coordinate READ getCoord NOTIFY coordinateChanged)
+  Q_PROPERTY(QGeoCoordinate coordinate READ coordinate NOTIFY coordinateChanged)
 
 public:
   inline GeonamesPlace(const MaepGeonamesPlace *place = NULL, QObject *parent = NULL) : QObject(parent)
@@ -86,8 +86,8 @@ public:
       {
         this->name = QString(place->name);
         this->country = QString(place->country);
-        this->coordinate = QGeoCoordinate(rad2deg(place->pos.rlat),
-                                          rad2deg(place->pos.rlon));
+        this->m_coordinate = QGeoCoordinate(rad2deg(place->pos.rlat),
+                                            rad2deg(place->pos.rlon));
       }
   }
   inline QString getName() const
@@ -98,9 +98,9 @@ public:
   {
     return this->country;
   }     
-  inline QGeoCoordinate getCoord() const
+  inline QGeoCoordinate coordinate() const
   {
-    return this->coordinate;
+    return this->m_coordinate;
   }    
 
 signals:
@@ -113,7 +113,7 @@ public slots:
 
 private:
   QString name, country;
-  QGeoCoordinate coordinate;
+  QGeoCoordinate m_coordinate;
 };
 
 class GeonamesEntry: public QObject
@@ -123,7 +123,7 @@ class GeonamesEntry: public QObject
   Q_PROPERTY(QString summary READ getSummary NOTIFY summaryChanged)
   Q_PROPERTY(QString thumbnail READ getThumbnail NOTIFY thumbnailChanged)
   Q_PROPERTY(QString url READ getURL NOTIFY urlChanged)
-  Q_PROPERTY(QGeoCoordinate coordinate READ getCoord NOTIFY coordinateChanged)
+  Q_PROPERTY(QGeoCoordinate coordinate READ coordinate NOTIFY coordinateChanged)
 
 public:
   inline GeonamesEntry(const MaepGeonamesEntry *entry = NULL,
@@ -135,8 +135,8 @@ public:
         this->summary = QString(entry->summary);
         this->thumbnail = QString(entry->thumbnail_url);
         this->url = QString(entry->url);
-        this->coordinate = QGeoCoordinate(rad2deg(entry->pos.rlat),
-                                          rad2deg(entry->pos.rlon));
+        this->m_coordinate = QGeoCoordinate(rad2deg(entry->pos.rlat),
+                                            rad2deg(entry->pos.rlon));
       }
   }
   inline void set(const Maep::GeonamesEntry *entry)
@@ -159,9 +159,9 @@ public:
   {
     return this->url;
   }     
-  inline QGeoCoordinate getCoord() const
+  inline QGeoCoordinate coordinate() const
   {
-    return this->coordinate;
+    return this->m_coordinate;
   }    
 
 signals:
@@ -176,7 +176,7 @@ public slots:
 
 private:
     QString title, summary, thumbnail, url;
-    QGeoCoordinate coordinate;
+    QGeoCoordinate m_coordinate;
 };
 
 class Track: public QObject
@@ -483,7 +483,7 @@ class GpsMap : public QQuickPaintedItem
   void setSearchRequest(const QString &request);
   void setSearchResults(MaepSearchContextSource source, GSList *places);
   void setLookAt(float lat, float lon);
-  inline void setLookAt(QGeoCoordinate coord) {
+  inline void setLookAt(const QGeoCoordinate &coord) {
     setLookAt(coord.latitude(), coord.longitude());
   }
   void zoomIn();
@@ -508,8 +508,8 @@ class GpsMap : public QQuickPaintedItem
     GpsMap *self = qobject_cast<GpsMap*>(prop->object);
     g_message("#### Hey I've got name %s (%fx%f) for result %d!",
               self->searchRes[index]->getName().toLocal8Bit().data(),
-              self->searchRes[index]->getCoord().latitude(),
-              self->searchRes[index]->getCoord().longitude(), index);
+              self->searchRes[index]->coordinate().latitude(),
+              self->searchRes[index]->coordinate().longitude(), index);
     return self->searchRes[index];
   }
   void ensureOverlay(Source source);
@@ -560,7 +560,7 @@ class GpsMap : public QQuickPaintedItem
 class GpsMapCover : public QQuickPaintedItem
 {
   Q_OBJECT
-    Q_PROPERTY(Maep::GpsMap* map READ map WRITE setMap NOTIFY mapChanged)
+  Q_PROPERTY(Maep::GpsMap* map READ map WRITE setMap NOTIFY mapChanged)
   Q_PROPERTY(bool status READ status WRITE setStatus NOTIFY statusChanged)
 
  public:

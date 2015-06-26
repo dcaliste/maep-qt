@@ -42,11 +42,11 @@
 
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
-  return coordinate.toString(format);
+  return m_coordinate.toString(format);
 }
 QString Maep::GeonamesEntry::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
-  return coordinate.toString(format);
+  return m_coordinate.toString(format);
 }
 
 void Maep::Track::set(MaepGeodata *t)
