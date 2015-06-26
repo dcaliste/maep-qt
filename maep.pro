@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = harbour-maep-qt
 DEPENDPATH += .
 INCLUDEPATH += .
-CONFIG += link_pkgconfig
+CONFIG += link_pkgconfig hide_symbols
 PKGCONFIG += gobject-2.0 cairo libsoup-2.4 dconf libxml-2.0 libcurl
 QT += qml quick positioning sensors
 LIBS += -ljpeg
@@ -30,9 +30,6 @@ DEFINES += VERSION=\"\\\"\"1.4.2\"\\\"\"
 HEADERS += src/config.h src/misc.h src/net_io.h src/geonames.h src/search.h src/track.h src/img_loader.h src/icon.h src/converter.h src/osm-gps-map/osm-gps-map.h src/osm-gps-map/osm-gps-map-layer.h src/osm-gps-map/osm-gps-map-qt.h src/osm-gps-map/osm-gps-map-osd-classic.h src/osm-gps-map/layer-wiki.h src/osm-gps-map/layer-gps.h
 SOURCES += src/misc.c src/net_io.c src/geonames.c src/search.c src/track.c src/img_loader.c src/icon.c src/converter.c src/osm-gps-map/osm-gps-map.c src/osm-gps-map/osm-gps-map-layer.c src/osm-gps-map/osm-gps-map-qt.cpp src/osm-gps-map/osm-gps-map-osd-classic.c src/osm-gps-map/layer-wiki.c src/osm-gps-map/layer-gps.c src/main.cpp
 
-# For Harbour restrictions
-QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
-
 # Installation
 target.path = $$PREFIX/bin
 
@@ -51,3 +48,18 @@ resources.files = data/wikipedia_w.48.png data/icon-cover-remove.png data/AUTHOR
 INSTALLS += target desktop icon qml resources
 
 OTHER_FILES += rpm/maep-qt.spec
+
+# This part is to circumvent harbour limitations.
+QT += dbus
+QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
+
+system(if ! test -f qmlLibs/notificationmanagerproxy.cpp; then cd qmlLibs && qdbusxml2cpp org.freedesktop.Notifications.xml -p notificationmanagerproxy -c NotificationManagerProxy -i notification.h; fi)
+SOURCES += qmlLibs/notification.cpp qmlLibs/notificationmanagerproxy.cpp
+HEADERS += qmlLibs/notification.h qmlLibs/notificationmanagerproxy.h
+
+QT += qml-private core-private
+SOURCES += qmlLibs/locationvaluetypeprovider.cpp qmlLibs/qdeclarativecoordinate.cpp
+HEADERS += qmlLibs/locationvaluetypeprovider.h qmlLibs/qdeclarativecoordinate_p.h
+
+SOURCES += qmlLibs/qquickfolderlistmodel.cpp qmlLibs/fileinfothread.cpp
+HEADERS += qmlLibs/qquickfolderlistmodel.h qmlLibs/fileproperty_p.h qmlLibs/fileinfothread_p.h

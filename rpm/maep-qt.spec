@@ -9,8 +9,8 @@
 Name: harbour-maep-qt
 
 # Harbour requirements.
-#%define __provides_exclude_from ^%{_datadir}/.*$
-#%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libsqlite3.*|libpixman-1.*|libfreetype.*|libicui18n.*|libicuuc.*|libicudata.*$
+%define __provides_exclude_from ^%{_datadir}/.*$
+%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libsqlite3.*|libpixman-1.*|libfreetype.*|libicui18n.*|libicuuc.*|libicudata.*$
 %{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
@@ -57,17 +57,17 @@ rm -rf $RPM_BUILD_ROOT
 rm -rf %{buildroot}
 %qmake5_install
 # Copy here the blacklisted libraries
-#install -d %{buildroot}/usr/share/%{name}/lib
-#install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libsqlite3.so.0 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libicui18n.so.52 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libicuuc.so.52 %{buildroot}/usr/share/%{name}/lib/
-#install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
+install -d %{buildroot}/usr/share/%{name}/lib
+install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libsqlite3.so.0 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libicui18n.so.52 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libicuuc.so.52 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)

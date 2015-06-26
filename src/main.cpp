@@ -1,4 +1,7 @@
 #include "osm-gps-map/osm-gps-map-qt.h"
+#include "../qmlLibs/notification.h"
+#include "../qmlLibs/locationvaluetypeprovider.h"
+#include "../qmlLibs/qquickfolderlistmodel.h"
 
 #include <QGuiApplication>
 #ifdef HAS_BOOSTER
@@ -93,8 +96,15 @@ void Maep::showView(QQuickView* view) {
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
   bool isDesktop;
+  LocationValueTypeProvider provider;
+
+  qmlRegisterType<QQuickFolderListModel>("harbour.maep.qt", 1, 0, "FolderListModel");
+
+  qmlRegisterType<Notification>("harbour.maep.qt", 1, 0, "Notification");
 
   qRegisterMetaType<QGeoCoordinate>("QGeoCoordinate");
+  QQml_addValueTypeProvider(&provider);
+
   qmlRegisterType<Maep::Conf>("harbour.maep.qt", 1, 0, "Conf");
   qmlRegisterType<Maep::GeonamesPlace>("harbour.maep.qt", 1, 0, "GeonamesPlace");
   qmlRegisterType<Maep::GeonamesEntry>("harbour.maep.qt", 1, 0, "GeonamesEntry");

@@ -17,7 +17,8 @@
 
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import Qt.labs.folderlistmodel 1.0
+//import Qt.labs.folderlistmodel 1.0
+import harbour.maep.qt 1.0
 
 Item {
     id: chooser_item
