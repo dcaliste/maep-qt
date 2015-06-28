@@ -74,8 +74,15 @@ SilicaFlickable {
         Label {
             id: copyright
             width: parent.width
-            text: "Copyright 2009-2014"
+            text: "Copyright 2009-2015"
             color: Theme.primaryColor
+            font.pixelSize: Theme.fontSizeSmall
+            horizontalAlignment: Text.AlignHCenter
+        }
+        Label {
+            width: parent.width
+            text: "https://github.com/dcaliste/maep-qt"
+            color: Theme.secondaryColor
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter
         }

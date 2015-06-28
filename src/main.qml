@@ -293,8 +293,8 @@ ApplicationWindow
                       section: "base tiles" }
         ListElement { source: GpsMap.SOURCE_OPENSEAMAP
                       section: "overlay tiles" }
-        ListElement { source: GpsMap.SOURCE_GOOGLE_TRAFFIC
-                      section: "overlay tiles" }
+        //ListElement { source: GpsMap.SOURCE_GOOGLE_TRAFFIC
+        //              section: "overlay tiles" }
     }
 
     Component {

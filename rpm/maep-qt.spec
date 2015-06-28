@@ -17,7 +17,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.4.2
-Release: 1
+Release: 2
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -77,6 +77,12 @@ install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
+* Sun Jun 28 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-2
+- Disable Google traffic overlay, because tiles are not available anymore
+  at the given address.
+- Add the github page in the About QML page.
+- Include libraries and QML that are blocked for harbour integration.  
+
 * Thu Jun 25 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-1
 - [Victor Mataré] implement a compass displayed under the GPS point.
 - [Jonni Nakari] add Kapsi / the National Land Survey of Finland topographic
