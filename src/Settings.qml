@@ -106,7 +106,7 @@ SilicaFlickable {
                 text: "Time between two automatic track dumps on disk." +
                 " Autosaving a track without providing a filename" +
                 " will result to the track being saved in" +
-                " $HOME/.local/share/maep/track.gpx"
+                " $HOME/.local/share/harbour-maep-qt/track.gpx"
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 wrapMode: Text.WordWrap
