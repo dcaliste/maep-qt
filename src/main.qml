@@ -89,28 +89,28 @@ ApplicationWindow
                 direction: 2
                 sourceItem: map
             }
-	    Row {
+	        Row {
                 id: map_controls
-		anchors.bottom: parent.bottom
-		width: parent.width
-		height: Theme.itemSizeMedium
-		z: map.z + 1
+		        anchors.bottom: parent.bottom
+		        width: parent.width
+		        height: Theme.itemSizeMedium
+		        z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
                 visible: !Qt.inputMethod.visible
-		IconButton {
-		    id: zoomout
-		    icon.source: "image://theme/icon-camera-zoom-wide"
-		    onClicked: { map.zoomOut() }
-		}
+		        IconButton {
+		            id: zoomout
+		            icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-wide.png"
+		            onClicked: { map.zoomOut() }
+		        }
                 IconButton {
-		    id: zoomin
-                    icon.source: "image://theme/icon-camera-zoom-tele"
-		    onClicked: { map.zoomIn() }
+		            id: zoomin
+                    icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-tele.png"
+		            onClicked: { map.zoomIn() }
                 }
                 Button {
-		    width: parent.width - zoomout.width - zoomin.width - autocenter.width
+		            width: parent.width - zoomout.width - zoomin.width - autocenter.width
                     text: map.sourceLabel(map.source)
-		    /*font.pixelSize: Theme.fontSizeSmall*/
+		            /*font.pixelSize: Theme.fontSizeSmall*/
                     onClicked: { pageStack.push(sources) }
                 }
                 IconButton {
@@ -118,12 +118,12 @@ ApplicationWindow
                     icon.source: "image://theme/icon-m-gps"
                     anchors.rightMargin: Theme.paddingSmall
                     anchors.leftMargin: Theme.paddingSmall
-		    enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
-		    highlighted: map.auto_center
-		    onClicked: { map.auto_center = !map.auto_center }
+		            enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
+		            highlighted: map.auto_center
+		            onClicked: { map.auto_center = !map.auto_center }
                 }
+	        }
 	    }
-	}
         Header {
             id: header
             anchors.top: parent.top
