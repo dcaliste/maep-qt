@@ -24,7 +24,7 @@ DEFINES += DEPLOYMENT_PATH=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += APP=\"\\\"\"$${TARGET}\"\\\"\"
 DEFINES += DATADIR=\"\\\"\"$${DEPLOYMENT_PATH}\"\\\"\"
 DEFINES += SAILFISH
-DEFINES += VERSION=\"\\\"\"1.4.2\"\\\"\"
+DEFINES += VERSION=\"\\\"\"1.4.3\"\\\"\"
 
 # Input
 HEADERS += src/config.h src/misc.h src/net_io.h src/geonames.h src/search.h src/track.h src/img_loader.h src/icon.h src/converter.h src/osm-gps-map/osm-gps-map.h src/osm-gps-map/osm-gps-map-layer.h src/osm-gps-map/osm-gps-map-qt.h src/osm-gps-map/osm-gps-map-osd-classic.h src/osm-gps-map/layer-wiki.h src/osm-gps-map/layer-gps.h
@@ -43,7 +43,7 @@ qml.path = $$DEPLOYMENT_PATH
 qml.files = src/main.qml src/Header.qml src/PlaceHeader.qml src/TrackHeader.qml src/TrackView.qml src/About.qml src/Settings.qml src/FileChooser.qml 
 
 resources.path = $$DEPLOYMENT_PATH
-resources.files = data/wikipedia_w.48.png data/icon-cover-remove.png data/AUTHORS data/COPYING
+resources.files = data/wikipedia_w.48.png data/icon-camera-zoom-wide.png data/icon-camera-zoom-tele.png data/icon-cover-remove.png data/AUTHORS data/COPYING
 
 INSTALLS += target desktop icon qml resources
 

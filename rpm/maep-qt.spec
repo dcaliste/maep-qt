@@ -16,8 +16,8 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.2
-Release: 2
+Version: 1.4.3
+Release: 1
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -77,6 +77,10 @@ install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
+* Tue Oct 20 2015 - Damien Caliste <dcaliste@free.fr> 1.4.3-1
+- Add the zoom icons in Maep data dir since not present anymore in Sailfish.
+- Use UTC time for path instead of local time.  
+
 * Sun Jun 28 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-2
 - Disable Google traffic overlay, because tiles are not available anymore
   at the given address.
