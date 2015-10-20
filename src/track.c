@@ -421,15 +421,11 @@ static gboolean track_parse_trkpt(track_point_t *point,
       /* time */
       if(strcasecmp((char*)cur_node->name, "time") == 0) {
 	struct tm time;
-	char *ptr, *str = (char*)xmlNodeGetContent(cur_node);
+	char *str = (char*)xmlNodeGetContent(cur_node);
 
-	/* mktime may adjust the time zone settings which in turn affect */
-	/* strptime. Doing this twice is an ugly hack, but solves the */
-	/* problem */
-	ptr = strptime(str, DATE_FORMAT, &time);
-	if(ptr) point->time = mktime(&time);
-	ptr = strptime(str, DATE_FORMAT, &time);
-	if(ptr) point->time = mktime(&time);
+        if (strptime(str, DATE_FORMAT,  &time))
+            point->time = mktime(&time) - timezone;
+
  	xmlFree(str);
       }
 
@@ -701,6 +697,7 @@ MaepGeodata *maep_geodata_new_from_file(const char *filename, GError **error) {
 /* ----------------------  saving track --------------------------- */
 static void track_save_point(track_point_t *point, xmlNodePtr node) {
   char str[G_ASCII_DTOSTR_BUF_SIZE];
+  struct tm t;
 
   g_ascii_formatd(str, sizeof(str), "%.07f", rad2deg(point->coord.rlat));
   xmlNewProp(node, BAD_CAST "lat", BAD_CAST str);
@@ -742,7 +739,7 @@ static void track_save_point(track_point_t *point, xmlNodePtr node) {
   }
 
   if(point->time) {
-    strftime(str, sizeof(str), DATE_FORMAT, localtime(&point->time));
+    strftime(str, sizeof(str), DATE_FORMAT, gmtime_r(&point->time, &t));
     xmlNewTextChild(node, NULL, BAD_CAST "time", BAD_CAST str);
   }
 }
