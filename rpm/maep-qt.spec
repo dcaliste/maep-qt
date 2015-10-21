@@ -26,6 +26,7 @@ Requires: sailfishsilica-qt5
 Requires: mapplauncherd-booster-silica-qt5
 Requires: qt5-qtdeclarative-import-positioning
 Requires: qt5-qtdeclarative-import-folderlistmodel
+Requires: nemo-qml-plugin-notifications-qt5
 BuildRequires: pkgconfig(qdeclarative5-boostable)
 BuildRequires: pkgconfig(Qt5Core)
 BuildRequires: pkgconfig(Qt5Qml)
@@ -80,6 +81,7 @@ install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
 * Tue Oct 20 2015 - Damien Caliste <dcaliste@free.fr> 1.4.3-1
 - Add the zoom icons in Maep data dir since not present anymore in Sailfish.
 - Use UTC time for path instead of local time.  
+- Remove the imported QML code for nemomobile notifications.
 
 * Sun Jun 28 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-2
 - Disable Google traffic overlay, because tiles are not available anymore

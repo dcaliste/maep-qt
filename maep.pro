@@ -50,12 +50,7 @@ INSTALLS += target desktop icon qml resources
 OTHER_FILES += rpm/maep-qt.spec
 
 # This part is to circumvent harbour limitations.
-QT += dbus
 QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
-
-system(if ! test -f qmlLibs/notificationmanagerproxy.cpp; then cd qmlLibs && qdbusxml2cpp org.freedesktop.Notifications.xml -p notificationmanagerproxy -c NotificationManagerProxy -i notification.h; fi)
-SOURCES += qmlLibs/notification.cpp qmlLibs/notificationmanagerproxy.cpp
-HEADERS += qmlLibs/notification.h qmlLibs/notificationmanagerproxy.h
 
 QT += qml-private core-private
 SOURCES += qmlLibs/locationvaluetypeprovider.cpp qmlLibs/qdeclarativecoordinate.cpp

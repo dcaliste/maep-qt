@@ -1,5 +1,4 @@
 #include "osm-gps-map/osm-gps-map-qt.h"
-#include "../qmlLibs/notification.h"
 #include "../qmlLibs/locationvaluetypeprovider.h"
 #include "../qmlLibs/qquickfolderlistmodel.h"
 
@@ -99,8 +98,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   LocationValueTypeProvider provider;
 
   qmlRegisterType<QQuickFolderListModel>("harbour.maep.qt", 1, 0, "FolderListModel");
-
-  qmlRegisterType<Notification>("harbour.maep.qt", 1, 0, "Notification");
 
   qRegisterMetaType<QGeoCoordinate>("QGeoCoordinate");
   QQml_addValueTypeProvider(&provider);
