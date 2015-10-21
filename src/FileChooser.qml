@@ -79,7 +79,7 @@ Item {
 	    width: parent.width
 	    IconButton {
 		id: chooser_back
-		icon.source: "image://theme/icon-header-back"
+		icon.source: "image://theme/icon-m-back"
 		enabled: folderModel.dirname().length > 0
 		onClicked: { folderModel.navigateUp() }
 	    }
@@ -91,7 +91,7 @@ Item {
 	    }
 	    IconButton {
 		id: chooser_options
-		icon.source: "image://theme/icon-m-levels"
+		icon.source: "image://theme/icon-m-menu"
 		onClicked: { chooser_controls.open = !chooser_controls.open }
 	    }
 	}
