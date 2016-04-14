@@ -23,6 +23,7 @@
 #include <stdlib.h>  // abs
 #include <string.h>
 #include <math.h>    // M_PI/cos()
+#include <stdio.h>
 
 /* parameters that can be overwritten from the config file: */
 /* OSD_DIAMETER */
