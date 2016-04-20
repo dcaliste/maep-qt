@@ -3184,5 +3184,5 @@ const OsmGpsMapSource* osm_gps_map_source_new(const gchar *name,
                                               const gchar *copyright_url,
                                               guint min_zoom, guint max_zoom)
 {
-    
+    return NULL;
 }
