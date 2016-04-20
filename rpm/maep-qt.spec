@@ -79,10 +79,11 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
-* Tue Oct 20 2015 - Damien Caliste <dcaliste@free.fr> 1.4.3-1
+* Wed Apr 20 2016 - Damien Caliste <dcaliste@free.fr> 1.4.3-1
 - Add the zoom icons in Maep data dir since not present anymore in Sailfish.
 - Use UTC time for path instead of local time.  
 - Remove the imported QML code for nemomobile notifications.
+- Add icons for sizes 108, 128 and 256.
 
 * Sun Jun 28 2015 - Damien Caliste <dcaliste@free.fr> 1.4.2-2
 - Disable Google traffic overlay, because tiles are not available anymore
