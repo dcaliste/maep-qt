@@ -231,6 +231,75 @@ gfloat gconf_get_float(const char *m_key, gfloat def_value) {
   return ret;
 }
 
+void gconf_set_color(const char *m_key, gdouble vals[4]) {
+  /* GConfClient *client = gconf_client_get_default(); */
+  DConfClient *client = dconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GError *error = NULL;
+  GVariant *children[] = {g_variant_new_double(vals[0]),
+                          g_variant_new_double(vals[1]),
+                          g_variant_new_double(vals[2]),
+                          g_variant_new_double(vals[3])};
+  GVariant *var = g_variant_ref_sink(g_variant_new_tuple(children, 4));
+  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
+  /* gconf_client_set_float(client, key, value, NULL); */
+  g_free(key);
+  if (error) {
+    g_warning("%s", error->message);
+    g_error_free(error);
+  }
+  g_variant_unref(var);
+}
+
+void gconf_get_color(const char *m_key, gdouble vals[4], const gdouble def_value[4]) {
+  /* GConfClient *client = gconf_client_get_default(); */
+  DConfClient *client = dconf_client_get_default();
+
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  /* GConfValue *value = gconf_client_get(client, key, NULL); */
+  GVariant *value = dconf_client_read(client, key);
+
+  vals[0] = def_value[0];
+  vals[1] = def_value[1];
+  vals[2] = def_value[2];
+  vals[3] = def_value[3];
+
+  g_free(key);
+
+  if (!value) {
+    key = g_strdup_printf(OLD_PATH, m_key);
+    value = dconf_client_read(client, key);
+    g_free(key);
+    if (!value)
+      return;
+  }
+
+  if (!g_variant_is_of_type(value, G_VARIANT_TYPE_TUPLE) ||
+      g_variant_n_children(value) != 4) {
+    g_message("wrong type returning default");
+    g_variant_unref(value);
+    return;
+  }
+  GVariant *child;
+  child = g_variant_get_child_value(value, 0);
+  vals[0] = g_variant_get_double(child);
+  g_variant_unref(child);
+
+  child = g_variant_get_child_value(value, 1);
+  vals[1] = g_variant_get_double(child);
+  g_variant_unref(child);
+
+  child = g_variant_get_child_value(value, 2);
+  vals[2] = g_variant_get_double(child);
+  g_variant_unref(child);
+
+  child = g_variant_get_child_value(value, 3);
+  vals[3] = g_variant_get_double(child);
+  g_variant_unref(child);
+
+  g_variant_unref(value);
+  return;
+}
 
 struct proxy_config *proxy_config_get()
 {
