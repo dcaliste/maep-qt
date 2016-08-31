@@ -98,8 +98,10 @@ SilicaFlickable {
                 visible: track
                 track: map.track
                 tracking: map.track_capture
+                color: map.trackColor
                 currentPlace: map.gps_coordinate
                 onWptMovingChanged: root.flickableDirection = (wptMoving) ? Flickable.VerticalFlick : Flickable.HorizontalAndVerticalFlick
+                onRequestColor: map.trackColor = color
             }
         }
     }

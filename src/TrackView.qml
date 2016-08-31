@@ -24,10 +24,13 @@ Column {
 
     property Track track: null
     property variant currentPlace
+    property color color
     property bool tracking: false
     property bool wptMoving: false
     property bool detailVisible: false
     property bool menu: contextMenu.parent === track_button
+
+    signal requestColor(color color)
 
     ListModel {
         id: waypoints
@@ -70,6 +73,25 @@ Column {
 
             menu: ContextMenu {
                 id: contextMenu
+                Row {
+                    height: Theme.itemSizeExtraSmall
+                    Repeater {
+                        id: colors
+                        model: ["#99db431c", "#99ffff00", "#998afa72", "#9900ffff", "#993828f9", "#99a328c7", "#99ffffff", "#99989898", "#99000000"]
+                        delegate: Rectangle {
+                            width: contextMenu.width / colors.model.length
+                            height: parent.height
+                            color: modelData
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    contextMenu.hide()
+                                    root.requestColor(color)
+                                }
+                            }
+                        }
+                    }
+                }
                 MenuItem {
                     text: "clear"
                     onClicked: {
@@ -93,6 +115,15 @@ Column {
                 }
                 title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
                 height: Theme.itemSizeMedium
+
+                Rectangle {
+                    width: Theme.paddingSmall
+                    height: parent.height - 2 * Theme.paddingSmall
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    color: root.color
+                    radius: Theme.paddingSmall / 2
+                }
             }
             Label {
                 function details(lg, time) {
@@ -113,7 +144,7 @@ Column {
                     } else {
                         var h = Math.floor(time / 3600)
                         var m = Math.floor((time - h * 3600) / 60)
-                        duration = h + " h " + m + " m "
+                        duration = h + " h " + m + " m"
                     }
                     return dist + " (" + duration + ") - " + (lg / time * 3.6).toFixed(2) + " km/h"
                 }
