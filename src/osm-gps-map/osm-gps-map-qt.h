@@ -307,6 +307,8 @@ class GpsMap : public QQuickPaintedItem
 
   Q_PROPERTY(bool track_capture READ trackCapture WRITE setTrackCapture NOTIFY trackCaptureChanged)
   Q_PROPERTY(Maep::Track *track READ getTrack WRITE setTrack NOTIFY trackChanged)
+  Q_PROPERTY(unsigned int trackWidth READ getTrackWidth WRITE setTrackWidth NOTIFY trackWidthChanged)
+  Q_PROPERTY(QColor trackColor READ getTrackColor WRITE setTrackColor NOTIFY trackColorChanged)
 
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
   Q_PROPERTY(bool enable_compass READ compassEnabled WRITE enableCompass NOTIFY enableCompassChanged)
@@ -376,6 +378,8 @@ class GpsMap : public QQuickPaintedItem
   inline Maep::Track* getTrack() {
     return track_current;
   }
+  unsigned int getTrackWidth() const;
+  QColor getTrackColor() const;
   inline bool screen_rotation() const {
     return screenRotation;
   }
@@ -467,6 +471,8 @@ class GpsMap : public QQuickPaintedItem
   void searchResults();
   void trackCaptureChanged(bool status);
   void trackChanged(bool available);
+  void trackWidthChanged();
+  void trackColorChanged();
   void screenRotationChanged(bool status);
   void gpsRefreshRateChanged(unsigned int rate);
   void enableCompassChanged(bool enable);
@@ -492,6 +498,8 @@ class GpsMap : public QQuickPaintedItem
   void positionLost();
   void setTrackCapture(bool status);
   void setTrack(Maep::Track *track = NULL);
+  void setTrackWidth(unsigned int value);
+  void setTrackColor(const QColor &value);
   void setGpsRefreshRate(unsigned int rate);
   void compassReadingChanged();
   void enableCompass(bool enable);

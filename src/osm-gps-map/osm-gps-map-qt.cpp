@@ -36,6 +36,8 @@
 #define GCONF_KEY_WIKIPEDIA  "wikipedia"
 #define GCONF_KEY_TRACK_CAPTURE "track_capture_enabled"
 #define GCONF_KEY_TRACK_PATH "track_path"
+#define GCONF_KEY_TRACK_WIDTH "track_width"
+#define GCONF_KEY_TRACK_COLOR "track_color"
 #define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
 #define GCONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
 #define GCONF_KEY_COMPASS_ENABLED "compass-enabled"
@@ -179,6 +181,8 @@ static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource 
 static void osm_gps_map_qt_places_failure(Maep::GpsMap *widget,
                                           MaepSearchContextSource source,
                                           GError *error, MaepSearchContext *wiki);
+static void osm_gps_map_qt_track_width(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_track_color(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 
 Maep::GpsMap::GpsMap(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -186,6 +190,9 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
     , compassEnabled_(FALSE)
 {
   char *path, *oldPath;
+  gdouble color[4];
+  gdouble defaultColor[4] = {0.0, 0.0, 0.0, 0.0};
+  OsmColor_t trackColor;
 
   gint source = gconf_get_int(GCONF_KEY_SOURCE, OSM_GPS_MAP_SOURCE_OPENSTREETMAP);
   gint overlaySource = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, OSM_GPS_MAP_SOURCE_NULL);
@@ -195,10 +202,12 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
   bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
   bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
+  gint width = gconf_get_int(GCONF_KEY_TRACK_WIDTH, -1);
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
   bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
 
+  gconf_get_color(GCONF_KEY_TRACK_COLOR, color, defaultColor);
   path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
 
   /* Backward compatibility, move old path. */
@@ -221,6 +230,17 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                                  NULL));
   g_free(path);
 
+  if (color[3] > 0.) {
+      trackColor.red   = color[0];
+      trackColor.green = color[1];
+      trackColor.blue  = color[2];
+      trackColor.alpha = color[3];
+      g_object_set(G_OBJECT(map), "gps-track-color", &trackColor, NULL);
+  }
+  if (width > 0) {
+      g_object_set(G_OBJECT(map), "gps-track-width", width, NULL);
+  }
+
   osm_gps_map_set_mapcenter(map, lat, lon, zoom);
   coordinate = QGeoCoordinate(lat, lon);
 
@@ -234,6 +254,10 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                            G_CALLBACK(osm_gps_map_qt_double_pixel), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::map-source",
                            G_CALLBACK(osm_gps_map_qt_source), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::gps-track-width",
+                           G_CALLBACK(osm_gps_map_qt_track_width), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::gps-track-color",
+                           G_CALLBACK(osm_gps_map_qt_track_color), this);
 
   overlay = NULL;
   if (overlaySource != OSM_GPS_MAP_SOURCE_NULL)
@@ -299,9 +323,11 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 }
 Maep::GpsMap::~GpsMap()
 {
-  gint zoom, source, overlaySource;
+  gint zoom, source, overlaySource, width;
   gfloat lat, lon;
   gboolean dpix;
+  OsmColor_t *color;
+  gdouble track_color[4];
 
   /* get state information from map ... */
   overlaySource = OSM_GPS_MAP_SOURCE_NULL;
@@ -320,7 +346,13 @@ Maep::GpsMap::~GpsMap()
 	       "map-source", &source, 
 	       "latitude", &lat, "longitude", &lon,
 	       "double-pixel", &dpix,
+               "gps-track-color", &color, "gps-track-width", &width,
 	       NULL);
+  track_color[0] = color->red;
+  track_color[1] = color->green;
+  track_color[2] = color->blue;
+  track_color[3] = color->alpha;
+  g_boxed_free(OSM_TYPE_COLOR, color);
   osm_gps_map_osd_classic_free(osd);
   osd = NULL;
   maep_wiki_context_enable(wiki, NULL);
@@ -357,6 +389,8 @@ Maep::GpsMap::~GpsMap()
   gconf_set_bool(GCONF_KEY_WIKIPEDIA, wiki_enabled);
 
   gconf_set_bool(GCONF_KEY_TRACK_CAPTURE, track_capture);
+  gconf_set_int(GCONF_KEY_TRACK_WIDTH, width);
+  gconf_set_color(GCONF_KEY_TRACK_COLOR, track_color);
 
   gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, screenRotation);
 
@@ -1103,6 +1137,70 @@ void Maep::GpsMap::setGpsRefreshRate(unsigned int rate)
       if (restart)
         gps->startUpdates();
     }
+}
+
+static void osm_gps_map_qt_track_width(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  emit widget->trackWidthChanged();
+}
+void Maep::GpsMap::setTrackWidth(unsigned int value)
+{
+  gint width;
+
+  g_object_get(G_OBJECT(map), "gps-track-width", &width, NULL);
+  if ((gint)value == width)
+    return;
+
+  g_object_set(G_OBJECT(map), "gps-track-width", value, NULL);
+}
+unsigned int Maep::GpsMap::getTrackWidth() const
+{
+  gint width;
+
+  g_object_get(G_OBJECT(map), "gps-track-width", &width, NULL);
+  return (unsigned int)width;
+}
+
+static void osm_gps_map_qt_track_color(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map)
+{
+  Q_UNUSED(pspec);
+  Q_UNUSED(map);
+
+  emit widget->trackColorChanged();
+}
+void Maep::GpsMap::setTrackColor(const QColor &value)
+{
+  OsmColor_t *color;
+
+  g_object_get(G_OBJECT(map), "gps-track-color", &color, NULL);
+  if (color->red   == value.redF() &&
+      color->green == value.greenF() &&
+      color->blue  == value.blueF() &&
+      color->alpha == value.alphaF())
+    {
+      g_boxed_free(OSM_TYPE_COLOR, color);
+      return;
+    }
+
+  color->red   = value.redF();
+  color->green = value.greenF();
+  color->blue  = value.blueF();
+  color->alpha = value.alphaF();
+  g_object_set(G_OBJECT(map), "gps-track-color", color, NULL);
+  g_boxed_free(OSM_TYPE_COLOR, color);
+}
+QColor Maep::GpsMap::getTrackColor() const
+{
+  OsmColor_t *color;
+  QColor out;
+
+  g_object_get(G_OBJECT(map), "gps-track-color", &color, NULL);
+  out.setRgbF(color->red, color->green, color->blue, color->alpha);
+  g_boxed_free(OSM_TYPE_COLOR, color);
+  return out;
 }
 
 void Maep::GpsMap::setTrackCapture(bool status)

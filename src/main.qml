@@ -247,8 +247,7 @@ ApplicationWindow
             Rectangle {
                 width: Theme.paddingSmall
                 height: coverTrack.height
-                color: "#EA0000"
-                opacity: 0.6
+                color: map.trackColor
                 radius: Theme.paddingSmall / 2
             }
         }
