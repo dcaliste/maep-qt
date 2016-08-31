@@ -125,6 +125,15 @@ typedef struct {
     gint x, y, w, h;
 } OsmGpsMapRect_t;
 
+typedef struct {
+    gdouble red;
+    gdouble green;
+    gdouble blue;
+    gdouble alpha;
+} OsmColor_t;
+#define    OSM_TYPE_COLOR (osm_color_get_type())
+GType      osm_color_get_type(void);
+
 GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
 
 OsmGpsMap*  osm_gps_map_new                         (void);

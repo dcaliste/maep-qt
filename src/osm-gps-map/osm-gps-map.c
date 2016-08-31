@@ -120,6 +120,7 @@ struct _OsmGpsMapPrivate
 
     //for customizing the redering of the gps track
     int ui_gps_track_width;
+    OsmColor_t ui_gps_track_color;
     int ui_gps_point_inner_radius;
     int ui_gps_point_outer_radius;
 
@@ -129,6 +130,7 @@ struct _OsmGpsMapPrivate
 };
 
 #define OSM_GPS_MAP_PRIVATE(o)  (OSM_GPS_MAP (o)->priv)
+static OsmColor_t _default_track_color = {0.9155413138, 0.0, 0.0, 0.6};
 
 typedef struct
 {
@@ -168,6 +170,7 @@ enum
     PROP_MAP_Y,
     PROP_TILES_QUEUED,
     PROP_GPS_TRACK_WIDTH,
+    PROP_GPS_TRACK_COLOR,
     PROP_GPS_POINT_R1,
     PROP_GPS_POINT_R2,
     PROP_MAP_SOURCE,
@@ -1241,7 +1244,10 @@ osm_gps_map_print_track (OsmGpsMapPrivate *priv, MaepGeodata *track, int lw,
     map_y0 = priv->map_y - 0.25 * priv->viewport_height - EXTRA_BORDER;
 
     /* Draw all segments. */
-    cairo_set_source_rgba (priv->cr, 60000.0/65535.0, 0.0, 0.0, 0.6);
+    cairo_set_source_rgba (priv->cr, priv->ui_gps_track_color.red,
+                           priv->ui_gps_track_color.green,
+                           priv->ui_gps_track_color.blue,
+                           priv->ui_gps_track_color.alpha);
     cairo_set_line_cap (priv->cr, CAIRO_LINE_CAP_ROUND);
     cairo_set_line_join (priv->cr, CAIRO_LINE_JOIN_ROUND);
     maep_geodata_track_iter_new(&iter, track);
@@ -1772,6 +1778,14 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
         case PROP_GPS_TRACK_WIDTH:
             priv->ui_gps_track_width = g_value_get_int (value);
             break;
+        case PROP_GPS_TRACK_COLOR:
+            if (g_value_get_boxed (value))
+                priv->ui_gps_track_color = *(OsmColor_t*)g_value_get_boxed (value);
+            else
+                priv->ui_gps_track_color = _default_track_color;
+            if (!priv->idle_map_redraw)
+                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+            break;
         case PROP_GPS_POINT_R1:
             priv->ui_gps_point_inner_radius = g_value_get_int (value);
             break;
@@ -1890,6 +1904,9 @@ osm_gps_map_get_property (GObject *object, guint prop_id, GValue *value, GParamS
             break;
         case PROP_GPS_TRACK_WIDTH:
             g_value_set_int(value, priv->ui_gps_track_width);
+            break;
+        case PROP_GPS_TRACK_COLOR:
+            g_value_set_boxed(value, &priv->ui_gps_track_color);
             break;
         case PROP_GPS_POINT_R1:
             g_value_set_int(value, priv->ui_gps_point_inner_radius);
@@ -2154,6 +2171,14 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                        G_MAXINT,    /* maximum property value */
                                                        4,
                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
+
+    g_object_class_install_property (object_class,
+                                     PROP_GPS_TRACK_COLOR,
+                                     g_param_spec_boxed ("gps-track-color",
+                                                         "gps-track-color",
+                                                         "color of the lines drawn for the gps track",
+                                                         OSM_TYPE_COLOR,
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_CONSTRUCT));
 
     g_object_class_install_property (object_class,
                                      PROP_GPS_POINT_R1,
@@ -3162,6 +3187,20 @@ osm_gps_map_get_gps (OsmGpsMap *map)
 }
 
 #endif
+
+static gpointer _color_copy(gpointer boxed)
+{
+  return g_memdup(boxed, sizeof(OsmColor_t));
+}
+GType osm_color_get_type(void)
+{
+  static GType g_define_type_id = 0;
+
+  if (g_define_type_id == 0)
+    g_define_type_id =
+        g_boxed_type_register_static("OsmColor", _color_copy, g_free);
+  return g_define_type_id;
+}
 
 struct _OsmGpsMapSource
 {
