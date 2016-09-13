@@ -37,12 +37,18 @@ Column {
 
     property bool resultVisible: false
 
-    Item {
+    PageHeader {
+        id: pageHeader
         width: parent.width
         height: Theme.itemSizeMedium
+        title: "Mæp"
         TextField {
             id: search
-            width: parent.width - maep.width - ((search_icon.visible || busy.visible)?search_icon.width:0)
+            parent: pageHeader.extraContent
+            width: parent.width
+                - (search_icon.visible ? search_icon.width : 0)
+                - (busy.visible ? busy.width : 0)
+            textLeftMargin: 0
             placeholderText: "Enter a place name"
 	    label: "Place search"
 	    anchors.verticalCenter: parent.verticalCenter
@@ -56,32 +62,25 @@ Column {
 	    }
 	    onFocusChanged: { if (focus) { selectAll() } }
         }
-        Item {
-            anchors.right: maep.left
-            width: search_icon.width
-	    anchors.verticalCenter: parent.verticalCenter
-	    BusyIndicator {
-	        id: busy
-                visible: false
-                running: visible
-                size: BusyIndicatorSize.Small
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-            IconButton {
-                id: search_icon
-                icon.source: resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                visible: false
-                onClicked: resultVisible = !resultVisible
-                anchors.verticalCenter: parent.verticalCenter
-            }
-        }
-        PageHeader {
-            id: maep
-            width: 130
-            height: parent.height
-            title: "Mæp"
+	BusyIndicator {
+	    id: busy
+            parent: pageHeader.extraContent
             anchors.right: parent.right
+            anchors.rightMargin: pageHeader.page.isLandscape ? Theme.paddingLarge : Theme.paddingSmall
+            visible: false
+            running: visible
+            size: BusyIndicatorSize.Small
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        IconButton {
+            id: search_icon
+            parent: pageHeader.extraContent
+            anchors.right: parent.right
+            anchors.rightMargin: pageHeader.page.isLandscape ? Theme.paddingLarge : Theme.paddingSmall
+            icon.source: resultVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
+            visible: false
+            onClicked: resultVisible = !resultVisible
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
     Repeater {
