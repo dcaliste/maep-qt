@@ -89,23 +89,23 @@ ApplicationWindow
                 direction: 2
                 sourceItem: map
             }
-	        Row {
+	    Row {
                 id: map_controls
-		        anchors.bottom: parent.bottom
-		        width: parent.width
-		        height: Theme.itemSizeMedium
-		        z: map.z + 1
+		anchors.bottom: parent.bottom
+		width: parent.width
+		height: Theme.itemSizeMedium
+		z: map.z + 1
                 anchors.bottomMargin: -Theme.paddingMedium
                 visible: !Qt.inputMethod.visible
-		        IconButton {
-		            id: zoomout
-		            icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-wide.png"
-		            onClicked: { map.zoomOut() }
-		        }
+		IconButton {
+		    id: zoomout
+		    icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-wide.png"
+		    onClicked: { map.zoomOut() }
+		}
                 IconButton {
-		            id: zoomin
+		    id: zoomin
                     icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-tele.png"
-		            onClicked: { map.zoomIn() }
+		    onClicked: { map.zoomIn() }
                 }
                 Button {
 		            width: parent.width - zoomout.width - zoomin.width - autocenter.width
@@ -122,13 +122,13 @@ ApplicationWindow
 		            highlighted: map.auto_center
 		            onClicked: { map.auto_center = !map.auto_center }
                 }
-	        }
 	    }
+	}
         Header {
             id: header
             anchors.top: parent.top
             width: page.width
-            clip: !mainMenu.active
+            clip: page.status != PageStatus.Active || !mainMenu.active
 
             PullDownMenu {
                 id: mainMenu
