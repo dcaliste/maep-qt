@@ -26,7 +26,7 @@ Column {
     }
     BackgroundItem {
         id: item_gps
-	contentHeight: Theme.itemSizeSmall
+        contentHeight: Theme.itemSizeSmall
         enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
         opacity: enabled ? 1.0 : 0.4
         Row {
@@ -36,17 +36,17 @@ Column {
                 anchors.verticalCenter: parent.verticalCenter
                 source: "image://theme/icon-m-gps"
             }
-	    Label {
+            Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "capture GPS position"
-		color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
-	    }
+                color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
+            }
         }
         onClicked: map.track_capture = true
     }
     BackgroundItem {
         id: item_file
-	contentHeight: Theme.itemSizeSmall
+        contentHeight: Theme.itemSizeSmall
         opacity: enabled ? 1.0 : 0.4
         Row {
             anchors.fill: parent
@@ -58,14 +58,14 @@ Column {
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "import a local file"
-		color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
+                color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
         onClicked: page.importTrack()
     }
     /*BackgroundItem {
         id: item_osm
-	contentHeight: Theme.itemSizeSmall
+        contentHeight: Theme.itemSizeSmall
         enabled: false
         opacity: enabled ? 1.0 : 0.4
         Row {
@@ -78,7 +78,7 @@ Column {
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "import from OSM"
-		color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
+                color: item_osm.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
     }*/

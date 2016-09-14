@@ -50,20 +50,20 @@ Column {
                 - (busy.visible ? busy.width : 0)
             textLeftMargin: 0
             placeholderText: "Enter a place name"
-	    label: "Place search"
-	    anchors.verticalCenter: parent.verticalCenter
-	    EnterKey.text: "search"
-	    EnterKey.onClicked: {
+            label: "Place search"
+            anchors.verticalCenter: parent.verticalCenter
+            EnterKey.text: "search"
+            EnterKey.onClicked: {
                 search_icon.visible = false
                 busy.visible = true
                 label = "Searching…"
                 resultList.model = undefined
                 searchRequest(text)
-	    }
-	    onFocusChanged: { if (focus) { selectAll() } }
+	        }
+            onFocusChanged: { if (focus) { selectAll() } }
         }
-	BusyIndicator {
-	    id: busy
+        BusyIndicator {
+	        id: busy
             parent: pageHeader.extraContent
             anchors.right: parent.right
             anchors.rightMargin: pageHeader.page.isLandscape ? Theme.paddingLarge : Theme.paddingSmall

@@ -44,12 +44,12 @@ SilicaFlickable {
             contentX = root.width
             contentHeight = Qt.binding(function() { return trackView.height })
             height = Qt.binding(function() { return Math.min(trackView.height,
-                                                             3 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
+                5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
         } else {
             contentX = 0
             contentHeight = Qt.binding(function() { return placeHeader.height })
             height = Qt.binding(function() { return Math.min(placeHeader.height,
-                                                             5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
+                5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
         } 
     }
     onCurrentIndexChanged: setAction(currentIndex)
@@ -99,9 +99,11 @@ SilicaFlickable {
                 track: map.track
                 tracking: map.track_capture
                 color: map.trackColor
+                lineWidth: map.trackWidth
                 currentPlace: map.gps_coordinate
                 onWptMovingChanged: root.flickableDirection = (wptMoving) ? Flickable.VerticalFlick : Flickable.HorizontalAndVerticalFlick
                 onRequestColor: map.trackColor = color
+                onRequestWidth: map.trackWidth = width
             }
         }
     }

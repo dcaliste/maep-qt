@@ -1776,7 +1776,10 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             center_coord_update(map);
             break;
         case PROP_GPS_TRACK_WIDTH:
-            priv->ui_gps_track_width = g_value_get_int (value);
+            if (!priv->idle_map_redraw &&
+                priv->ui_gps_track_width != g_value_get_int(value))
+                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+            priv->ui_gps_track_width = g_value_get_int(value);
             break;
         case PROP_GPS_TRACK_COLOR:
             if (g_value_get_boxed (value))

@@ -25,12 +25,14 @@ Column {
     property Track track: null
     property variant currentPlace
     property color color
+    property alias lineWidth: lineWidthSlider.value
     property bool tracking: false
     property bool wptMoving: false
     property bool detailVisible: false
     property bool menu: contextMenu.parent === track_button
 
     signal requestColor(color color)
+    signal requestWidth(int width)
 
     ListModel {
         id: waypoints
@@ -77,7 +79,9 @@ Column {
                     height: Theme.itemSizeExtraSmall
                     Repeater {
                         id: colors
-                        model: ["#99db431c", "#99ffff00", "#998afa72", "#9900ffff", "#993828f9", "#99a328c7", "#99ffffff", "#99989898", "#99000000"]
+                        model: ["#99db431c", "#99ffff00", "#998afa72", "#9900ffff",
+                                "#993828f9", "#99a328c7", "#99ffffff", "#99989898",
+                                "#99000000"]
                         delegate: Rectangle {
                             width: contextMenu.width / colors.model.length
                             height: parent.height
@@ -91,6 +95,16 @@ Column {
                             }
                         }
                     }
+                }
+                Slider {
+                    id: lineWidthSlider
+                    width: parent.width
+
+                    minimumValue: Theme.paddingSmall / 2
+                    maximumValue: Theme.paddingLarge
+                    stepSize: (maximumValue - minimumValue) / 8
+                    label: "track width"
+                    onValueChanged: root.requestWidth(value)
                 }
                 MenuItem {
                     text: "clear"
@@ -110,7 +124,7 @@ Column {
                 }*/
             }
             PageHeader {
-	        function basename(url) {
+            function basename(url) {
                     return url.substring(url.lastIndexOf("/") + 1)
                 }
                 title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
@@ -164,7 +178,7 @@ Column {
         }
     }
     Label {
-	function location(url, date) {
+        function location(url, date) {
             return "in " + url.substring(0, url.lastIndexOf("/")) + " (" + formatter.formatDate(date, Formatter.TimepointRelative) + ")"
         }
         visible: root.detailVisible && !Qt.inputMethod.visible && track && track.path.length > 0
@@ -217,8 +231,8 @@ Column {
                 placeholderText: newWpt ? "new waypoint description" : "waypoint " + (model.index + 1) + "has no name"
                 label: newWpt ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
                 text: (track) ? track.getWayPoint(model.index, Track.FIELD_NAME) : ""
-	        EnterKey.text: newWpt ? text.length > 0 ? "add" : "cancel" : "update"
-	        EnterKey.onClicked: {
+                EnterKey.text: newWpt ? text.length > 0 ? "add" : "cancel" : "update"
+                EnterKey.onClicked: {
                     if (text.length > 0 && newWpt) {
                         track.addWayPoint(currentPlace, text, "", "")
                         track.highlightWayPoint(model.index)
