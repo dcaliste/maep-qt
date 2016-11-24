@@ -59,8 +59,5 @@ OTHER_FILES += rpm/maep-qt.spec
 QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
 
 QT += qml-private core-private
-SOURCES += qmlLibs/locationvaluetypeprovider.cpp qmlLibs/qdeclarativecoordinate.cpp
-HEADERS += qmlLibs/locationvaluetypeprovider.h qmlLibs/qdeclarativecoordinate_p.h
-
 SOURCES += qmlLibs/qquickfolderlistmodel.cpp qmlLibs/fileinfothread.cpp
 HEADERS += qmlLibs/qquickfolderlistmodel.h qmlLibs/fileproperty_p.h qmlLibs/fileinfothread_p.h

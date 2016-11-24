@@ -1,5 +1,4 @@
 #include "osm-gps-map/osm-gps-map-qt.h"
-#include "../qmlLibs/locationvaluetypeprovider.h"
 #include "../qmlLibs/qquickfolderlistmodel.h"
 
 #include <QGuiApplication>
@@ -95,12 +94,8 @@ void Maep::showView(QQuickView* view) {
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
   bool isDesktop;
-  LocationValueTypeProvider provider;
 
   qmlRegisterType<QQuickFolderListModel>("harbour.maep.qt", 1, 0, "FolderListModel");
-
-  qRegisterMetaType<QGeoCoordinate>("QGeoCoordinate");
-  QQml_addValueTypeProvider(&provider);
 
   qmlRegisterType<Maep::Conf>("harbour.maep.qt", 1, 0, "Conf");
   qmlRegisterType<Maep::GeonamesPlace>("harbour.maep.qt", 1, 0, "GeonamesPlace");
