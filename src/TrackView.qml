@@ -124,56 +124,74 @@ Column {
                 }*/
             }
             PageHeader {
-            function basename(url) {
+                id: pageHeader
+                function basename(url) {
                     return url.substring(url.lastIndexOf("/") + 1)
                 }
                 title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
                 height: Theme.itemSizeMedium
 
+                Label {
+                    function duration(time) {
+                        if (time < 60) {
+                            return time + " s"
+                        } else if (time < 3600) {
+                            var m = Math.floor(time / 60)
+                            return  m + " min"
+                        } else {
+                            var h = Math.floor(time / 3600)
+                            var m = Math.floor((time - h * 3600) / 60)
+                            return h + " h " + m
+                        }
+                    }
+                    function length(lg) {
+                        if (lg >= 1000) {
+                            return (lg / 1000).toFixed(1) + " km"
+                        } else {
+                            return lg.toFixed(0) + " m"
+                        }
+                    }
+                    parent: pageHeader.extraContent
+                    anchors.bottom: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: Theme.fontSizeSmall
+                    text: if (track && track.duration > 0) {
+                        length(track.length) + " (" + duration(track.duration) + ")"
+                    } else "no accurate data"
+                }
+                Label {
+                    function speed(length, time) {
+                        if (time > 0) {
+                            return (length / time * 3.6).toFixed(2) + " km/h"
+                        } else {
+                            return ""
+                        }
+                    }
+                    parent: pageHeader.extraContent
+                    anchors.top: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: Theme.fontSizeSmall
+                    text: if (track) {
+                        speed(track.length, track.duration)
+                    } else ""
+                }
                 Rectangle {
+                    parent: pageHeader.extraContent
                     width: Theme.paddingSmall
-                    height: parent.height - 2 * Theme.paddingSmall
+                    height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.right: parent.right
+                    anchors.right: parent.left
                     color: root.color
                     radius: Theme.paddingSmall / 2
                 }
             }
-            Label {
-                function details(lg, time) {
-                    if (time == 0.) { return "no GPS data within allowed accuracy" }
-                    var dist = ""
-                    if (lg >= 1000) {
-                        dist = (lg / 1000).toFixed(1) + " km"
-                    } else {
-                        dist = lg.toFixed(0) + " m"
-                    }
-                    var duration = ""
-                    if (time < 60) {
-                        duration = time + " s"
-                    } else if (time < 3600) {
-                        var m = Math.floor(time / 60)
-                        var s = time - m * 60
-                        duration = m + " m " + s + " s"
-                    } else {
-                        var h = Math.floor(time / 3600)
-                        var m = Math.floor((time - h * 3600) / 60)
-                        duration = h + " h " + m + " m"
-                    }
-                    return dist + " (" + duration + ") - " + (lg / time * 3.6).toFixed(2) + " km/h"
-                }
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-                text: (track) ? details(track.length, track.duration) : ""
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-            }
             Image {
-                anchors.left: parent.left
-                visible: waypoints.count > 0 || (track && track.path.length > 0)
-                source: root.detailVisible ? "image://theme/icon-m-up" : "image://theme/icon-m-down"
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Theme.paddingMedium
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.bottom
+                opacity: root.detailVisible ? 0 : 0.7
+                visible: opacity > 0 && (waypoints.count > 0 || (track && track.path.length > 0))
+                source: "image://theme/icon-m-down"
+                Behavior on opacity { FadeAnimation {} }
             }
         }
     }

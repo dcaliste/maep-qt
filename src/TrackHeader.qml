@@ -64,6 +64,25 @@ Column {
         }
         onClicked: page.importTrack()
     }
+    BackgroundItem {
+        id: item_backup
+        contentHeight: Theme.itemSizeSmall
+        opacity: enabled ? 1.0 : 0.4
+        Row {
+            anchors.fill: parent
+            spacing: Theme.paddingMedium
+            Image {
+                anchors.verticalCenter: parent.verticalCenter
+                source: "image://theme/icon-m-backup"
+            }
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "last autosaved track"
+                color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
+            }
+        }
+        onClicked: map.loadBackupTrack()
+    }
     /*BackgroundItem {
         id: item_osm
         contentHeight: Theme.itemSizeSmall
