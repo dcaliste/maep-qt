@@ -53,6 +53,7 @@ SilicaFlickable {
         } 
     }
     onCurrentIndexChanged: setAction(currentIndex)
+    flickableDirection: Flickable.HorizontalFlick
 
     Component.onDestruction: if (currentIndex == 0) {
         conf.setString("ui_start_action", "search")
@@ -108,8 +109,6 @@ SilicaFlickable {
         }
     }
     
-    onMovingHorizontallyChanged: if (movingHorizontally) { flickableDirection = Flickable.HorizontalFlick }
-    onMovingVerticallyChanged: if (movingVertically) { flickableDirection = Flickable.VerticalFlick }
     onMovementEnded: {
         if (contentX < root.width / 2) {
             contentX = 0
@@ -119,7 +118,6 @@ SilicaFlickable {
             currentIndex = 1
         }
         track_details.wptMoving = false
-        flickableDirection = Flickable.HorizontalAndVerticalFlick
     }
 
     VerticalScrollDecorator { flickable: root

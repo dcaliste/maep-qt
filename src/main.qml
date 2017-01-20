@@ -46,9 +46,9 @@ ApplicationWindow
         }
 
         Item {
-            anchors.top: header.bottom
+            anchors.top: topPart.bottom
             width: page.width
-            height: page.height - header.height
+            height: page.height - topPart.height
 
             opacity: mainMenu.active ? Theme.highlightBackgroundOpacity : 1.
             Behavior on opacity {
@@ -123,11 +123,14 @@ ApplicationWindow
                 }
             }
         }
-        Header {
-            id: header
+        SilicaFlickable {
+            id: topPart
             anchors.top: parent.top
             width: page.width
+            height: header.height
+            contentHeight: header.height
             clip: page.status != PageStatus.Active || !mainMenu.active
+            flickableDirection: Flickable.VerticalFlick
 
             PullDownMenu {
                 id: mainMenu
@@ -177,6 +180,10 @@ ApplicationWindow
                     text: "Next action"
                     onClicked: header.nextAction()
                 }*/
+            }
+            Header {
+                id: header
+                width: parent.width
             }
         }
     }
