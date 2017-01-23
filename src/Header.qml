@@ -115,6 +115,21 @@ SilicaFlickable {
             }
         }
     }
+
+    Repeater {
+        z: 2
+        model: content.children.length - 1
+        delegate: GlassItem {
+            x: root.width * (modelData + 1) - width / 2
+            color: Theme.primaryColor
+            radius: 0.22
+            falloffRadius: 0.18
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.setAction(mouse.x < width / 2 ? modelData + 1 : modelData)
+            }
+        }
+    }
     
     onMovementEnded: {
         if (contentX < root.width / 2) {
