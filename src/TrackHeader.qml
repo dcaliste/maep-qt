@@ -21,9 +21,28 @@ import QtPositioning 5.2
 import harbour.maep.qt 1.0
 
 Column {
+    id: root
+    property Track track: null
+    property bool deletePending: remorse.pending
+
+    function deleteTrack() {
+        remorse.execute(remorseHook,
+                        "Clear current track", map.setTrack)
+    }
+
     PageHeader {
         height: Theme.itemSizeMedium
-        title: "No track"
+        title: root.track ? "Track" : "No track"
+    }
+    BackgroundItem {
+        id: item_current
+        contentHeight: Theme.itemSizeSmall
+        visible: root.track
+        Item {
+            id: remorseHook
+            anchors.fill: parent
+            RemorseItem { id: remorse }
+        }
     }
     BackgroundItem {
         id: item_gps
@@ -43,7 +62,10 @@ Column {
                 color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
-        onClicked: map.track_capture = true
+        onClicked: {
+            remorse.trigger()
+            map.track_capture = true
+        }
     }
     BackgroundItem {
         id: item_file
@@ -62,7 +84,10 @@ Column {
                 color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
-        onClicked: page.importTrack()
+        onClicked: {
+            remorse.trigger()
+            page.importTrack()
+        }
     }
     BackgroundItem {
         id: item_backup
@@ -78,10 +103,13 @@ Column {
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "last autosaved track"
-                color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
+                color: item_backup.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
-        onClicked: map.loadBackupTrack()
+        onClicked: {
+            remorse.trigger()
+            map.loadBackupTrack()
+        }
     }
     /*BackgroundItem {
         id: item_osm

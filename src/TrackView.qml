@@ -31,6 +31,7 @@ Column {
     property bool detailVisible: false
     property bool menu: contextMenu.parent === track_button
 
+    signal requestDelete()
     signal requestColor(color color)
     signal requestWidth(int width)
 
@@ -71,8 +72,6 @@ Column {
             contentHeight: Theme.itemSizeMedium
             onClicked: root.detailVisible = !root.detailVisible
             
-            RemorseItem { id: remorse }
-
             menu: ContextMenu {
                 id: contextMenu
                 Row {
@@ -108,11 +107,7 @@ Column {
                 }
                 MenuItem {
                     text: "clear"
-                    onClicked: {
-                        root.detailVisible = false
-                        remorse.execute(track_button,
-                                        "Clear current track", map.setTrack)
-                    }
+                    onClicked: root.requestDelete()
                 }
                 MenuItem {
                     text: "save on device"

@@ -90,21 +90,28 @@ SilicaFlickable {
             id: trackView
             width: root.width
             TrackHeader {
-                visible: !map.track
+                id: track_menu
+                visible: !map.track || deletePending
                 width: parent.width
+                track: map.track
+                opacity: visible ? 1 : 0
+                Behavior on opacity { FadeAnimation{duration: 200} }
             }
             TrackView {
                 id: track_details
                 width: parent.width
-                visible: track
+                visible: track_menu.opacity == 0
                 track: map.track
                 tracking: map.track_capture
                 color: map.trackColor
                 lineWidth: map.trackWidth
                 currentPlace: map.gps_coordinate
                 onWptMovingChanged: root.flickableDirection = (wptMoving) ? Flickable.VerticalFlick : Flickable.HorizontalAndVerticalFlick
+                onRequestDelete: track_menu.deleteTrack()
                 onRequestColor: map.trackColor = color
                 onRequestWidth: map.trackWidth = width
+                opacity: visible ? 1 : 0
+                Behavior on opacity { FadeAnimation{duration: 200} }
             }
         }
     }
