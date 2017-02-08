@@ -123,7 +123,11 @@ Column {
                 function basename(url) {
                     return url.substring(url.lastIndexOf("/") + 1)
                 }
-                title: (track)?(track.path.length > 0)?basename(track.path):"Unsaved track":""
+                title: track
+                       ? track.path.length > 0
+                         ? basename(track.path)
+                         : "Unsaved track"
+                       : ""
                 height: Theme.itemSizeMedium
 
                 Label {
@@ -181,11 +185,14 @@ Column {
                 }
             }
             Image {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.bottom
-                opacity: root.detailVisible ? 0 : 0.7
+                anchors {
+                    right: parent.right
+                    bottom: parent.bottom
+                    rightMargin: Theme.horizontalPageMargin
+                }
+                source: "image://theme/icon-lock-more"
+                opacity: root.detailVisible ? 0 : 1
                 visible: opacity > 0 && (waypoints.count > 0 || (track && track.path.length > 0))
-                source: "image://theme/icon-m-down"
                 Behavior on opacity { FadeAnimation {} }
             }
         }
