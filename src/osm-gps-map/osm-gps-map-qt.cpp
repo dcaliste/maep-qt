@@ -82,6 +82,19 @@ bool Maep::Track::set(const QString &filename)
     }
   return false;
 }
+bool Maep::Track::setFromBackup(void)
+{
+  char *path;
+  bool res;
+
+  path = maep_geodata_get_default_autosave_path();
+  res = set(path);
+  g_free(path);
+  source.clear();
+  emit pathChanged();
+
+  return res;
+}
 bool Maep::Track::toFile(const QString &filename)
 {
   GError *error;

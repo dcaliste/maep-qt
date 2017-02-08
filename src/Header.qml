@@ -100,7 +100,7 @@ SilicaFlickable {
             TrackView {
                 id: track_details
                 width: parent.width
-                visible: track_menu.opacity == 0
+                visible: !track_menu.visible
                 track: map.track
                 tracking: map.track_capture
                 color: map.trackColor

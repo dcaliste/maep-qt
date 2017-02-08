@@ -166,6 +166,8 @@ typedef enum {
 MaepGeodata *maep_geodata_new();
 MaepGeodata *maep_geodata_new_from_file(const char *filename, GError **error);
 
+gchar* maep_geodata_get_default_autosave_path(void);
+
 gboolean maep_geodata_to_file(MaepGeodata *track_state,
                               const char *name, GError **error);
 gboolean maep_geodata_set_autosave_period(MaepGeodata *track_state, guint elaps);
@@ -209,8 +211,6 @@ gint maep_geodata_waypoint_get_highlight(const MaepGeodata *track_state);
 const way_point_t* maep_geodata_waypoint_get(const MaepGeodata *track_state,
                                              guint iwpt);
 guint maep_geodata_waypoint_get_length(const MaepGeodata *track_state);
-
-
 
 typedef struct {
   MaepGeodata *parent;

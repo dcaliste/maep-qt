@@ -108,7 +108,13 @@ Column {
         }
         onClicked: {
             remorse.trigger()
-            map.loadBackupTrack()
+            map.track_capture = false
+            var track = defaultTrack.createObject(map)
+            if (track.setFromBackup()) map.setTrack(track)
+        }
+        Component {
+            id: defaultTrack
+            Track { }
         }
     }
     /*BackgroundItem {

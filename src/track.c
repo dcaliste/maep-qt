@@ -324,6 +324,11 @@ GQuark track_get_quark()
   return error_quark;
 }
 
+gchar* maep_geodata_get_default_autosave_path(void)
+{
+  return build_path();
+}
+
 MaepGeodata *maep_geodata_new()
 {
   GObject *track_state;

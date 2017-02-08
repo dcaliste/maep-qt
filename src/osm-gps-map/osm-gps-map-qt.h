@@ -270,6 +270,7 @@ signals:
 public slots:
   void set(MaepGeodata *track);
   bool set(const QString &filename);
+  bool setFromBackup(void);
   bool toFile(const QString &filename);
   void addPoint(QGeoPositionInfo &info);
   void addWayPoint(const QGeoCoordinate &coord, const QString &name,
