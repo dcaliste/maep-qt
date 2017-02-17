@@ -26,6 +26,7 @@ G_BEGIN_DECLS
 
 char *find_file(char *name);
 
+void gconf_unset_key(const char *key);
 void gconf_set_string(const char *key, const char *str);
 char *gconf_get_string(const char *key);
 void gconf_set_bool(const char *key, gboolean value);

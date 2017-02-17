@@ -26,6 +26,7 @@
 #include <QPainterPath>
 #include <QDebug>
 #include <cmath>
+#include <algorithm>
 
 #define GCONF_KEY_ZOOM       "zoom"
 #define GCONF_KEY_SOURCE     "source"
@@ -41,6 +42,7 @@
 #define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
 #define GCONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
 #define GCONF_KEY_COMPASS_ENABLED "compass-enabled"
+#define GCONF_KEY_COMPASS_MODE "compass-mode"
 
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
@@ -200,7 +202,7 @@ static void osm_gps_map_qt_track_color(Maep::GpsMap *widget, GParamSpec *pspec, 
 Maep::GpsMap::GpsMap(QQuickItem *parent)
     : QQuickPaintedItem(parent)
     , compass(parent)
-    , compassEnabled_(FALSE)
+    , compassMode_(COMPASS_MODE_OFF)
 {
   char *path, *oldPath;
   gdouble color[4];
@@ -219,6 +221,12 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
   int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
   bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
+  gint compassMode = gconf_get_int(GCONF_KEY_COMPASS_MODE,
+                                   // backward compatibility with old boolean setting
+                                   compassEnabled ? COMPASS_MODE_NORTH : COMPASS_MODE_OFF);
+
+  compassMode = std::min(static_cast<gint>(COMPASS_N_MODES) - 1,
+                         std::max(static_cast<gint>(COMPASS_MODE_OFF), compassMode));
 
   gconf_get_color(GCONF_KEY_TRACK_COLOR, color, defaultColor);
   path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
@@ -329,7 +337,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   maep_layer_gps_set_azimuth(lgps, NAN);
   connect(&compass, SIGNAL(readingChanged()), this, SLOT(compassReadingChanged()));
-  enableCompass(compassEnabled);
+  setCompassMode(static_cast<CompassMode>(compassMode));
 
   track_capture = track;
   track_current = NULL;
@@ -409,7 +417,8 @@ Maep::GpsMap::~GpsMap()
 
   gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
-  gconf_set_bool(GCONF_KEY_COMPASS_ENABLED, compassEnabled_);
+  gconf_unset_key(GCONF_KEY_COMPASS_ENABLED);
+  gconf_set_int(GCONF_KEY_COMPASS_MODE, compassMode_);
   g_message("Storing configuration done.");
 }
 static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
@@ -1080,7 +1089,7 @@ void Maep::GpsMap::compassReadingChanged()
 {
   // Apparently this event fires spuriously once when the class is initialized, so double-check
   // if we're really activated.
-  if (compassEnabled() && compass.isActive())
+  if (compassMode() != COMPASS_MODE_OFF && compass.isActive())
     {
       QCompassReading *compass_reading = compass.reading();
       if (compass_reading)
@@ -1094,30 +1103,33 @@ void Maep::GpsMap::compassReadingChanged()
         }
     }
 }
-void Maep::GpsMap::enableCompass(bool enable)
+void Maep::GpsMap::setCompassMode(CompassMode mode)
 {
-  if (compassEnabled_ == enable)
+  if (compassMode_ == mode)
     return;
   
-  compassEnabled_ = enable;
-  if (!enable)
+  if (mode == COMPASS_MODE_OFF)
     {
       qDebug() << "Disabling compass.";
       compass.stop();
-      maep_layer_gps_set_azimuth(lgps, NAN);
     }
   else
     {
-      qDebug() << "Enabling compass.";
-      if (compass.isFeatureSupported(QCompass::SkipDuplicates))
+      if (compassMode_ == COMPASS_MODE_OFF)
         {
-          qDebug() << "Enabling compass powersaving.";
-          compass.setSkipDuplicates(true);
+          qDebug() << "Enabling compass.";
+          if (compass.isFeatureSupported(QCompass::SkipDuplicates))
+            {
+              qDebug() << "Enabling compass powersaving.";
+              compass.setSkipDuplicates(true);
+            }
+          lastAzimuth = -1.;
+          compass.start();
         }
-      lastAzimuth = -1.;
-      compass.start();
     }
-  emit enableCompassChanged(enable);
+  compassMode_ = mode;
+  maep_layer_gps_set_compass_mode(lgps, static_cast<MaepLayerCompassMode>(mode));
+  emit compassModeChanged(mode);
 }
 
 void Maep::GpsMap::positionLost()

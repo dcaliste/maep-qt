@@ -291,6 +291,7 @@ class GpsMap : public QQuickPaintedItem
   Q_OBJECT
 
   Q_ENUMS(Source)
+  Q_ENUMS(CompassMode)
 
   Q_PROPERTY(Source source READ source WRITE setSource NOTIFY sourceChanged)
   Q_PROPERTY(Source overlaySource READ overlaySource WRITE setOverlaySource NOTIFY overlaySourceChanged)
@@ -312,7 +313,7 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QColor trackColor READ getTrackColor WRITE setTrackColor NOTIFY trackColorChanged)
 
   Q_PROPERTY(bool screen_rotation READ screen_rotation WRITE setScreenRotation NOTIFY screenRotationChanged)
-  Q_PROPERTY(bool enable_compass READ compassEnabled WRITE enableCompass NOTIFY enableCompassChanged)
+  Q_PROPERTY(CompassMode compass_mode READ compassMode WRITE setCompassMode NOTIFY compassModeChanged)
 
   Q_PROPERTY(unsigned int gps_refresh_rate READ gpsRefreshRate WRITE setGpsRefreshRate NOTIFY gpsRefreshRateChanged)
 
@@ -348,6 +349,10 @@ class GpsMap : public QQuickPaintedItem
     SOURCE_MML_TAUSTAKARTTA,
 
     SOURCE_LAST};
+
+  enum CompassMode {
+    MAEP_COMPASS_MODES
+  };
 
   GpsMap(QQuickItem *parent = 0);
   ~GpsMap();
@@ -449,8 +454,8 @@ class GpsMap : public QQuickPaintedItem
   inline unsigned int gpsRefreshRate() {
     return gpsRefreshRate_;
   }
-  inline bool compassEnabled() {
-    return compassEnabled_;
+  inline CompassMode compassMode() {
+    return compassMode_;
   }
 
  protected:
@@ -476,7 +481,7 @@ class GpsMap : public QQuickPaintedItem
   void trackColorChanged();
   void screenRotationChanged(bool status);
   void gpsRefreshRateChanged(unsigned int rate);
-  void enableCompassChanged(bool enable);
+  void compassModeChanged(CompassMode mode);
 
  public slots:
   void setSource(Source source);
@@ -503,7 +508,7 @@ class GpsMap : public QQuickPaintedItem
   void setTrackColor(const QColor &value);
   void setGpsRefreshRate(unsigned int rate);
   void compassReadingChanged();
-  void enableCompass(bool enable);
+  void setCompassMode(CompassMode mode);
 
  private:
   static int countSearchResults(QQmlListProperty<GeonamesPlace> *prop)
@@ -530,7 +535,7 @@ class GpsMap : public QQuickPaintedItem
   OsmGpsMap *map, *overlay;
   QGeoCoordinate coordinate;
   QCompass compass;
-  bool compassEnabled_;
+  CompassMode compassMode_;
   qreal lastAzimuth;
 
   osm_gps_map_osd_t *osd;
