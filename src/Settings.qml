@@ -37,7 +37,7 @@ SilicaFlickable {
 
         TextSwitch {
 	    text: "Draw map double pixel"
-            description: "The tiles of the zoom level above are" +
+            description: "The tiles of the zoom level above are " +
             "used instead of the normal ones. The rendering appears as if zoomed."
 	    checked: map.double_pixel
             automaticCheck: false
@@ -46,13 +46,21 @@ SilicaFlickable {
             width: parent.width
         }
 
-        TextSwitch {
-            text: "Enable compass"
-            checked: map.enable_compass
-            description: "Display a compass arrow under the GPS point" +
-            " (green points in the north direction)."
-            onClicked: map.enable_compass = checked
-            width: parent.width
+        ComboBox {
+            label: "Compass mode"
+            width: page.width
+            description: "Either point towards physical north pole, or show " +
+                         "device orientation relative to map. When switched " +
+                         "off, the sensor is completely disabled."
+
+            currentIndex: map.compass_mode
+            onCurrentIndexChanged: map.compass_mode = currentIndex
+
+            menu: ContextMenu {
+                MenuItem { text: "Off" }
+                MenuItem { text: "Point north" }
+                MenuItem { text: "Device orientation" }
+            }
         }
 
         Item {

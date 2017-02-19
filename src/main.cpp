@@ -66,6 +66,8 @@ QQuickView *Maep::createView(const QString &file)
             QString basePath = QCoreApplication::applicationFilePath();
             basePath.chop(basePath.length() -  basePath.indexOf("/", 9)); // first index after /opt/sdk/
             view->engine()->addImportPath(basePath + path);
+            if (!path.endsWith("/"))
+              path += "/";
             view->setSource(QUrl::fromLocalFile(basePath + path + file));
           }
         else

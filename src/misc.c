@@ -51,6 +51,19 @@ static DConfClient* dconf_client_get_default()
   return dconfClient;
 }
 
+void gconf_unset_key(const char *m_key) {
+  DConfClient *client = dconf_client_get_default();
+  char *key = g_strdup_printf(GCONF_PATH, m_key);
+  GError *error = NULL;
+
+  dconf_client_write_sync(client, key, NULL, NULL, NULL, &error);
+  g_free(key);
+  if (error) {
+    g_warning("%s", error->message);
+    g_error_free(error);
+  }
+}
+
 void gconf_set_string(const char *m_key, const char *str) {
   /* GConfClient *client = gconf_client_get_default(); */
   DConfClient *client = dconf_client_get_default();

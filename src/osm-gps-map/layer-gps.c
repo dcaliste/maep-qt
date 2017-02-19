@@ -31,6 +31,7 @@ struct _MaepLayerGpsPrivate
   coord_t gps;
   float gps_heading;
   float compass_azimuth;
+  MaepLayerCompassMode compass_mode;
   gboolean gps_valid;
 
   guint ui_gps_point_inner_radius;
@@ -226,8 +227,22 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
   // draw ball gradient
   if (r > 0) {
     // draw magnetic compass
-    if(!isnan(priv->compass_azimuth))
+    switch ((isnan(priv->compass_azimuth) ? COMPASS_MODE_OFF : priv->compass_mode))
       {
+      case COMPASS_MODE_DEVICE:
+        cairo_move_to (cr, -r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
+        cairo_line_to (cr, 4.0*r*sin(priv->compass_azimuth), -4.0*r*cos(priv->compass_azimuth));
+        cairo_line_to (cr, r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
+        cairo_close_path (cr);
+
+        cairo_set_source_rgba (cr, 0.0, 1.0, 1.0, 0.5);
+        cairo_fill_preserve (cr);
+
+        cairo_set_line_width (cr, 1.0);
+        cairo_set_source_rgba (cr, 0.0, 0.5, 0.5, 0.5);
+        cairo_stroke(cr);
+        break;
+      case COMPASS_MODE_NORTH:
         cairo_move_to (cr, -r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
         cairo_line_to (cr, -4.0*r*sin(priv->compass_azimuth), -4.0*r*cos(priv->compass_azimuth));
         cairo_line_to (cr, r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
@@ -240,6 +255,7 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
         cairo_set_source_rgba (cr, 0.0, 0.5, 0.0, 0.5);
         cairo_stroke(cr);
 
+
         cairo_move_to (cr, r*cos(priv->compass_azimuth), -r*sin(priv->compass_azimuth));
         cairo_line_to (cr, 4.0*r*sin(priv->compass_azimuth), 4.0*r*cos(priv->compass_azimuth));
         cairo_line_to (cr, -r*cos(priv->compass_azimuth), r*sin(priv->compass_azimuth));
@@ -251,6 +267,9 @@ static void _draw(MaepLayerGpsPrivate *priv, cairo_t *cr, OsmGpsMap *map)
         cairo_set_line_width (cr, 1.0);
         cairo_set_source_rgba (cr, 0.5, 0.0, 0.0, 0.5);
         cairo_stroke(cr);
+        break;
+      default:
+        break;
       }
     // draw direction arrow
     if(!isnan(priv->gps_heading)) 
@@ -344,6 +363,18 @@ gboolean maep_layer_gps_set_azimuth(MaepLayerGps *gps, gfloat azimuth)
   if (gps->priv->compass_azimuth != azimuth)
     {
       gps->priv->compass_azimuth = azimuth;
+      g_signal_emit(gps, _signals[DIRTY_SIGNAL], 0, NULL);
+      return TRUE;
+    }
+  return FALSE;
+}
+
+gboolean maep_layer_gps_set_compass_mode(MaepLayerGps *gps, MaepLayerCompassMode mode)
+{
+  g_return_val_if_fail(MAEP_IS_LAYER_GPS(gps), FALSE);
+  if (gps->priv->compass_mode != mode)
+    {
+      gps->priv->compass_mode = mode;
       g_signal_emit(gps, _signals[DIRTY_SIGNAL], 0, NULL);
       return TRUE;
     }
