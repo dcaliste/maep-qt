@@ -79,7 +79,8 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
-* Thu Feb 09 2017 - Damien Caliste <dcaliste@free.fr> 1.4.4-1
+* Mon Feb 20 2017 - Damien Caliste <dcaliste@free.fr> 1.4.4-1
+- Add a choice to display device orientation with compass, V. Matare contribution.
 - Add color and width properties for tracks.
 - Correct issues when changing from search to track header with Qt5.6.
 - Add a quick way to reload the auto saved track.
