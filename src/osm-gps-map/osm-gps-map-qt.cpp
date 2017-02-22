@@ -432,13 +432,13 @@ static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
 }
 void Maep::GpsMap::ensureOverlay(Source source)
 {
-  gchar *path;
+    gchar *path, *oldPath;
 
   if (overlay)
     return;
 
   g_message("Creating overlay %d", (guint)source);
-  path = g_build_filename(g_get_user_data_dir(), "maep", NULL);
+  path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
   overlay = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
                                      "map-source",               (guint)source,
                                      "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,

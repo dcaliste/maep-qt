@@ -17,7 +17,7 @@ Name: harbour-maep-qt
 
 Summary: Map browser with GPS capabilities
 Version: 1.4.4
-Release: 1
+Release: 2
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -79,6 +79,9 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
+* Mon Feb 20 2017 - Damien Caliste <dcaliste@free.fr> 1.4.4-2
+- Correct overlay tile cache directory, thanks to Harbour checkings.
+
 * Mon Feb 20 2017 - Damien Caliste <dcaliste@free.fr> 1.4.4-1
 - Add a choice to display device orientation with compass, V. Matare contribution.
 - Add color and width properties for tracks.
