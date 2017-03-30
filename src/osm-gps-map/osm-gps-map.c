@@ -2339,7 +2339,7 @@ osm_gps_map_source_get_repo_uri(OsmGpsMapSource_t source)
             return "http://otile1.mqcdn.com/tiles/1.0.0/osm/#Z/#X/#Y.png";
             /* return "http://tah.openstreetmap.org/Tiles/tile/#Z/#X/#Y.png"; */
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
-            return "http://c.tile.opencyclemap.org/cycle/#Z/#X/#Y.png";
+            return "https://tile.thunderforest.com/cycle/#Z/#X/#Y.png?apikey=20a6951bc9c2496ab5a7b1ef728e8d92";
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
             return "http://tile.xn--pnvkarte-m4a.de/tilegen/#Z/#X/#Y.png";
         case OSM_GPS_MAP_SOURCE_OSMC_TRAILS:
@@ -2413,8 +2413,8 @@ osm_gps_map_source_get_repo_copyright(OsmGpsMapSource_t source,
             *url    = "http://www.mapquest.com/";
             return;
         case OSM_GPS_MAP_SOURCE_OPENCYCLEMAP:
-            *notice = "© OpenCycleMap";
-            *url    = "http://www.opencyclemap.org/";
+            *notice = "Map © Thunderforest, data © www.osm.org/copyright";
+            *url    = "http://www.thunderforest.com";
             return;
         case OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT:
             *notice = "CC-BY-SA license (© by MeMomaps)";
