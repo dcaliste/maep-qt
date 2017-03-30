@@ -16,8 +16,8 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.4
-Release: 2
+Version: 1.4.5
+Release: 1
 Group: Applications/Engineering
 License: GPLv2
 Source: %{name}-%{version}.tar.gz
@@ -79,6 +79,10 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
+* Thu Mar 30 2017 - Damien Caliste <dcaliste@free.fr> 1.4.5-1
+- Declare the OpenCycleMap to www.thunderforest.com to obtain an API key.
+- Correct the long-lasting bug of map jumping position when drag is released.
+
 * Mon Feb 20 2017 - Damien Caliste <dcaliste@free.fr> 1.4.4-2
 - Correct overlay tile cache directory, thanks to Harbour checkings.
 
