@@ -376,7 +376,6 @@ class GpsMap : public QQuickPaintedItem
                                                  GpsMap::countSearchResults,
                                                  GpsMap::atSearchResults);
   }
-  void mapUpdate();
   void paintTo(QPainter *painter, int width, int height);
   inline bool trackCapture() {
     return track_capture;
@@ -546,6 +545,7 @@ class GpsMap : public QQuickPaintedItem
 
   gboolean dragging;
   int drag_mouse_dx, drag_mouse_dy;
+  int drag_map_dx, drag_map_dy;
   float factor0;
 
   /* Wiki entry. */
@@ -569,6 +569,10 @@ class GpsMap : public QQuickPaintedItem
   /* Tracks */
   bool track_capture;
   Maep::Track *track_current;
+
+  friend struct GpsMapCClosures;
+
+  void mapUpdate();
 };
 
 class GpsMapCover : public QQuickPaintedItem

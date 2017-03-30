@@ -16,6 +16,7 @@
  */
 
 #include <glib/gstdio.h>
+
 #include "osm-gps-map-qt.h"
 #include "osm-gps-map.h"
 #include "osm-gps-map-layer.h"
@@ -182,8 +183,23 @@ void Maep::Track::highlightWayPoint(int iwpt)
   maep_geodata_waypoint_set_highlight(track, iwpt);
 }
 
-
-static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map);
+namespace Maep {
+  struct GpsMapCClosures
+  {
+    static void repaint_from_map(Maep::GpsMap *widget)
+    {
+      widget->drag_map_dx = 0;
+      widget->drag_map_dy = 0;
+      widget->mapUpdate();
+      widget->update();
+    }
+    static void repaint(Maep::GpsMap *widget)
+    {
+      widget->mapUpdate();
+      widget->update();
+    }
+  };
+};
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
@@ -266,7 +282,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   coordinate = QGeoCoordinate(lat, lon);
 
   g_signal_connect_swapped(G_OBJECT(map), "dirty",
-                           G_CALLBACK(osm_gps_map_qt_repaint), this);
+                           G_CALLBACK(Maep::GpsMapCClosures::repaint_from_map), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::latitude",
                            G_CALLBACK(osm_gps_map_qt_coordinate), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::auto-center",
@@ -294,7 +310,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   g_signal_connect_swapped(G_OBJECT(wiki), "entry-selected",
                            G_CALLBACK(osm_gps_map_qt_wiki), this);
   g_signal_connect_swapped(G_OBJECT(wiki), "dirty",
-                           G_CALLBACK(osm_gps_map_qt_repaint), this);
+                           G_CALLBACK(Maep::GpsMapCClosures::repaint), this);
   search = maep_search_context_new();
   g_signal_connect_swapped(G_OBJECT(search), "places-available",
                            G_CALLBACK(osm_gps_map_qt_places), this);
@@ -303,6 +319,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   drag_mouse_dx = 0;
   drag_mouse_dy = 0;
+  drag_map_dx = 0;
+  drag_map_dy = 0;
 
   surf = NULL;
   cr = NULL;
@@ -333,7 +351,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   lastGps = QGeoPositionInfo();
   lgps = maep_layer_gps_new();
   g_signal_connect_swapped(G_OBJECT(lgps), "dirty",
-                           G_CALLBACK(osm_gps_map_qt_repaint), this);
+                           G_CALLBACK(Maep::GpsMapCClosures::repaint), this);
 
   maep_layer_gps_set_azimuth(lgps, NAN);
   connect(&compass, SIGNAL(readingChanged()), this, SLOT(compassReadingChanged()));
@@ -432,7 +450,7 @@ static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
 }
 void Maep::GpsMap::ensureOverlay(Source source)
 {
-    gchar *path, *oldPath;
+    gchar *path;
 
   if (overlay)
     return;
@@ -469,18 +487,9 @@ void Maep::GpsMap::ensureOverlay(Source source)
   onLatLon(G_OBJECT(map), NULL, overlay);
 
   g_signal_connect_swapped(G_OBJECT(overlay), "dirty",
-                           G_CALLBACK(osm_gps_map_qt_repaint), this);
+                           G_CALLBACK(Maep::GpsMapCClosures::repaint), this);
   g_signal_connect_swapped(G_OBJECT(overlay), "notify::map-source",
                            G_CALLBACK(osm_gps_map_qt_overlay_source), this);
-}
-
-static void osm_gps_map_qt_repaint(Maep::GpsMap *widget, OsmGpsMap *map)
-{
-  Q_UNUSED(map);
-
-  // g_message("got dirty");
-  widget->mapUpdate();
-  widget->update();
 }
 
 bool Maep::GpsMap::mapSized()
@@ -525,12 +534,15 @@ void Maep::GpsMap::mapUpdate()
   cairo_paint(cr);
 
   cairo_save(cr);
-  cairo_translate(cr, drag_mouse_dx, drag_mouse_dy);
+  cairo_translate(cr, drag_map_dx, drag_map_dy);
   // g_message("update at drag %dx%d %g", drag_mouse_dx, drag_mouse_dy, 1.f / factor);
   osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE);
   if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
     osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER);
+  cairo_restore(cr);
 
+  cairo_save(cr);
+  cairo_translate(cr, drag_mouse_dx, drag_mouse_dy);
   osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(lgps), cr, map);
   if (wiki_enabled)
     osm_gps_map_layer_draw(OSM_GPS_MAP_LAYER(wiki), cr, map);
@@ -789,8 +801,8 @@ void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
         osm_gps_map_set_factor(map, factor0 * factor);
         QPointF delta = (touchPoint0.pos() + touchPoint1.pos() -
                          touchPoint0.startPos() - touchPoint1.startPos()) * 0.5;
-        drag_mouse_dx = delta.x();
-        drag_mouse_dy = delta.y();
+        drag_mouse_dx = drag_map_dx = delta.x();
+        drag_mouse_dy = drag_map_dy = delta.y();
         mapUpdate();
         update();
       }
@@ -798,8 +810,8 @@ void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
         // Drag case only
         const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
         QPointF delta = touchPoint0.pos() - touchPoint0.startPos();
-        drag_mouse_dx = delta.x();
-        drag_mouse_dy = delta.y();
+        drag_mouse_dx = drag_map_dx = delta.x();
+        drag_mouse_dy = drag_map_dy = delta.y();
         mapUpdate();
         update();
 
