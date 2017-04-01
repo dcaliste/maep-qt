@@ -31,6 +31,7 @@
 #include "../misc.h"
 #include "../search.h"
 #include "../track.h"
+#include "source.h"
 #include "osm-gps-map.h"
 #include "layer-wiki.h"
 #include "layer-gps.h"
@@ -293,8 +294,8 @@ class GpsMap : public QQuickPaintedItem
   Q_ENUMS(Source)
   Q_ENUMS(CompassMode)
 
-  Q_PROPERTY(Source source READ source WRITE setSource NOTIFY sourceChanged)
-  Q_PROPERTY(Source overlaySource READ overlaySource WRITE setOverlaySource NOTIFY overlaySourceChanged)
+  Q_PROPERTY(int source READ source WRITE setSource NOTIFY sourceChanged)
+  Q_PROPERTY(int overlaySource READ overlaySource WRITE setOverlaySource NOTIFY overlaySourceChanged)
   Q_PROPERTY(bool double_pixel READ doublePixel WRITE setDoublePixel NOTIFY doublePixelChanged)
 
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
@@ -417,39 +418,56 @@ class GpsMap : public QQuickPaintedItem
     g_object_get(map, "auto-center", &set, NULL);
     return set;
   }
-  inline Source source() {
-    OsmGpsMapSource_t source;
+  inline int source() {
+    int id;
+    MaepSource *source;
     g_object_get(map, "map-source", &source, NULL);
-    return (Source)source;
+    if (!source)
+        return 0;
+
+    id = maep_source_get_id(source);
+    g_boxed_free(MAEP_TYPE_SOURCE, source);
+    return id;
   }
-  inline Source overlaySource() {
-    OsmGpsMapSource_t source;
-    if (overlay) {
-      g_object_get(overlay, "map-source", &source, NULL);
-      return (Source)source;
-    } else {
-      return SOURCE_NULL;
-    }
+  inline int overlaySource() {
+    int id;
+    MaepSource *source;
+
+    if (!overlay)
+        return 0;
+
+    g_object_get(overlay, "map-source", &source, NULL);
+    if (!source)
+        return 0;
+
+    id = maep_source_get_id(source);
+    g_boxed_free(MAEP_TYPE_SOURCE, source);
+    return id;
   }
-  Q_INVOKABLE inline QString sourceLabel(Source id) const {
-    return QString(osm_gps_map_source_get_friendly_name((OsmGpsMapSource_t)id));
+  Q_INVOKABLE inline QString sourceLabel(int id) const {
+      const MaepSource *source = maep_source_manager_getById(sources, id);
+      return source ? maep_source_get_friendly_name(source) : QString();
   }
-  Q_INVOKABLE inline QString sourceCopyrightNotice(Source id) const {
-    const gchar *notice, *url;
-    osm_gps_map_source_get_repo_copyright((OsmGpsMapSource_t)id, &notice, &url);
-    return QString(notice);
+  Q_INVOKABLE inline QString sourceCopyrightNotice(int id) const {
+      const MaepSource *source = maep_source_manager_getById(sources, id);
+      const gchar *notice, *url;
+      if (source)
+          maep_source_get_repo_copyright(source, &notice, &url);
+      return source ? notice : QString();
   }
-  Q_INVOKABLE inline QString sourceCopyrightUrl(Source id) const {
-    const gchar *notice, *url;
-    osm_gps_map_source_get_repo_copyright((OsmGpsMapSource_t)id, &notice, &url);
-    return QString(url);
+  Q_INVOKABLE inline QString sourceCopyrightUrl(int id) const {
+      const MaepSource *source = maep_source_manager_getById(sources, id);
+      const gchar *notice, *url;
+      if (source)
+          maep_source_get_repo_copyright(source, &notice, &url);
+      return source ? url : QString();
   }
   inline bool doublePixel() {
     gboolean status;
     g_object_get(map, "double-pixel", &status, NULL);
     return status;
   }
-  Q_INVOKABLE QString getCenteredTile(Maep::GpsMap::Source source) const;
+  Q_INVOKABLE QString getCenteredTile(int source) const;
   inline unsigned int gpsRefreshRate() {
     return gpsRefreshRate_;
   }
@@ -464,8 +482,8 @@ class GpsMap : public QQuickPaintedItem
 
  signals:
   void mapChanged();
-  void sourceChanged(Source source);
-  void overlaySourceChanged(Source source);
+  void sourceChanged(int source);
+  void overlaySourceChanged(int source);
   void doublePixelChanged(bool status);
   void coordinateChanged();
   void gpsCoordinateChanged();
@@ -483,8 +501,8 @@ class GpsMap : public QQuickPaintedItem
   void compassModeChanged(CompassMode mode);
 
  public slots:
-  void setSource(Source source);
-  void setOverlaySource(Source source);
+  void setSource(int source);
+  void setOverlaySource(int source);
   void setDoublePixel(bool status);
   void setAutoCenter(bool status);
   void setScreenRotation(bool status);
@@ -525,12 +543,13 @@ class GpsMap : public QQuickPaintedItem
               self->searchRes[index]->coordinate().longitude(), index);
     return self->searchRes[index];
   }
-  void ensureOverlay(Source source);
+  void ensureOverlay(const MaepSource *source);
   bool mapSized();
   void gpsToTrack();
   void unsetGps();
 
   bool screenRotation;
+  MaepSourceManager *sources;
   OsmGpsMap *map, *overlay;
   QGeoCoordinate coordinate;
   QCompass compass;
