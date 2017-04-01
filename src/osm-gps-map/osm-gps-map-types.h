@@ -28,9 +28,6 @@
 
 /* #include <gdk/gdk.h> */
 #include <cairo.h>
-#if USE_LIBSOUP22
-#include <libsoup/soup.h>
-#endif
 #include "osm-gps-map.h"
 
 #define MAX_ZOOM 20
@@ -70,19 +67,6 @@ typedef struct {
     int x2;
     int y2;
 } bbox_pixel_t;
-
-typedef struct {
-    /* The details of the tile to download */
-    char *uri;
-    char *folder;
-    char *filename;
-    OsmGpsMap *map;
-    /* whether to redraw the map when the tile arrives */
-    gboolean redraw;
-#if USE_LIBSOUP22
-    SoupSession *session;
-#endif
-} tile_download_t;
 
 typedef struct {
     int x;

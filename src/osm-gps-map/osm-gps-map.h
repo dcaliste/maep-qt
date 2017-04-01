@@ -60,67 +60,9 @@ struct _OsmGpsMap
     OsmGpsMapPrivate *priv;
 };
 
-/* New tiles should be appended to avoid id breakage. */
-typedef enum {
-    OSM_GPS_MAP_SOURCE_NULL,
-    OSM_GPS_MAP_SOURCE_OPENSTREETMAP,
-    OSM_GPS_MAP_SOURCE_OPENSTREETMAP_RENDERER,
-    OSM_GPS_MAP_SOURCE_OPENAERIALMAP,
-    OSM_GPS_MAP_SOURCE_MAPS_FOR_FREE,
-    OSM_GPS_MAP_SOURCE_OPENCYCLEMAP,
-    OSM_GPS_MAP_SOURCE_OSM_PUBLIC_TRANSPORT,
-    OSM_GPS_MAP_SOURCE_GOOGLE_STREET,
-    OSM_GPS_MAP_SOURCE_GOOGLE_SATELLITE,
-    OSM_GPS_MAP_SOURCE_GOOGLE_HYBRID,
-    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_STREET,
-    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_SATELLITE,
-    OSM_GPS_MAP_SOURCE_VIRTUAL_EARTH_HYBRID,
-    OSM_GPS_MAP_SOURCE_YAHOO_STREET,
-    OSM_GPS_MAP_SOURCE_YAHOO_SATELLITE,
-    OSM_GPS_MAP_SOURCE_YAHOO_HYBRID,
-    OSM_GPS_MAP_SOURCE_OSMC_TRAILS,
-    OSM_GPS_MAP_SOURCE_OPENSEAMAP,
-    OSM_GPS_MAP_SOURCE_GOOGLE_TRAFFIC,
-    OSM_GPS_MAP_SOURCE_MML_PERUSKARTTA,
-    OSM_GPS_MAP_SOURCE_MML_ORTOKUVA,
-    OSM_GPS_MAP_SOURCE_MML_TAUSTAKARTTA,
-
-    OSM_GPS_MAP_SOURCE_USER_DEFINED = 100,
-    OSM_GPS_MAP_SOURCE_LAST
-} OsmGpsMapSource_t;
-
-#define OSM_GPS_MAP_CACHE_DISABLED  "none://"
-#define OSM_GPS_MAP_CACHE_AUTO      "auto://"
-#define OSM_GPS_MAP_CACHE_FRIENDLY  "friendly://"
-
 #define TILESIZE 256
 #define EXTRA_BORDER 0 /*                (TILESIZE / 2) */
 
-typedef struct _OsmGpsMapSource OsmGpsMapSource;
-
-const OsmGpsMapSource* osm_gps_map_source_new       (const gchar *name,
-                                                     const gchar repo_uri,
-                                                     const gchar *image_format,
-                                                     const gchar *copyright_notice,
-                                                     const gchar *copyright_url,
-                                                     guint min_zoom, guint max_zoom);
-const char* osm_gps_map_source_get_friendly_name    (OsmGpsMapSource_t source);
-const char* osm_gps_map_source_get_repo_uri         (OsmGpsMapSource_t source);
-const char* osm_gps_map_source_get_image_format     (OsmGpsMapSource_t source);
-void        osm_gps_map_source_get_repo_copyright   (OsmGpsMapSource_t source,
-                                                     const gchar **notice,
-                                                     const gchar **url);
-int         osm_gps_map_source_get_min_zoom         (OsmGpsMapSource_t source);
-int         osm_gps_map_source_get_max_zoom         (OsmGpsMapSource_t source);
-gboolean    osm_gps_map_source_is_valid             (OsmGpsMapSource_t source);
-gchar*      osm_gps_map_source_get_cache_dir        (OsmGpsMapSource_t source,
-                                                     const gchar *tile_dir,
-                                                     const gchar *base);
-gchar*      osm_gps_map_source_get_tile_uri         (OsmGpsMapSource_t source,
-                                                     int zoom, int x, int y);
-gchar*      osm_gps_map_source_get_cached_file      (OsmGpsMapSource_t source,
-                                                     const gchar *cache_dir,
-                                                     int zoom, int x, int y);
 typedef struct {
     gint x, y, w, h;
 } OsmGpsMapRect_t;
@@ -137,8 +79,6 @@ GType      osm_color_get_type(void);
 GType       osm_gps_map_get_type                    (void) G_GNUC_CONST;
 
 OsmGpsMap*  osm_gps_map_new                         (void);
-
-char*       osm_gps_map_get_default_cache_directory (void);
 
 void        osm_gps_map_download_maps               (OsmGpsMap *map, coord_t *pt1, coord_t *pt2, int zoom_start, int zoom_end);
 void        osm_gps_map_get_bbox                    (OsmGpsMap *map, coord_t *pt1, coord_t *pt2);
