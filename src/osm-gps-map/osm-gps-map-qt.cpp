@@ -203,9 +203,8 @@ namespace Maep {
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
-static void osm_gps_map_qt_source(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
-static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget,
-                                          GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_source(Maep::GpsMap *widget);
+static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
 static void osm_gps_map_qt_places(Maep::GpsMap *widget, MaepSearchContextSource source,
                                   GSList *places, MaepSearchContext *wiki);
@@ -220,13 +219,14 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
     , compass(parent)
     , compassMode_(COMPASS_MODE_OFF)
 {
-  char *path, *oldPath;
+  gchar *path, *oldPath, *cache_dir;
   gdouble color[4];
   gdouble defaultColor[4] = {0.0, 0.0, 0.0, 0.0};
   OsmColor_t trackColor;
+  const MaepSource *source;
 
-  gint source = gconf_get_int(GCONF_KEY_SOURCE, OSM_GPS_MAP_SOURCE_OPENSTREETMAP);
-  gint overlaySource = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, OSM_GPS_MAP_SOURCE_NULL);
+  gint sourceId = gconf_get_int(GCONF_KEY_SOURCE, MAEP_SOURCE_OPENSTREETMAP);
+  gint overlaySourceId = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, MAEP_SOURCE_NULL);
   gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
   gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
   gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
@@ -246,18 +246,24 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 
   gconf_get_color(GCONF_KEY_TRACK_COLOR, color, defaultColor);
   path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
+  cache_dir = g_strdup_printf("%s%s", MAEP_SOURCE_MANAGER_CACHE_FRIENDLY, path);
 
   /* Backward compatibility, move old path. */
   oldPath = g_build_filename(g_get_user_data_dir(), "maep", NULL);
-  if (g_file_test(oldPath, G_FILE_TEST_IS_DIR))
+  if (g_file_test(oldPath, G_FILE_TEST_IS_DIR)
+      && !g_file_test(path, G_FILE_TEST_IS_DIR))
     g_rename(oldPath, path);
   g_free(oldPath);
+  g_free(path);
+
+  sources = maep_source_manager_get_instance();
+  maep_source_manager_set_cache_dir(sources, cache_dir);
+  g_free(cache_dir);
+  source = maep_source_manager_getById(sources, sourceId);
 
   screenRotation = orientation;
   map = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
                                  "map-source",               source,
-                                 "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
-                                 "tile-cache-base",          path,
                                  "auto-center",              FALSE,
                                  "record-trip-history",      FALSE, 
                                  "show-trip-history",        FALSE, 
@@ -265,7 +271,6 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                                  // proxy?"proxy-uri":NULL,     proxy,
                                  "double-pixel",             dpix,
                                  NULL));
-  g_free(path);
 
   if (color[3] > 0.) {
       trackColor.red   = color[0];
@@ -297,8 +302,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                            G_CALLBACK(osm_gps_map_qt_track_color), this);
 
   overlay = NULL;
-  if (overlaySource != OSM_GPS_MAP_SOURCE_NULL)
-    ensureOverlay((Maep::GpsMap::Source)overlaySource);
+  if (overlaySourceId != MAEP_SOURCE_NULL)
+      ensureOverlay(maep_source_manager_getById(sources, overlaySourceId));
 
   net_io_init();
   osd = osm_gps_map_osd_classic_init(map);
@@ -362,19 +367,22 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
 }
 Maep::GpsMap::~GpsMap()
 {
-  gint zoom, source, overlaySource, width;
+  gint zoom, sourceId, overlaySourceId, width;
   gfloat lat, lon;
   gboolean dpix;
   OsmColor_t *color;
   gdouble track_color[4];
+  MaepSource *source;
 
   /* get state information from map ... */
-  overlaySource = OSM_GPS_MAP_SOURCE_NULL;
+  overlaySourceId = MAEP_SOURCE_NULL;
   if (overlay)
     {
-      /* Retrieve it to store it in gconf later. */
-      g_object_get(overlay, "map-source", &overlaySource, NULL);
-      g_object_unref(overlay);
+        /* Retrieve it to store it in gconf later. */
+        g_object_get(overlay, "map-source", &source, NULL);
+        g_object_unref(overlay);
+        overlaySourceId = source ? maep_source_get_id(source) : int(MAEP_SOURCE_NULL);
+        g_boxed_free(MAEP_TYPE_SOURCE, source);
     }
   overlay = NULL;
 
@@ -387,6 +395,8 @@ Maep::GpsMap::~GpsMap()
 	       "double-pixel", &dpix,
                "gps-track-color", &color, "gps-track-width", &width,
 	       NULL);
+  sourceId = source ? maep_source_get_id(source) : int(MAEP_SOURCE_NULL);
+  g_boxed_free(MAEP_TYPE_SOURCE, source);
   track_color[0] = color->red;
   track_color[1] = color->green;
   track_color[2] = color->blue;
@@ -419,8 +429,8 @@ Maep::GpsMap::~GpsMap()
   /* ... and store it in gconf */
   g_message("Storing configuration.");
   gconf_set_int(GCONF_KEY_ZOOM, zoom);
-  gconf_set_int(GCONF_KEY_SOURCE, source);
-  gconf_set_int(GCONF_KEY_OVERLAY_SOURCE, overlaySource);
+  gconf_set_int(GCONF_KEY_SOURCE, sourceId);
+  gconf_set_int(GCONF_KEY_OVERLAY_SOURCE, overlaySourceId);
   gconf_set_float(GCONF_KEY_LATITUDE, lat);
   gconf_set_float(GCONF_KEY_LONGITUDE, lon);
   gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
@@ -448,25 +458,19 @@ static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
   
   osm_gps_map_set_center(overlay, lat, lon);
 }
-void Maep::GpsMap::ensureOverlay(Source source)
+void Maep::GpsMap::ensureOverlay(const MaepSource *source)
 {
-    gchar *path;
-
   if (overlay)
     return;
 
-  g_message("Creating overlay %d", (guint)source);
-  path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
+  g_message("Creating overlay %s", maep_source_get_friendly_name(source));
   overlay = OSM_GPS_MAP(g_object_new(OSM_TYPE_GPS_MAP,
-                                     "map-source",               (guint)source,
-                                     "tile-cache",               OSM_GPS_MAP_CACHE_FRIENDLY,
-                                     "tile-cache-base",          path,
+                                     "map-source",               source,
                                      "auto-center",              FALSE,
                                      "record-trip-history",      FALSE, 
                                      "show-trip-history",        FALSE, 
                                      // proxy?"proxy-uri":NULL,     proxy,
                                      NULL));
-  g_free(path);
 
   g_object_bind_property(G_OBJECT(map), "zoom", G_OBJECT(overlay), "zoom",
                          (GBindingFlags)(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
@@ -854,45 +858,39 @@ void Maep::GpsMap::touchEvent(QTouchEvent *touchEvent)
   }
 }
 
-static void osm_gps_map_qt_source(Maep::GpsMap *widget,
-                                  GParamSpec *pspec, OsmGpsMap *map)
+static void osm_gps_map_qt_source(Maep::GpsMap *widget)
 {
-  Q_UNUSED(pspec);
-  Q_UNUSED(map);
-
   widget->sourceChanged(widget->source());
 }
-void Maep::GpsMap::setSource(Maep::GpsMap::Source value)
+void Maep::GpsMap::setSource(int value)
 {
-  Source orig;
+  int orig;
 
   orig = source();
   if (orig == value)
     return;
 
-  g_object_set(map, "map-source", (OsmGpsMapSource_t)value, NULL);
+  g_object_set(map, "map-source", maep_source_manager_getById(sources, value), NULL);
 }
-static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget,
-                                          GParamSpec *pspec, OsmGpsMap *map)
+static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget)
 {
-  Q_UNUSED(pspec);
-  Q_UNUSED(map);
-
   widget->overlaySourceChanged(widget->overlaySource());
 }
-void Maep::GpsMap::setOverlaySource(Maep::GpsMap::Source value)
+void Maep::GpsMap::setOverlaySource(int value)
 {
-  Source orig;
+  int orig;
+  const MaepSource *source;
 
   orig = overlaySource();
   if (orig == value)
     return;
 
-  ensureOverlay(value);
-  g_object_set(overlay, "map-source", (OsmGpsMapSource_t)value, NULL);
+  source = maep_source_manager_getById(sources, value);
+  ensureOverlay(source);
+  g_object_set(overlay, "map-source", source, NULL);
 
   // Overlay becoming NULL will never emit dirty, thus we redraw by hand
-  if (value == Maep::GpsMap::SOURCE_NULL)
+  if (!value)
     {
       mapUpdate();
       update();
@@ -1305,23 +1303,21 @@ void Maep::GpsMap::gpsToTrack()
   else
     track_current->addPoint(lastGps);
 }
-QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
+QString Maep::GpsMap::getCenteredTile(int source) const
 {
-  gchar *cache_dir, *base, *file, *uri;
+  gchar *file, *uri;
   int zoom, x, y;
   QString out;
 
-  g_object_get(G_OBJECT(map), "tile-cache-base", &base, NULL);
+  const MaepSource *src;
+  src = maep_source_manager_getById(sources, source);
+  if (!src)
+      return QString();
+
   osm_gps_map_get_tile_xy_at(map, coordinate.latitude(), coordinate.longitude(),
                              &zoom, &x, &y);
-  cache_dir = osm_gps_map_source_get_cache_dir((OsmGpsMapSource_t)source,
-                                               OSM_GPS_MAP_CACHE_FRIENDLY,
-                                               base);
-  g_free(base);
 
-  file = osm_gps_map_source_get_cached_file((OsmGpsMapSource_t)source,
-                                            cache_dir, zoom, x, y);
-  g_free(cache_dir);
+  file = maep_source_manager_get_cached_tile(sources, src, zoom, x, y);
   if (file) {
     // g_message("Get cached file for source %d: %s.", source, file);
     out = QString(file);
@@ -1329,8 +1325,7 @@ QString Maep::GpsMap::getCenteredTile(Maep::GpsMap::Source source) const
     return out;
   }
   
-  uri = osm_gps_map_source_get_tile_uri((OsmGpsMapSource_t)source,
-                                        zoom, x, y);
+  uri = maep_source_get_tile_uri(src, zoom, x, y);
   // g_message("Get uri for source %d: %s.", source, uri);
   out = QString(uri);
   g_free(uri);
