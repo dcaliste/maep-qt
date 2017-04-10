@@ -21,15 +21,12 @@
 #include <glib/gstdio.h>
 #include <stdlib.h>
 
-/* #include <gconf/gconf.h> */
-/* #include <gconf/gconf-client.h> */
-
-#include <dconf.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "config.h"
 #include "misc.h"
+#include "conf.h"
 
 #ifdef MAEMO5
 #include <hildon/hildon-button.h>
@@ -40,280 +37,6 @@
 #include <mce/mode-names.h>
 #endif
 
-#define GCONF_PATH         "/apps/" APP "/%s"
-#define OLD_PATH         "/apps/maep/%s"
-
-static DConfClient* dconfClient = NULL;
-static DConfClient* dconf_client_get_default()
-{
-  if (!dconfClient)
-    dconfClient = dconf_client_new();
-  return dconfClient;
-}
-
-void gconf_unset_key(const char *m_key) {
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-
-  dconf_client_write_sync(client, key, NULL, NULL, NULL, &error);
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-}
-
-void gconf_set_string(const char *m_key, const char *str) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-  GVariant *var;
-  if(!str || !strlen(str))
-    var = g_variant_ref_sink(g_variant_new_string(""));
-  else
-    var = g_variant_ref_sink(g_variant_new_string(str));
-  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
-  /* gconf_client_set_float(client, key, value, NULL); */
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-  g_variant_unref(var);
-}
-
-char *gconf_get_string(const char *m_key) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  /* GConfValue *value = gconf_client_get(client, key, NULL); */
-  GVariant *value = dconf_client_read(client, key);
-  if(!value) {
-    g_free(key);
-    key = g_strdup_printf(OLD_PATH, m_key);
-    value = dconf_client_read(client, key);
-    if (!value) {
-      g_free(key);
-      return NULL;
-    }
-  }  
-
-  /* char *ret = gconf_client_get_string(client, key, NULL); */
-  gsize len;
-  char *ret = g_variant_dup_string(value, &len);
-  g_free(key);
-  g_variant_unref(value);
-  return ret;
-}
-
-void gconf_set_bool(const char *m_key, gboolean value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-  GVariant *var = g_variant_ref_sink(g_variant_new_boolean(value));
-  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
-  /* gconf_client_set_float(client, key, value, NULL); */
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-  g_variant_unref(var);
-}
-
-gboolean gconf_get_bool(const char *m_key, gboolean default_value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  /* GConfValue *value = gconf_client_get(client, key, NULL); */
-  GVariant *value = dconf_client_read(client, key);
-  if(!value) {
-    key = g_strdup_printf(OLD_PATH, m_key);
-    value = dconf_client_read(client, key);
-    if (!value) {
-      g_free(key);
-      return default_value;
-    }
-  }
-
-  if(!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
-    g_message("wrong type returning %d", default_value);
-    g_free(key);
-    g_variant_unref(value);
-    return default_value;
-  }
-  /* gboolean ret = gconf_client_get_bool(client, key, NULL); */
-  gboolean ret = g_variant_get_boolean(value);
-  g_free(key);
-  g_variant_unref(value);
-  return ret;
-}
-
-void gconf_set_int(const char *m_key, gint value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-  GVariant *var = g_variant_ref_sink(g_variant_new_int32(value));
-  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
-  /* gconf_client_set_float(client, key, value, NULL); */
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-  g_variant_unref(var);
-}
-
-gint gconf_get_int(const char *m_key, gint def_value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  /* GConfValue *value = gconf_client_get(client, key, NULL); */
-  GVariant *value = dconf_client_read(client, key);
-  if(!value) {
-    key = g_strdup_printf(OLD_PATH, m_key);
-    value = dconf_client_read(client, key);
-    if (!value) {
-      g_free(key);
-      return def_value;
-    }
-  }
-
-  /* gint ret = gconf_client_get_int(client, key, NULL); */
-  if(!g_variant_is_of_type(value, G_VARIANT_TYPE_INT32)) {
-    g_message("wrong type returning %d", def_value);
-    g_free(key);
-    g_variant_unref(value);
-    return def_value;
-  }
-  gint ret = g_variant_get_int32(value);
-  g_free(key);
-  g_variant_unref(value);
-  return ret;
-}
-
-void gconf_set_float(const char *m_key, gfloat value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-  GVariant *var = g_variant_ref_sink(g_variant_new_double(value));
-  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
-  /* gconf_client_set_float(client, key, value, NULL); */
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-  g_variant_unref(var);
-}
-
-gfloat gconf_get_float(const char *m_key, gfloat def_value) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  /* GConfValue *value = gconf_client_get(client, key, NULL); */
-  GVariant *value = dconf_client_read(client, key);
-  if(!value) {
-    key = g_strdup_printf(OLD_PATH, m_key);
-    value = dconf_client_read(client, key);
-    if (!value) {
-      g_free(key);
-      return def_value;
-    }
-  }
-
-  if(!g_variant_is_of_type(value, G_VARIANT_TYPE_DOUBLE)) {
-    g_message("wrong type returning %g", def_value);
-    g_free(key);
-    g_variant_unref(value);
-    return def_value;
-  }
-  /* gfloat ret = gconf_client_get_float(client, key, NULL); */
-  gfloat ret = g_variant_get_double(value);
-  g_free(key);
-  g_variant_unref(value);
-  return ret;
-}
-
-void gconf_set_color(const char *m_key, gdouble vals[4]) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  GError *error = NULL;
-  GVariant *children[] = {g_variant_new_double(vals[0]),
-                          g_variant_new_double(vals[1]),
-                          g_variant_new_double(vals[2]),
-                          g_variant_new_double(vals[3])};
-  GVariant *var = g_variant_ref_sink(g_variant_new_tuple(children, 4));
-  dconf_client_write_sync(client, key, var, NULL, NULL, &error);
-  /* gconf_client_set_float(client, key, value, NULL); */
-  g_free(key);
-  if (error) {
-    g_warning("%s", error->message);
-    g_error_free(error);
-  }
-  g_variant_unref(var);
-}
-
-void gconf_get_color(const char *m_key, gdouble vals[4], const gdouble def_value[4]) {
-  /* GConfClient *client = gconf_client_get_default(); */
-  DConfClient *client = dconf_client_get_default();
-
-  char *key = g_strdup_printf(GCONF_PATH, m_key);
-  /* GConfValue *value = gconf_client_get(client, key, NULL); */
-  GVariant *value = dconf_client_read(client, key);
-
-  vals[0] = def_value[0];
-  vals[1] = def_value[1];
-  vals[2] = def_value[2];
-  vals[3] = def_value[3];
-
-  g_free(key);
-
-  if (!value) {
-    key = g_strdup_printf(OLD_PATH, m_key);
-    value = dconf_client_read(client, key);
-    g_free(key);
-    if (!value)
-      return;
-  }
-
-  if (!g_variant_is_of_type(value, G_VARIANT_TYPE_TUPLE) ||
-      g_variant_n_children(value) != 4) {
-    g_message("wrong type returning default");
-    g_variant_unref(value);
-    return;
-  }
-  GVariant *child;
-  child = g_variant_get_child_value(value, 0);
-  vals[0] = g_variant_get_double(child);
-  g_variant_unref(child);
-
-  child = g_variant_get_child_value(value, 1);
-  vals[1] = g_variant_get_double(child);
-  g_variant_unref(child);
-
-  child = g_variant_get_child_value(value, 2);
-  vals[2] = g_variant_get_double(child);
-  g_variant_unref(child);
-
-  child = g_variant_get_child_value(value, 3);
-  vals[3] = g_variant_get_double(child);
-  g_variant_unref(child);
-
-  g_variant_unref(value);
-  return;
-}
-
 struct proxy_config *proxy_config_get()
 {
     struct proxy_config *config = g_new0(struct proxy_config, 1);
@@ -322,17 +45,17 @@ struct proxy_config *proxy_config_get()
     // TODO: On Sailfish, get proxy settings from Qt or ConnMan(?)
 
 #define PROXY_KEY  "/system/http_proxy/"
-    if (gconf_get_bool(PROXY_KEY "use_http_proxy", FALSE)) {
+    if (maep_conf_get_bool(PROXY_KEY "use_http_proxy", FALSE)) {
         g_message("thread: using proxy.");
 
         /* basic settings */
-        config->host = gconf_get_string(PROXY_KEY "host");
-        config->port = gconf_get_int(PROXY_KEY "port", 0);
+        config->host = maep_conf_get_string(PROXY_KEY "host");
+        config->port = maep_conf_get_int(PROXY_KEY "port", 0);
 
         /* authentication settings */
-        if(gconf_get_bool(PROXY_KEY "use_authentication", FALSE)) {
-            config->username = gconf_get_string(PROXY_KEY "authentication_user");
-            config->password = gconf_get_string(PROXY_KEY "authentication_password");
+        if(maep_conf_get_bool(PROXY_KEY "use_authentication", FALSE)) {
+            config->username = maep_conf_get_string(PROXY_KEY "authentication_user");
+            config->password = maep_conf_get_string(PROXY_KEY "authentication_password");
         }
     }
 #undef PROXY_KEY

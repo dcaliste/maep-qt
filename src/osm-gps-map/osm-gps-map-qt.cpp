@@ -1,6 +1,6 @@
 /*
  * osm-gps-map-qt.cpp
- * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2017 <dcaliste@free.fr>
  *
  * osm-gps-map-qt.cpp is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -29,21 +29,21 @@
 #include <cmath>
 #include <algorithm>
 
-#define GCONF_KEY_ZOOM       "zoom"
-#define GCONF_KEY_SOURCE     "source"
-#define GCONF_KEY_OVERLAY_SOURCE "overlay-source"
-#define GCONF_KEY_LATITUDE   "latitude"
-#define GCONF_KEY_LONGITUDE  "longitude"
-#define GCONF_KEY_DOUBLEPIX  "double-pixel"
-#define GCONF_KEY_WIKIPEDIA  "wikipedia"
-#define GCONF_KEY_TRACK_CAPTURE "track_capture_enabled"
-#define GCONF_KEY_TRACK_PATH "track_path"
-#define GCONF_KEY_TRACK_WIDTH "track_width"
-#define GCONF_KEY_TRACK_COLOR "track_color"
-#define GCONF_KEY_SCREEN_ROTATE "screen-rotate"
-#define GCONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
-#define GCONF_KEY_COMPASS_ENABLED "compass-enabled"
-#define GCONF_KEY_COMPASS_MODE "compass-mode"
+#define MAEP_CONF_KEY_ZOOM       "zoom"
+#define MAEP_CONF_KEY_SOURCE     "source"
+#define MAEP_CONF_KEY_OVERLAY_SOURCE "overlay-source"
+#define MAEP_CONF_KEY_LATITUDE   "latitude"
+#define MAEP_CONF_KEY_LONGITUDE  "longitude"
+#define MAEP_CONF_KEY_DOUBLEPIX  "double-pixel"
+#define MAEP_CONF_KEY_WIKIPEDIA  "wikipedia"
+#define MAEP_CONF_KEY_TRACK_CAPTURE "track_capture_enabled"
+#define MAEP_CONF_KEY_TRACK_PATH "track_path"
+#define MAEP_CONF_KEY_TRACK_WIDTH "track_width"
+#define MAEP_CONF_KEY_TRACK_COLOR "track_color"
+#define MAEP_CONF_KEY_SCREEN_ROTATE "screen-rotate"
+#define MAEP_CONF_KEY_GPS_REFRESH_RATE "gps-refresh-rate"
+#define MAEP_CONF_KEY_COMPASS_ENABLED "compass-enabled"
+#define MAEP_CONF_KEY_COMPASS_MODE "compass-mode"
 
 QString Maep::GeonamesPlace::coordinateToString(QGeoCoordinate::CoordinateFormat format) const
 {
@@ -225,26 +225,26 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
   OsmColor_t trackColor;
   const MaepSource *source;
 
-  gint sourceId = gconf_get_int(GCONF_KEY_SOURCE, MAEP_SOURCE_OPENSTREETMAP);
-  gint overlaySourceId = gconf_get_int(GCONF_KEY_OVERLAY_SOURCE, MAEP_SOURCE_NULL);
-  gint zoom = gconf_get_int(GCONF_KEY_ZOOM, 3);
-  gfloat lat = gconf_get_float(GCONF_KEY_LATITUDE, 50.0);
-  gfloat lon = gconf_get_float(GCONF_KEY_LONGITUDE, 21.0);
-  gboolean dpix = gconf_get_bool(GCONF_KEY_DOUBLEPIX, FALSE);
-  bool wikipedia = gconf_get_bool(GCONF_KEY_WIKIPEDIA, FALSE);
-  bool track = gconf_get_bool(GCONF_KEY_TRACK_CAPTURE, FALSE);
-  gint width = gconf_get_int(GCONF_KEY_TRACK_WIDTH, -1);
-  bool orientation = gconf_get_bool(GCONF_KEY_SCREEN_ROTATE, TRUE);
-  int gpsRefresh = gconf_get_int(GCONF_KEY_GPS_REFRESH_RATE, 1000);
-  bool compassEnabled = gconf_get_bool(GCONF_KEY_COMPASS_ENABLED, FALSE);
-  gint compassMode = gconf_get_int(GCONF_KEY_COMPASS_MODE,
+  gint sourceId = maep_conf_get_int(MAEP_CONF_KEY_SOURCE, MAEP_SOURCE_OPENSTREETMAP);
+  gint overlaySourceId = maep_conf_get_int(MAEP_CONF_KEY_OVERLAY_SOURCE, MAEP_SOURCE_NULL);
+  gint zoom = maep_conf_get_int(MAEP_CONF_KEY_ZOOM, 3);
+  gfloat lat = maep_conf_get_float(MAEP_CONF_KEY_LATITUDE, 50.0);
+  gfloat lon = maep_conf_get_float(MAEP_CONF_KEY_LONGITUDE, 21.0);
+  gboolean dpix = maep_conf_get_bool(MAEP_CONF_KEY_DOUBLEPIX, FALSE);
+  bool wikipedia = maep_conf_get_bool(MAEP_CONF_KEY_WIKIPEDIA, FALSE);
+  bool track = maep_conf_get_bool(MAEP_CONF_KEY_TRACK_CAPTURE, FALSE);
+  gint width = maep_conf_get_int(MAEP_CONF_KEY_TRACK_WIDTH, -1);
+  bool orientation = maep_conf_get_bool(MAEP_CONF_KEY_SCREEN_ROTATE, TRUE);
+  int gpsRefresh = maep_conf_get_int(MAEP_CONF_KEY_GPS_REFRESH_RATE, 1000);
+  bool compassEnabled = maep_conf_get_bool(MAEP_CONF_KEY_COMPASS_ENABLED, FALSE);
+  gint compassMode = maep_conf_get_int(MAEP_CONF_KEY_COMPASS_MODE,
                                    // backward compatibility with old boolean setting
                                    compassEnabled ? COMPASS_MODE_NORTH : COMPASS_MODE_OFF);
 
   compassMode = std::min(static_cast<gint>(COMPASS_N_MODES) - 1,
                          std::max(static_cast<gint>(COMPASS_MODE_OFF), compassMode));
 
-  gconf_get_color(GCONF_KEY_TRACK_COLOR, color, defaultColor);
+  maep_conf_get_color(MAEP_CONF_KEY_TRACK_COLOR, color, defaultColor);
   path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
   cache_dir = g_strdup_printf("%s%s", MAEP_SOURCE_MANAGER_CACHE_FRIENDLY, path);
 
@@ -378,7 +378,7 @@ Maep::GpsMap::~GpsMap()
   overlaySourceId = MAEP_SOURCE_NULL;
   if (overlay)
     {
-        /* Retrieve it to store it in gconf later. */
+        /* Retrieve it to store it in dconf later. */
         g_object_get(overlay, "map-source", &source, NULL);
         g_object_unref(overlay);
         overlaySourceId = source ? maep_source_get_id(source) : int(MAEP_SOURCE_NULL);
@@ -426,27 +426,27 @@ Maep::GpsMap::~GpsMap()
 
   g_object_unref(map);
 
-  /* ... and store it in gconf */
+  /* ... and store it in dconf */
   g_message("Storing configuration.");
-  gconf_set_int(GCONF_KEY_ZOOM, zoom);
-  gconf_set_int(GCONF_KEY_SOURCE, sourceId);
-  gconf_set_int(GCONF_KEY_OVERLAY_SOURCE, overlaySourceId);
-  gconf_set_float(GCONF_KEY_LATITUDE, lat);
-  gconf_set_float(GCONF_KEY_LONGITUDE, lon);
-  gconf_set_bool(GCONF_KEY_DOUBLEPIX, dpix);
+  maep_conf_set_int(MAEP_CONF_KEY_ZOOM, zoom);
+  maep_conf_set_int(MAEP_CONF_KEY_SOURCE, sourceId);
+  maep_conf_set_int(MAEP_CONF_KEY_OVERLAY_SOURCE, overlaySourceId);
+  maep_conf_set_float(MAEP_CONF_KEY_LATITUDE, lat);
+  maep_conf_set_float(MAEP_CONF_KEY_LONGITUDE, lon);
+  maep_conf_set_bool(MAEP_CONF_KEY_DOUBLEPIX, dpix);
 
-  gconf_set_bool(GCONF_KEY_WIKIPEDIA, wiki_enabled);
+  maep_conf_set_bool(MAEP_CONF_KEY_WIKIPEDIA, wiki_enabled);
 
-  gconf_set_bool(GCONF_KEY_TRACK_CAPTURE, track_capture);
-  gconf_set_int(GCONF_KEY_TRACK_WIDTH, width);
-  gconf_set_color(GCONF_KEY_TRACK_COLOR, track_color);
+  maep_conf_set_bool(MAEP_CONF_KEY_TRACK_CAPTURE, track_capture);
+  maep_conf_set_int(MAEP_CONF_KEY_TRACK_WIDTH, width);
+  maep_conf_set_color(MAEP_CONF_KEY_TRACK_COLOR, track_color);
 
-  gconf_set_bool(GCONF_KEY_SCREEN_ROTATE, screenRotation);
+  maep_conf_set_bool(MAEP_CONF_KEY_SCREEN_ROTATE, screenRotation);
 
-  gconf_set_int(GCONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
+  maep_conf_set_int(MAEP_CONF_KEY_GPS_REFRESH_RATE, gpsRefreshRate_);
 
-  gconf_unset_key(GCONF_KEY_COMPASS_ENABLED);
-  gconf_set_int(GCONF_KEY_COMPASS_MODE, compassMode_);
+  maep_conf_unset_key(MAEP_CONF_KEY_COMPASS_ENABLED);
+  maep_conf_set_int(MAEP_CONF_KEY_COMPASS_MODE, compassMode_);
   g_message("Storing configuration done.");
 }
 static void onLatLon(GObject *map, GParamSpec *pspec, OsmGpsMap *overlay)
@@ -1266,7 +1266,7 @@ void Maep::GpsMap::setTrack(Maep::Track *track)
       track->setParent(this);
 
       if (!track->getPath().isEmpty())
-        gconf_set_string(GCONF_KEY_TRACK_PATH, track->getPath().toLocal8Bit().data());
+        maep_conf_set_string(MAEP_CONF_KEY_TRACK_PATH, track->getPath().toLocal8Bit().data());
     }
   else if (track_capture && lastGps.isValid())
     {

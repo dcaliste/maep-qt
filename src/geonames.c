@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2009 Till Harbaum <till@harbaum.org>.
  *
- * Contributor: Damien Caliste 2013-2014 <dcaliste@free.fr>
+ * Contributor: Damien Caliste 2013-2017 <dcaliste@free.fr>
  *
  * This file is part of Maep.
  *
@@ -26,8 +26,8 @@
 
 #include "geonames.h"
 #include "net_io.h"
-#include "misc.h"
 #include "config.h"
+#include "misc.h"
 
 #ifndef LIBXML_TREE_ENABLED
 #error "Tree not enabled in libxml"
@@ -354,7 +354,7 @@ void maep_geonames_place_request(const gchar *request,
                                  MaepGeonamesRequestCallback cb, gpointer obj) {
   request_cb_t *context;
 
-  /* gconf_set_string("search_text", phrase); */
+  /* maep_conf_set_string("search_text", phrase); */
 
   gchar *locale, lang[3] = { 0,0,0 };
   locale = setlocale (LC_MESSAGES, NULL);
@@ -384,7 +384,7 @@ void maep_nominatim_address_request(const gchar *request,
                                     MaepGeonamesRequestCallback cb, gpointer obj) {
   request_cb_t *context;
 
-  /* gconf_set_string("search_text", phrase); */
+  /* maep_conf_set_string("search_text", phrase); */
 
   gchar *locale, lang[3] = { 0,0,0 };
   locale = setlocale (LC_MESSAGES, NULL);
