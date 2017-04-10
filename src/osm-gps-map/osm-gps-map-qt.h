@@ -1,6 +1,6 @@
 /*
  * osm-gps-map-qt.h
- * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2017 <dcaliste@free.fr>
  *
  * osm-gps-map-qt.h is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 #include <QColor>
 #include <QCompass>
 #include <cairo.h>
-#include "../misc.h"
+#include "../conf.h"
 #include "../search.h"
 #include "../track.h"
 #include "source.h"
@@ -49,7 +49,7 @@ public:
     gchar *val;
     QString ret;
 
-    val = gconf_get_string(key.toLocal8Bit().data());
+    val = maep_conf_get_string(key.toLocal8Bit().data());
     ret = QString(val);
     if (val)
       g_free(val);
@@ -59,17 +59,17 @@ public:
   }
   Q_INVOKABLE inline int getInt(const QString &key, const int fallback) const
   {
-    return gconf_get_int(key.toLocal8Bit().data(), fallback);
+    return maep_conf_get_int(key.toLocal8Bit().data(), fallback);
   }
 
 public slots:
   inline void setString(const QString &key, const QString &value)
   {
-    gconf_set_string(key.toLocal8Bit().data(), value.toLocal8Bit().data());
+    maep_conf_set_string(key.toLocal8Bit().data(), value.toLocal8Bit().data());
   }
   inline void setInt(const QString &key, const int value)
   {
-    gconf_set_int(key.toLocal8Bit().data(), value);
+    maep_conf_set_int(key.toLocal8Bit().data(), value);
   }
 };
 

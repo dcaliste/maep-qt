@@ -26,18 +26,6 @@ G_BEGIN_DECLS
 
 char *find_file(char *name);
 
-void gconf_unset_key(const char *key);
-void gconf_set_string(const char *key, const char *str);
-char *gconf_get_string(const char *key);
-void gconf_set_bool(const char *key, gboolean value);
-gboolean gconf_get_bool(const char *key, gboolean default_value);
-void gconf_set_int(const char *key, gint value);
-gint gconf_get_int(const char *key, gint default_value);
-void gconf_set_float(const char *key, gfloat value);
-gfloat gconf_get_float(const char *key, gfloat default_value);
-void gconf_set_color(const char *m_key, gdouble vals[4]);
-void gconf_get_color(const char *m_key, gdouble vals[4], const gdouble def_value[4]);
-
 char *url_encode(const char *str);
 
 struct proxy_config {
