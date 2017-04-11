@@ -541,7 +541,7 @@ void Maep::GpsMap::mapUpdate()
   cairo_translate(cr, drag_map_dx, drag_map_dy);
   // g_message("update at drag %dx%d %g", drag_mouse_dx, drag_mouse_dy, 1.f / factor);
   osm_gps_map_blit(map, cr, CAIRO_OPERATOR_SOURCE);
-  if (overlay && overlaySource() != Maep::GpsMap::SOURCE_NULL)
+  if (overlay && overlaySource())
     osm_gps_map_blit(overlay, cr, CAIRO_OPERATOR_OVER);
   cairo_restore(cr);
 
