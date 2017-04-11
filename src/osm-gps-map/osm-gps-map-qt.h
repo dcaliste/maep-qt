@@ -291,10 +291,10 @@ class GpsMap : public QQuickPaintedItem
 {
   Q_OBJECT
 
-  Q_ENUMS(Source)
   Q_ENUMS(CompassMode)
 
   Q_PROPERTY(int source READ source WRITE setSource NOTIFY sourceChanged)
+  Q_PROPERTY(QString sourceLabel READ sourceLabel NOTIFY sourceChanged)
   Q_PROPERTY(int overlaySource READ overlaySource WRITE setOverlaySource NOTIFY overlaySourceChanged)
   Q_PROPERTY(bool double_pixel READ doublePixel WRITE setDoublePixel NOTIFY doublePixelChanged)
 
@@ -325,32 +325,6 @@ class GpsMap : public QQuickPaintedItem
 
  public:
 
-  enum Source {
-    SOURCE_NULL,
-    SOURCE_OPENSTREETMAP,
-    SOURCE_OPENSTREETMAP_RENDERER,
-    SOURCE_OPENAERIALMAP,
-    SOURCE_MAPS_FOR_FREE,
-    SOURCE_OPENCYCLEMAP,
-    SOURCE_OSM_PUBLIC_TRANSPORT,
-    SOURCE_GOOGLE_STREET,
-    SOURCE_GOOGLE_SATELLITE,
-    SOURCE_GOOGLE_HYBRID,
-    SOURCE_VIRTUAL_EARTH_STREET,
-    SOURCE_VIRTUAL_EARTH_SATELLITE,
-    SOURCE_VIRTUAL_EARTH_HYBRID,
-    SOURCE_YAHOO_STREET,
-    SOURCE_YAHOO_SATELLITE,
-    SOURCE_YAHOO_HYBRID,
-    SOURCE_OSMC_TRAILS,
-    SOURCE_OPENSEAMAP,
-    SOURCE_GOOGLE_TRAFFIC,
-    SOURCE_MML_PERUSKARTTA,
-    SOURCE_MML_ORTOKUVA,
-    SOURCE_MML_TAUSTAKARTTA,
-
-    SOURCE_LAST};
-
   enum CompassMode {
     MAEP_COMPASS_MODES
   };
@@ -366,7 +340,7 @@ class GpsMap : public QQuickPaintedItem
     else
       return QGeoCoordinate();
   }
-  inline bool wikiStatus() {
+  inline bool wikiStatus() const {
     return wiki_enabled;
   }
   inline Maep::GeonamesEntry* getWikiEntry() const {
@@ -378,7 +352,7 @@ class GpsMap : public QQuickPaintedItem
                                                  GpsMap::atSearchResults);
   }
   void paintTo(QPainter *painter, int width, int height);
-  inline bool trackCapture() {
+  inline bool trackCapture() const {
     return track_capture;
   }
   inline Maep::Track* getTrack() {
@@ -413,12 +387,12 @@ class GpsMap : public QQuickPaintedItem
     QTextStream in(&file);
     return in.readAll();
   }
-  inline bool autoCenter() {
+  inline bool autoCenter() const {
     gboolean set;
     g_object_get(map, "auto-center", &set, NULL);
     return set;
   }
-  inline int source() {
+  inline int source() const {
     int id;
     MaepSource *source;
     g_object_get(map, "map-source", &source, NULL);
@@ -429,7 +403,7 @@ class GpsMap : public QQuickPaintedItem
     g_boxed_free(MAEP_TYPE_SOURCE, source);
     return id;
   }
-  inline int overlaySource() {
+  inline int overlaySource() const {
     int id;
     MaepSource *source;
 
@@ -444,34 +418,26 @@ class GpsMap : public QQuickPaintedItem
     g_boxed_free(MAEP_TYPE_SOURCE, source);
     return id;
   }
-  Q_INVOKABLE inline QString sourceLabel(int id) const {
-      const MaepSource *source = maep_source_manager_getById(sources, id);
-      return source ? maep_source_get_friendly_name(source) : QString();
+  inline QString sourceLabel() const {
+    MaepSource *source;
+    g_object_get(map, "map-source", &source, NULL);
+    if (!source)
+      return QString();
+    
+    QString lbl(maep_source_get_friendly_name(source));
+    g_boxed_free(MAEP_TYPE_SOURCE, source);
+    return lbl;
   }
-  Q_INVOKABLE inline QString sourceCopyrightNotice(int id) const {
-      const MaepSource *source = maep_source_manager_getById(sources, id);
-      const gchar *notice, *url;
-      if (source)
-          maep_source_get_repo_copyright(source, &notice, &url);
-      return source ? notice : QString();
-  }
-  Q_INVOKABLE inline QString sourceCopyrightUrl(int id) const {
-      const MaepSource *source = maep_source_manager_getById(sources, id);
-      const gchar *notice, *url;
-      if (source)
-          maep_source_get_repo_copyright(source, &notice, &url);
-      return source ? url : QString();
-  }
-  inline bool doublePixel() {
+  inline bool doublePixel() const {
     gboolean status;
     g_object_get(map, "double-pixel", &status, NULL);
     return status;
   }
   Q_INVOKABLE QString getCenteredTile(int source) const;
-  inline unsigned int gpsRefreshRate() {
+  inline unsigned int gpsRefreshRate() const {
     return gpsRefreshRate_;
   }
-  inline CompassMode compassMode() {
+  inline CompassMode compassMode() const {
     return compassMode_;
   }
 

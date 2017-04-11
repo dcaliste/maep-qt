@@ -23,33 +23,33 @@ Page {
     property GpsMap map
 
     allowedOrientations: page.allowedOrientations
-    
-    ListModel {
+
+    SourceModel {
         id: sourceModel
-        ListElement { source: GpsMap.SOURCE_OPENSTREETMAP
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_OPENCYCLEMAP
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_OSM_PUBLIC_TRANSPORT
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_MML_PERUSKARTTA
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_MML_ORTOKUVA
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_MML_TAUSTAKARTTA
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_GOOGLE_STREET
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_STREET
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_SATELLITE
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_VIRTUAL_EARTH_HYBRID
-                      section: "base tiles" }
-        ListElement { source: GpsMap.SOURCE_OPENSEAMAP
-                      section: "overlay tiles" }
-        //ListElement { source: GpsMap.SOURCE_GOOGLE_TRAFFIC
-            //              section: "overlay tiles" }
+        Component.onCompleted: {
+            addPreset(SourceModel.SOURCE_OPENSTREETMAP,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OPENCYCLEMAP,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OSM_PUBLIC_TRANSPORT,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_PERUSKARTTA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_ORTOKUVA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_TAUSTAKARTTA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_GOOGLE_STREET,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_STREET,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_SATELLITE,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_HYBRID,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OPENSEAMAP,
+                      SourceModel.SECTION_OVERLAY)
+        }
     }
 
     SilicaListView {
@@ -62,7 +62,7 @@ Page {
                 title: "Select a tile source"
             }
             Label {
-                width: parent.width - 2 * Theme.paddingLarge
+                width: parent.width - 2 * Theme.horizontalPageMargin - 2 * Theme.paddingLarge
                 text: "Long tap to display options"
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.secondaryColor
@@ -75,30 +75,37 @@ Page {
             property: 'section'
 
             delegate: SectionHeader {
-                text: section
+                text: {
+                    if (section == SourceModel.SECTION_BASE) {
+                        return "base tiles"
+                    } else if (section == SourceModel.SECTION_OVERLAY) {
+                        return "overlay tiles"
+                    } else {
+                        return ""
+                    }
+                }
                 height: Theme.itemSizeExtraSmall
             }
         }
 
         delegate: ListItem {
-            id: listItem
             menu: contextMenu
             contentHeight: Theme.itemSizeMedium
             Label {
-                text: map.sourceLabel(source)
+                text: label
                 width: parent.width - img.width
                 anchors.left: img.right
                 anchors.top: parent.top
                 anchors.topMargin: Theme.paddingMedium
                 horizontalAlignment: Text.AlignHCenter
-                color: listItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+                color: sourceId == map.source ? Theme.highlightColor : Theme.primaryColor
             }
             Label {
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
-                text: map.sourceCopyrightNotice(source)
+                text: copyrightNotice
                 anchors.right: parent.right
-                anchors.rightMargin: Theme.paddingSmall
+                anchors.rightMargin: Theme.horizontalPageMargin + Theme.paddingSmall
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Theme.paddingMedium
             }
@@ -107,27 +114,27 @@ Page {
                 width: Theme.itemSizeMedium * 1.5
                 height: Theme.itemSizeMedium - Theme.paddingSmall
                 anchors.left: parent.left
-                anchors.leftMargin: Theme.paddingSmall
+                anchors.leftMargin: Theme.horizontalPageMargin + Theme.paddingSmall
                 anchors.verticalCenter: parent.verticalCenter
                 Image {
-                    visible: model.section == "base tiles"
+                    visible: section == SourceModel.SECTION_BASE
                     anchors.fill: parent
                     clip: true; fillMode: Image.Pad
-                    source: visible ? map.getCenteredTile(model.source) : ""
+                    source: visible ? map.getCenteredTile(sourceId) : ""
                 }
                 Switch {
-                    visible: model.section == "overlay tiles"
+                    visible: section == SourceModel.SECTION_OVERLAY
                     anchors.fill: parent
                     //icon.clip: true; icon.fillMode: Image.Pad
                     //icon.source: map.getCenteredTile(model.source)
-                    checked: map.overlaySource == model.source
+                    checked: map.overlaySource == sourceId
                 }
             }
             onClicked: {
-                if (model.section == "base tiles") {
-                    map.source = model.source
-                } else {
-                    map.overlaySource = (map.overlaySource == model.source) ? GpsMap.SOURCE_NULL : model.source
+                if (section == SourceModel.SECTION_BASE) {
+                    map.source = sourceId
+                } else if (section == SourceModel.SECTION_OVERLAY) {
+                    map.overlaySource = (map.overlaySource == sourceId) ? SourceModel.SOURCE_NULL : sourceId
                 }
                 pageStack.pop()
             }
@@ -137,7 +144,7 @@ Page {
                 ContextMenu {
                     MenuItem {
                         text: "Open map copyright in browser"
-                        onClicked: Qt.openUrlExternally(map.sourceCopyrightUrl(source))
+                        onClicked: Qt.openUrlExternally(copyrightUrl)
                     }
                 }
             }

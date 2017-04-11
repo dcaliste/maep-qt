@@ -110,7 +110,7 @@ ApplicationWindow
                 Button {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - zoomout.width - zoomin.width - autocenter.width
-                    text: map.sourceLabel(map.source)
+                    text: map.sourceLabel
                     /*font.pixelSize: Theme.fontSizeSmall*/
                     onClicked: { pageStack.push("Sources.qml", {"map": map}) }
                 }
