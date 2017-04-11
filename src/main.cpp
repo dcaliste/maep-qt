@@ -1,3 +1,4 @@
+#include "osm-gps-map/sourcemodel.h"
 #include "osm-gps-map/osm-gps-map-qt.h"
 #include "../qmlLibs/qquickfolderlistmodel.h"
 
@@ -105,6 +106,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   qmlRegisterType<Maep::Track>("harbour.maep.qt", 1, 0, "Track");
   qmlRegisterType<Maep::GpsMap>("harbour.maep.qt", 1, 0, "GpsMap");
   qmlRegisterType<Maep::GpsMapCover>("harbour.maep.qt", 1, 0, "GpsMapCover");
+  qmlRegisterType<Maep::SourceModel>("harbour.maep.qt", 1, 0, "SourceModel");
 
   QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
