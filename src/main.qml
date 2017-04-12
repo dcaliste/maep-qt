@@ -29,6 +29,34 @@ ApplicationWindow
     cover: coverPage
     _defaultPageOrientations: Orientation.All
 
+    SourceModel {
+        id: sources
+        Component.onCompleted: {
+            addPreset(SourceModel.SOURCE_OPENSTREETMAP,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OPENCYCLEMAP,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OSM_PUBLIC_TRANSPORT,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_PERUSKARTTA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_ORTOKUVA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_MML_TAUSTAKARTTA,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_GOOGLE_STREET,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_STREET,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_SATELLITE,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_HYBRID,
+                      SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_OPENSEAMAP,
+                      SourceModel.SECTION_OVERLAY)
+        }
+    }
+
     Page {
         id: page
         allowedOrientations: map.screen_rotation ? Orientation.All : pageStack.currentOrientation
@@ -112,7 +140,7 @@ ApplicationWindow
                     width: parent.width - zoomout.width - zoomin.width - autocenter.width
                     text: map.sourceLabel
                     /*font.pixelSize: Theme.fontSizeSmall*/
-                    onClicked: { pageStack.push("Sources.qml", {"map": map}) }
+                    onClicked: { pageStack.push("Sources.qml", {"map": map, "sources": sources}) }
                 }
                 IconButton {
                     id: autocenter

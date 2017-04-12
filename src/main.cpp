@@ -107,6 +107,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   qmlRegisterType<Maep::GpsMap>("harbour.maep.qt", 1, 0, "GpsMap");
   qmlRegisterType<Maep::GpsMapCover>("harbour.maep.qt", 1, 0, "GpsMapCover");
   qmlRegisterType<Maep::SourceModel>("harbour.maep.qt", 1, 0, "SourceModel");
+  qmlRegisterType<Maep::SourceModelFilter>("harbour.maep.qt", 1, 0, "SourceModelFilter");
 
   QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
   isDesktop = app->arguments().contains("-desktop");
