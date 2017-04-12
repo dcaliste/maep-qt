@@ -21,7 +21,7 @@
 #include "sourcemodel.h"
 
 Maep::SourceModel::SourceModel(QObject *parent)
-  : QAbstractListModel(parent), manager(maep_source_manager_get_instance())
+: QAbstractListModel(parent), manager(maep_source_manager_get_instance())
 {
     roles.insert(Id, "sourceId");
     roles.insert(Label, "label");
@@ -56,8 +56,6 @@ void Maep::SourceModel::addPreset(Maep::SourceModel::SourceId id,
     beginInsertRows(QModelIndex(), i, i);
     sources.insert(i, source);
     endInsertRows();
-  
-    emit countChanged();
 }
 
 QVariant Maep::SourceModel::data(const QModelIndex& index, int role) const
@@ -99,6 +97,27 @@ QVariant Maep::SourceModel::data(const QModelIndex& index, int role) const
     return result;
 }
 
+bool Maep::SourceModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role != Maep::SourceModel::Enabled)
+        return false;
+    if (!index.isValid())
+        return false;
+
+    int row = index.row();
+    if (row < 0 || row >= sources.count())
+        return false;
+
+    bool enabled(value.toBool());
+    if (enabled == sources.at(row).enabled)
+        return false;
+
+    sources[row].enabled = enabled;
+    emit dataChanged(index, index, QVector<int>() << int(Maep::SourceModel::Enabled));
+
+    return true;
+}
+
 int Maep::SourceModel::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid())
@@ -106,7 +125,22 @@ int Maep::SourceModel::rowCount(const QModelIndex& parent) const
     return sources.count();
 }
 
-int Maep::SourceModel::count() const
+Maep::SourceModelFilter::SourceModelFilter(QObject *parent): QSortFilterProxyModel(parent)
 {
-    return sources.count();
+    setFilterRole(Maep::SourceModel::Enabled);
+}
+
+Maep::SourceModelFilter::~SourceModelFilter()
+{
+}
+
+bool Maep::SourceModelFilter::filterAcceptsRow(int row, const QModelIndex &source_parent) const
+{
+    Q_UNUSED(source_parent);
+    SourceModel *model = static_cast<Maep::SourceModel*>(QAbstractProxyModel::sourceModel());
+
+    if (!model || row < 0 || row >= model->sources.count())
+        return false;
+
+    return model->sources.at(row).enabled;
 }

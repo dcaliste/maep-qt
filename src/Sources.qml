@@ -21,35 +21,55 @@ import harbour.maep.qt 1.0
 
 Page {
     property GpsMap map
+    property bool manageMode
+    property alias sources: filteredSources.sourceModel
 
     allowedOrientations: page.allowedOrientations
 
-    SourceModel {
-        id: sourceModel
-        Component.onCompleted: {
-            addPreset(SourceModel.SOURCE_OPENSTREETMAP,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_OPENCYCLEMAP,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_OSM_PUBLIC_TRANSPORT,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_MML_PERUSKARTTA,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_MML_ORTOKUVA,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_MML_TAUSTAKARTTA,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_GOOGLE_STREET,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_STREET,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_SATELLITE,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_HYBRID,
-                      SourceModel.SECTION_BASE)
-            addPreset(SourceModel.SOURCE_OPENSEAMAP,
-                      SourceModel.SECTION_OVERLAY)
+    states: [State {
+        name: "selection"
+        when: !manageMode
+    }, State {
+        name: "management"
+        when: manageMode
+    }]
+
+    transitions: [Transition {
+        from: "selection"
+        to: "management"
+        SequentialAnimation {
+            FadeAnimation {
+                target: sourcelist; property: "opacity"; to: 0.; duration: 250
+                easing.type: Easing.InOutQuad
+            }
+            ScriptAction {
+                script: sourcelist.model = sources
+            }
+            FadeAnimation {
+                target: sourcelist; property: "opacity"; to: 1.; duration: 250
+                easing.type: Easing.InOutQuad
+            }
         }
+    }, Transition {
+        from: "management"
+        to: "selection"
+        SequentialAnimation {
+            FadeAnimation {
+                target: sourcelist; property: "opacity"; to: 0.; duration: 250
+                easing.type: Easing.InOutQuad
+            }
+            ScriptAction {
+                script: sourcelist.model = filteredSources
+            }
+            FadeAnimation {
+                target: sourcelist; property: "opacity"; to: 1.; duration: 250
+                easing.type: Easing.InOutQuad
+            }
+        }
+    }]
+
+    SourceModelFilter {
+        id: filteredSources
     }
 
     SilicaListView {
@@ -59,7 +79,7 @@ Page {
         header: Column {
             width: parent.width
             PageHeader {
-                title: "Select a tile source"
+                title: manageMode ? "Manage tile sources" : "Select a tile source"
             }
             Label {
                 width: parent.width - 2 * Theme.horizontalPageMargin - 2 * Theme.paddingLarge
@@ -69,7 +89,14 @@ Page {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
         }
-        model: sourceModel
+        model: filteredSources
+
+        PullDownMenu {
+            MenuItem {
+                text: manageMode ? "Switch to selection" : "Switch to management"
+                onClicked: manageMode = !manageMode
+            }
+        }
 
         section {
             property: 'section'
@@ -91,6 +118,7 @@ Page {
         delegate: ListItem {
             menu: contextMenu
             contentHeight: Theme.itemSizeMedium
+            opacity: model.enabled ? 1. : 0.4
             Label {
                 text: label
                 width: parent.width - img.width
@@ -131,12 +159,19 @@ Page {
                 }
             }
             onClicked: {
-                if (section == SourceModel.SECTION_BASE) {
-                    map.source = sourceId
-                } else if (section == SourceModel.SECTION_OVERLAY) {
-                    map.overlaySource = (map.overlaySource == sourceId) ? SourceModel.SOURCE_NULL : sourceId
+                if (manageMode) {
+                    model.enabled = !model.enabled
+                    if (!enabled && map.overlaySource == sourceId)
+                        map.overlaySource = SourceModel.SOURCE_NULL
+                } else {
+                    if (section == SourceModel.SECTION_BASE) {
+                        map.source = sourceId
+                    } else if (section == SourceModel.SECTION_OVERLAY) {
+                        map.overlaySource = (map.overlaySource == sourceId)
+                                          ? SourceModel.SOURCE_NULL : sourceId
+                    }
+                    pageStack.pop()
                 }
-                pageStack.pop()
             }
 
             Component {

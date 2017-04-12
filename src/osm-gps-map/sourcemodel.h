@@ -24,13 +24,27 @@
 #include "source.h"
 
 #include <QtCore/QAbstractListModel>
+#include <QSortFilterProxyModel>
 
 namespace Maep {
+
+class SourceModel;
+
+class SourceModelFilter : public QSortFilterProxyModel
+{
+    Q_OBJECT
+
+ public:
+    SourceModelFilter(QObject *parent = 0);
+    ~SourceModelFilter();
+
+ private:
+     bool filterAcceptsRow(int row, const QModelIndex &source_parent) const;
+};
 
 class SourceModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(int count READ count NOTIFY countChanged)
 
     Q_ENUMS(SourceId)
     Q_ENUMS(SectionId)
@@ -80,18 +94,16 @@ public:
     explicit SourceModel(QObject *parent = 0);
     virtual ~SourceModel();
 
-    virtual QVariant data(const QModelIndex &index, int role) const;
-    virtual int rowCount(const QModelIndex &parent) const;
-    virtual QHash<int, QByteArray> roleNames() const;
-
-    int count() const;
+    QVariant data(const QModelIndex &index, int role) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Enabled);
+    int rowCount(const QModelIndex &parent) const;
+    QHash<int, QByteArray> roleNames() const;
 
     Q_INVOKABLE void addPreset(SourceId id, SectionId section);
 
-Q_SIGNALS:
-    void countChanged();
-
 private:
+    friend SourceModelFilter;
+
     QHash<int, QByteArray> roles;
 
     struct Source {
