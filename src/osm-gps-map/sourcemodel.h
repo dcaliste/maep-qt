@@ -129,6 +129,7 @@ private:
 
     MaepSourceManager *manager;
     QList<Source> sources;
+    QList<guint> confList;
 };
 
 }

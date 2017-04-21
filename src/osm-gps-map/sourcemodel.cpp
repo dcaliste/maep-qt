@@ -20,19 +20,42 @@
 
 #include "sourcemodel.h"
 
+#include "../conf.h"
+#define MAEP_CONF_KEY_LIST       "source-list"
+
 Maep::SourceModel::SourceModel(QObject *parent)
 : QAbstractListModel(parent), manager(maep_source_manager_get_instance())
 {
+    guint *values;
+    gsize i, ln;
+    
     roles.insert(Id, "sourceId");
     roles.insert(Label, "label");
     roles.insert(CopyrightNotice, "copyrightNotice");
     roles.insert(CopyrightUrl, "copyrightUrl");
     roles.insert(Section, "section");
     roles.insert(Enabled, "enabled");
+
+    values = maep_conf_get_uint_list(MAEP_CONF_KEY_LIST, &ln);
+    if (values)
+        for (i = 0; i < ln; i++) {
+            g_message("Source list contains %d.", values[i]);
+            confList.append(values[i]);
+        }
+    g_free(values);
 }
 
 Maep::SourceModel::~SourceModel()
 {
+    guint *ids;
+    int i, j;
+
+    ids = static_cast<guint*>(g_malloc(sizeof(guint) * sources.length()));
+    for (i = 0, j = 0; i < sources.length(); i++)
+        if (sources.at(i).enabled)
+            ids[j++] = maep_source_get_id(sources.at(i).source);
+    maep_conf_set_uint_list(MAEP_CONF_KEY_LIST, ids, j);
+    g_free(ids);
 }
 
 QHash<int, QByteArray> Maep::SourceModel::roleNames() const
@@ -43,7 +66,9 @@ QHash<int, QByteArray> Maep::SourceModel::roleNames() const
 void Maep::SourceModel::addPreset(Maep::SourceModel::SourceId id,
                                   Maep::SourceModel::SectionId section)
 {
-    Maep::SourceModel::Source source(maep_source_manager_getById(manager, guint(id)), true, section);
+    Maep::SourceModel::Source source(maep_source_manager_getById(manager, guint(id)),
+                                     (confList.isEmpty() ||
+                                      confList.contains(guint(id))), section);
     if (sources.contains(source))
         return;
 
