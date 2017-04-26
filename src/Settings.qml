@@ -32,8 +32,9 @@ SilicaFlickable {
     Column {
         id: widgets
         spacing: Theme.paddingMedium
-        width: parent.width
+        width: parent.width - 2 * Theme.horizontalPageMargin
         anchors.top: title.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
 
         TextSwitch {
 	    text: "Draw map double pixel"

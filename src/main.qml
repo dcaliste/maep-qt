@@ -83,8 +83,8 @@ ApplicationWindow
             }
             OpacityRampEffect {
                 enabled: map_controls.visible
-                offset: 1. - Theme.itemSizeMedium / map.height
-                slope: map.height / Theme.itemSizeMedium
+                offset: 1. - map_controls.height / map.height
+                slope: map.height / map_controls.height
                 direction: 2
                 sourceItem: map
             }
@@ -92,21 +92,23 @@ ApplicationWindow
                 id: map_controls
                 anchors.bottom: parent.bottom
                 width: parent.width
-                height: Theme.itemSizeMedium
+                height: Theme.itemSizeSmall
                 z: map.z + 1
-                anchors.bottomMargin: -Theme.paddingMedium
                 visible: !Qt.inputMethod.visible
                 IconButton {
                     id: zoomout
+                    anchors.verticalCenter: parent.verticalCenter
                     icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-wide.png"
                     onClicked: { map.zoomOut() }
                 }
                 IconButton {
                     id: zoomin
+                    anchors.verticalCenter: parent.verticalCenter
                     icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-tele.png"
                     onClicked: { map.zoomIn() }
                 }
                 Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - zoomout.width - zoomin.width - autocenter.width
                     text: map.sourceLabel(map.source)
                     /*font.pixelSize: Theme.fontSizeSmall*/
@@ -115,8 +117,7 @@ ApplicationWindow
                 IconButton {
                     id: autocenter
                     icon.source: "image://theme/icon-m-gps"
-                    anchors.rightMargin: Theme.paddingSmall
-                    anchors.leftMargin: Theme.paddingSmall
+                    anchors.verticalCenter: parent.verticalCenter
                     enabled: map.gps_coordinate.latitude <= 90 && map.gps_coordinate.latitude >= -90
                     highlighted: map.auto_center
                     onClicked: { map.auto_center = !map.auto_center }
@@ -129,7 +130,6 @@ ApplicationWindow
             width: page.width
             height: header.height
             contentHeight: header.height
-            clip: page.status != PageStatus.Active || !mainMenu.active
             flickableDirection: Flickable.VerticalFlick
 
             PullDownMenu {
@@ -184,6 +184,7 @@ ApplicationWindow
             Header {
                 id: header
                 width: parent.width
+                clip: page.status != PageStatus.Active || !mainMenu.active
             }
         }
     }
