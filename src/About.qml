@@ -47,8 +47,9 @@ SilicaFlickable {
     PageHeader { id: title; title: "About Mæp" }
     Column {
         id: content
-        width: parent.width
-	anchors.top: title.bottom
+        width: parent.width - Theme.horizontalPageMargin
+        anchors.top: title.bottom
+        anchors.right: parent.right
         spacing: Theme.paddingMedium
         Image {
             id: icon
@@ -79,142 +80,147 @@ SilicaFlickable {
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter
         }
-        Label {
-            width: parent.width
+        Button {
             text: "https://github.com/dcaliste/maep-qt"
-            color: Theme.secondaryColor
-            font.pixelSize: Theme.fontSizeSmall
-            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            onClicked: { Qt.openUrlExternally(text) }
         }
         Item {
-            id: item_authors
-            opacity: 0
-            visible: opacity > 0
-            width: parent.width - 2 * Theme.paddingSmall
-            height: childrenRect.height
-            anchors.horizontalCenter: parent.horizontalCenter
-            Label {
-	        id: lbl_title_authors
-                text: "Authors"
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeMedium
-                anchors.topMargin: Theme.paddingSmall
-            }
-            Label {
-                id: lbl_authors
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-	        anchors.top: lbl_title_authors.bottom
-            }
-        }
-        Item {
-            id: item_license
-            opacity: 0
-            visible: opacity > 0
-            width: parent.width - 2 * Theme.paddingSmall
-            height: childrenRect.height
-            anchors.horizontalCenter: parent.horizontalCenter
-            Label {
-	        id: lbl_title_license
-                text: "License"
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeMedium
-                anchors.topMargin: Theme.paddingSmall
-            }
-            Label {
-                id: lbl_license
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-	        anchors.top: lbl_title_license.bottom
-            }
-        }
-        Item {
-            id: item_info
-            opacity: 0
-            visible: opacity > 0
-            width: parent.width - 2 * Theme.paddingSmall
-            height: childrenRect.height
-            anchors.horizontalCenter: parent.horizontalCenter
-            Label {
-	        id: lbl_title_bugs
-                text: "Report bugs"
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeMedium
-                anchors.topMargin: Theme.paddingSmall
-            }
-            Label {
-	        id: lbl_bugs
-                width: parent.width - Theme.paddingMedium * 2
-                text: "Please report bugs or feature requests via the Mæp " +
-	        "bug tracker. This bug tracker can directly be reached via " +
-	        "the following link:"
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignJustify
-	        anchors.horizontalCenter: parent.horizontalCenter
-	        anchors.top: lbl_title_bugs.bottom
-            }
-            Button {
-                id: bt_bugs
-                text: "Open bug tracker"
+            width: parent.width
+            height: Math.max(item_authors.height, Math.max(item_license.height, item_info.height))
+            Item {
+                id: item_authors
+                opacity: 0
+                Behavior on opacity { FadeAnimation{} }
+                visible: opacity > 0
+                width: parent.width - 2 * Theme.paddingSmall
+                height: childrenRect.height
                 anchors.horizontalCenter: parent.horizontalCenter
-	        anchors.top: lbl_bugs.bottom
-                onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
+                Label {
+                    id: lbl_title_authors
+                    text: "Authors"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeMedium
+                    anchors.topMargin: Theme.paddingSmall
+                }
+                Label {
+                    id: lbl_authors
+                    color: Theme.primaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    anchors.top: lbl_title_authors.bottom
+                }
             }
-            Label {
-	        id: lbl_title_donate
-                text: "Donate"
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeMedium
-                anchors.topMargin: Theme.paddingSmall
-	        anchors.top: bt_bugs.bottom
-            }
-            Label {
-	        id: lbl_donate
-                width: parent.width - Theme.paddingMedium * 2
-                text: "If you like Mæp and want to support its future development " +
-	        "please consider donating to the developer. You can either " +
-	        "donate via paypal to till@harbaum.org or you can just click " +
-                "the button below which will open the appropriate web page in " +
-                "your browser."
-                color: Theme.primaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignJustify
-	        anchors.horizontalCenter: parent.horizontalCenter
-	        anchors.top: lbl_title_donate.bottom
-            }
-            Button {
-                id: bt_donate
-                text: "Donate through Paypal"
+            Item {
+                id: item_license
+                opacity: 0
+                Behavior on opacity { FadeAnimation{} }
+                visible: opacity > 0
+                width: parent.width - 2 * Theme.paddingSmall
+                height: childrenRect.height
                 anchors.horizontalCenter: parent.horizontalCenter
-	        anchors.top: lbl_donate.bottom
-                onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+                Label {
+                    id: lbl_title_license
+                    text: "License"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeMedium
+                    anchors.topMargin: Theme.paddingSmall
+                }
+                Label {
+                    id: lbl_license
+                    color: Theme.primaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    anchors.top: lbl_title_license.bottom
+                }
+            }
+            Item {
+                id: item_info
+                opacity: 0
+                Behavior on opacity { FadeAnimation{} }
+                visible: opacity > 0
+                width: parent.width - 2 * Theme.paddingSmall
+                height: childrenRect.height
+                anchors.horizontalCenter: parent.horizontalCenter
+                Label {
+                    id: lbl_title_bugs
+                    text: "Report bugs"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeMedium
+                    anchors.topMargin: Theme.paddingSmall
+                }
+                Label {
+                    id: lbl_bugs
+                    width: parent.width - Theme.paddingMedium * 2
+                    text: "Please report bugs or feature requests via the Mæp " +
+                    "bug tracker. This bug tracker can directly be reached via " +
+                    "the following link:"
+                    color: Theme.primaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignJustify
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: lbl_title_bugs.bottom
+                }
+                Button {
+                    id: bt_bugs
+                    text: "Open bug tracker"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: lbl_bugs.bottom
+                    onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
+                }
+                Label {
+                    id: lbl_title_donate
+                    text: "Donate"
+                    color: Theme.highlightColor
+                    font.pixelSize: Theme.fontSizeMedium
+                    anchors.topMargin: Theme.paddingSmall
+                    anchors.top: bt_bugs.bottom
+                }
+                Label {
+                    id: lbl_donate
+                    width: parent.width - Theme.paddingMedium * 2
+                    text: "If you like Mæp and want to support its future development " +
+                    "please consider donating to the developer. You can either " +
+                    "donate via paypal to till@harbaum.org or you can just click " +
+                    "the button below which will open the appropriate web page in " +
+                    "your browser."
+                    color: Theme.primaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignJustify
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: lbl_title_donate.bottom
+                }
+                Button {
+                    id: bt_donate
+                    text: "Donate through Paypal"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: lbl_donate.bottom
+                    onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }
+                }
             }
         }
     }
     states: [
-	State {
-            name: "authors"
-            when: viewable == "authors"
-	    PropertyChanges { target: item_authors; opacity: 1 }
-	    PropertyChanges { target: item_license; opacity: 0 }
-	    PropertyChanges { target: item_info;    opacity: 0 }
-	},
-	State {
-            name: "license"
-            when: viewable == "license"
-	    PropertyChanges { target: item_authors; opacity: 0 }
-	    PropertyChanges { target: item_license; opacity: 1 }
-	    PropertyChanges { target: item_info;    opacity: 0 }
-	},
-	State {
-            name: "info"
-            when: viewable == "info"
-	    PropertyChanges { target: item_authors; opacity: 0 }
-	    PropertyChanges { target: item_license; opacity: 0 }
-	    PropertyChanges { target: item_info;    opacity: 1 }
-	} ]
+    State {
+        name: "authors"
+        when: viewable == "authors"
+        PropertyChanges { target: item_authors; opacity: 1 }
+        PropertyChanges { target: item_license; opacity: 0 }
+        PropertyChanges { target: item_info;    opacity: 0 }
+    },
+    State {
+        name: "license"
+        when: viewable == "license"
+        PropertyChanges { target: item_authors; opacity: 0 }
+        PropertyChanges { target: item_license; opacity: 1 }
+        PropertyChanges { target: item_info;    opacity: 0 }
+    },
+    State {
+        name: "info"
+        when: viewable == "info"
+        PropertyChanges { target: item_authors; opacity: 0 }
+        PropertyChanges { target: item_license; opacity: 0 }
+        PropertyChanges { target: item_info;    opacity: 1 }
+    } ]
     VerticalScrollDecorator { flickable: about }
 }

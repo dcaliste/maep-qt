@@ -118,6 +118,7 @@ SilicaFlickable {
 
     Repeater {
         z: 2
+        visible: page.status == PageStatus.Active
         model: content.children.length - 1
         delegate: GlassItem {
             x: root.width * (modelData + 1) - width / 2
