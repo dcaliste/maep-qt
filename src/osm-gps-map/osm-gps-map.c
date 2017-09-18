@@ -75,6 +75,7 @@ struct _OsmGpsMapPrivate
     /* Incremented at each redraw */
     guint redraw_cycle;
     /* ID of the idle redraw operation */
+    GMutex mutex;
     gulong idle_map_redraw;
 
     //how we download tiles
@@ -204,6 +205,13 @@ static gboolean osm_gps_map_idle_redraw(OsmGpsMap *map);
 
 static guint    osm_gps_map_source_get_cache_period(OsmGpsMapSource_t source);
 static gboolean osm_gps_map_source_get_cache_policy(OsmGpsMapSource_t source);
+#define IDLE_REDRAW(M) {if (!M->priv->idle_map_redraw)                  \
+            {                                                           \
+                g_mutex_lock(&M->priv->mutex);                          \
+                M->priv->idle_map_redraw =                              \
+                    g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, M); \
+                g_mutex_unlock(&M->priv->mutex);                        \
+            }}
 
 static void
 cached_tile_free (OsmCachedTile *tile)
@@ -558,13 +566,8 @@ osm_gps_map_add_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
 void
 osm_gps_map_layer_changed(OsmGpsMap *map, G_GNUC_UNUSED OsmGpsMapLayer *layer)
 {
-    OsmGpsMapPrivate *priv;
-    
     g_return_if_fail(OSM_IS_GPS_MAP(map));
-    priv = map->priv;
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
-
+    IDLE_REDRAW(map);
 }
 void
 osm_gps_map_remove_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
@@ -584,8 +587,7 @@ osm_gps_map_remove_layer(OsmGpsMap *map, OsmGpsMapLayer *layer)
     priv->layers = g_slist_remove(priv->layers, layer);
     g_object_unref(layer);
 
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 static void
@@ -753,6 +755,7 @@ static cairo_surface_t* osm_gps_map_from_file(const char *filename, const char *
 
     return surf;
 }
+
 static cairo_surface_t* osm_gps_map_from_mem(const unsigned char *buffer,
                                              size_t len, const char *ext)
 {
@@ -849,8 +852,7 @@ osm_gps_map_tile_download_complete (SoupSession *session, SoupMessage *msg, gpoi
                      * we are using it as a key in the hash table */
                     dl->filename = NULL;
                 }
-            if (!priv->idle_map_redraw)
-                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+            IDLE_REDRAW(map);
         }
         g_hash_table_remove(priv->tile_queue, dl->uri);
 
@@ -1447,7 +1449,9 @@ osm_gps_map_idle_redraw(OsmGpsMap *map)
 {
     OsmGpsMapPrivate *priv = map->priv;
 
+    g_mutex_lock(&priv->mutex);
     priv->idle_map_redraw = 0;
+    g_mutex_unlock(&priv->mutex);
     osm_gps_map_redraw(map);
     return FALSE;
 }
@@ -1499,6 +1503,7 @@ osm_gps_map_init (OsmGpsMap *object)
 
     priv->map_source = -1;
 
+    g_mutex_init(&priv->mutex);
     priv->idle_map_redraw = 0;
 
 #if USE_LIBSOUP22
@@ -1666,8 +1671,10 @@ osm_gps_map_dispose (GObject *object)
     if (priv->null_tile)
         cairo_surface_destroy (priv->null_tile);
 
+    g_mutex_lock(&priv->mutex);
     if (priv->idle_map_redraw != 0)
         g_source_remove (priv->idle_map_redraw);
+    g_mutex_unlock(&priv->mutex);
 
     g_free(priv->gps);
 
@@ -1693,6 +1700,8 @@ osm_gps_map_finalize (GObject *object)
     osm_gps_map_free_trip(map);
     osm_gps_map_free_tracks(map);
 
+    g_mutex_clear(&map->priv->mutex);
+
     G_OBJECT_CLASS (osm_gps_map_parent_class)->finalize (object);
 }
 
@@ -1710,8 +1719,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             break;
         case PROP_DOUBLE_PIXEL:
             priv->double_pixel = g_value_get_boolean (value);
-            if (!priv->idle_map_redraw)
-                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, (gpointer)map);
+            IDLE_REDRAW(map);
             break;
         case PROP_RECORD_TRIP_HISTORY:
             priv->record_trip_history = g_value_get_boolean (value);
@@ -1776,9 +1784,8 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             center_coord_update(map);
             break;
         case PROP_GPS_TRACK_WIDTH:
-            if (!priv->idle_map_redraw &&
-                priv->ui_gps_track_width != g_value_get_int(value))
-                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+            if (priv->ui_gps_track_width != g_value_get_int(value))
+                IDLE_REDRAW(map);
             priv->ui_gps_track_width = g_value_get_int(value);
             break;
         case PROP_GPS_TRACK_COLOR:
@@ -1786,8 +1793,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
                 priv->ui_gps_track_color = *(OsmColor_t*)g_value_get_boxed (value);
             else
                 priv->ui_gps_track_color = _default_track_color;
-            if (!priv->idle_map_redraw)
-                priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+            IDLE_REDRAW(map);
             break;
         case PROP_GPS_POINT_R1:
             priv->ui_gps_point_inner_radius = g_value_get_int (value);
@@ -1813,8 +1819,7 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
                 priv->uri_format = inspect_map_uri(priv->repo_uri,
                                                    &priv->the_google);
 
-                if (!priv->idle_map_redraw)
-                    priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+                IDLE_REDRAW(map);
 
                 /* adjust zoom if necessary */
                 if(priv->map_zoom > priv->max_zoom) 
@@ -2689,8 +2694,7 @@ static void _update_screen_pos(OsmGpsMap *map)
     /* g_debug("Zoom changed from %d to %d factor:%f x:%d", */
     /*         zoom_old, priv->map_zoom, factor, priv->map_x); */
 
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_Y]);
     g_signal_emit_by_name(map, "changed");
@@ -2771,8 +2775,7 @@ osm_gps_map_set_factor (OsmGpsMap *map, gfloat factor)
         return;
     map->priv->map_factor = factor;
 
-    if (!map->priv->idle_map_redraw)
-        map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_FACTOR]);
     g_signal_emit_by_name(map, "changed");
@@ -2868,24 +2871,14 @@ static void
 _on_track_changed (G_GNUC_UNUSED MaepGeodata *track_state,
                    G_GNUC_UNUSED GParamSpec *pspec, OsmGpsMap *map)
 {
-    OsmGpsMapPrivate *priv;
-
     g_return_if_fail (OSM_IS_GPS_MAP (map));
-    priv = map->priv;
-
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 static void
 _on_track_dirty (G_GNUC_UNUSED MaepGeodata *track_state, OsmGpsMap *map)
 {
-    OsmGpsMapPrivate *priv;
-
     g_return_if_fail (OSM_IS_GPS_MAP (map));
-    priv = map->priv;
-
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 void
@@ -2910,8 +2903,7 @@ osm_gps_map_add_track (OsmGpsMap *map, MaepGeodata *track)
         g_signal_connect(G_OBJECT(track), "dirty",
                          G_CALLBACK(_on_track_dirty), (gpointer)map);
     priv->tracks = g_slist_append(priv->tracks, st);
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 void
@@ -2920,8 +2912,7 @@ osm_gps_map_clear_tracks (OsmGpsMap *map)
     g_return_if_fail (OSM_IS_GPS_MAP (map));
 
     osm_gps_map_free_tracks(map);
-    if (!map->priv->idle_map_redraw)
-        map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 void
@@ -2949,8 +2940,7 @@ osm_gps_map_add_image_with_alignment (OsmGpsMap *map, float latitude, float long
 
         priv->images = g_slist_append(priv->images, im);
 
-        if (!priv->idle_map_redraw)
-            priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+        IDLE_REDRAW(map);
     }
 }
 
@@ -2974,8 +2964,7 @@ osm_gps_map_remove_image (OsmGpsMap *map, cairo_surface_t *image)
 		        priv->images = g_slist_remove_link(priv->images, list);
                 cairo_surface_destroy(im->image);
 		        g_free(im);
-                if (!priv->idle_map_redraw)
-                    priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+                IDLE_REDRAW(map);
 		        return TRUE;
 	        }
         }
@@ -2989,8 +2978,7 @@ osm_gps_map_clear_images (OsmGpsMap *map)
     g_return_if_fail (OSM_IS_GPS_MAP (map));
 
     osm_gps_map_free_images(map);
-    if (!map->priv->idle_map_redraw)
-        map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 void
@@ -3037,8 +3025,8 @@ osm_gps_map_set_gps (OsmGpsMap *map, float latitude, float longitude, float head
 
     // this redraws the map (including the gps track, and adjusts the
     // map center if it was changed
-    if (!priv->idle_map_redraw && priv->gps_valid)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    if (priv->gps_valid)
+        IDLE_REDRAW(map);
 }
 
 void
@@ -3051,8 +3039,7 @@ osm_gps_map_draw_gps (OsmGpsMap *map, gboolean status)
 
     priv->gps_valid = status;
     
-    if (!map->priv->idle_map_redraw)
-        map->priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 }
 
 coord_t
@@ -3137,8 +3124,7 @@ osm_gps_map_scroll (OsmGpsMap *map, gint dx, gint dy)
     priv->map_y += dy / priv->map_factor;
     center_coord_update(map);
 
-    if (!priv->idle_map_redraw)
-        priv->idle_map_redraw = g_idle_add((GSourceFunc)osm_gps_map_idle_redraw, map);
+    IDLE_REDRAW(map);
 
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_X]);
     g_object_notify_by_pspec(G_OBJECT(map), properties[PROP_MAP_Y]);
