@@ -972,29 +972,34 @@ static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, 
   widget->setWikiEntry(entry);
 }
 
+struct ByDistance
+{
+    ByDistance(Maep::GpsMap *map): map(map) {};
+    bool operator()(Maep::GeonamesPlace *p1,
+                    Maep::GeonamesPlace *p2) const
+    {
+        return map->getCoord().distanceTo(p1->coordinate()) <
+            map->getCoord().distanceTo(p2->coordinate());
+    }
+    Maep::GpsMap *map;
+};
+
 void Maep::GpsMap::setSearchResults(MaepSearchContextSource source, GSList *places)
 {
   g_message("hello got %d places", g_slist_length(places));
 
   if (searchRes.count() == 0 || source == MaepSearchContextGeonames)
     for (; places; places = places->next)
-      {
-        Maep::GeonamesPlace *place =
-          new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
-        searchRes.append(place);
-      }
+        searchRes.append(new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data));
   else
     for (; places; places = places->next)
-      {
-        Maep::GeonamesPlace *place =
-          new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data);
-        searchRes.prepend(place);
-      }
+        searchRes.prepend(new Maep::GeonamesPlace((const MaepGeonamesPlace*)places->data));
   searchFinished |= source;
   
   if (searchFinished == (MaepSearchContextGeonames | MaepSearchContextNominatim))
     {
       g_message("search finished !");
+      std::sort(searchRes.begin(), searchRes.end(), ByDistance(this));
       emit searchResults();
     }
 }

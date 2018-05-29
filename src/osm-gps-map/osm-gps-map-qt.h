@@ -500,7 +500,8 @@ class GpsMap : public QQuickPaintedItem
     g_message("#### Hey I've got %d results!", self->searchRes.length());
     return self->searchRes.length();
   }
-  static GeonamesPlace* atSearchResults(QQmlListProperty<GeonamesPlace> *prop, int index)
+  static GeonamesPlace* atSearchResults(QQmlListProperty<GeonamesPlace> *prop,
+                                        int index)
   {
     GpsMap *self = qobject_cast<GpsMap*>(prop->object);
     g_message("#### Hey I've got name %s (%fx%f) for result %d!",
