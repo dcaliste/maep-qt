@@ -156,8 +156,10 @@ ApplicationWindow
             id: topPart
             anchors.top: parent.top
             width: page.width
-            height: header.height
+            height: Math.min(Theme.itemSizeMedium + 5 * Theme.itemSizeSmall,
+                             contentHeight)
             contentHeight: header.height
+            clip: page.status != PageStatus.Active || !mainMenu.active
             flickableDirection: Flickable.VerticalFlick
 
             PullDownMenu {
@@ -212,7 +214,6 @@ ApplicationWindow
             Header {
                 id: header
                 width: parent.width
-                clip: page.status != PageStatus.Active || !mainMenu.active
             }
         }
     }

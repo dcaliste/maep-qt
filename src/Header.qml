@@ -36,33 +36,18 @@ SilicaFlickable {
         if (action == "track") {
             id = 1
         }
-        setAction(id)
         return id
     }
-    function setAction(id) {
-        if (id == 1) {
-            contentX = root.width
-            contentHeight = Qt.binding(function() { return trackView.height })
-            height = Qt.binding(function() { return Math.min(trackView.height,
-                5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
-        } else {
-            contentX = 0
-            contentHeight = Qt.binding(function() { return placeHeader.height })
-            height = Qt.binding(function() { return Math.min(placeHeader.height,
-                5 * Theme.itemSizeSmall + Theme.itemSizeMedium) })
-        } 
-    }
-    onCurrentIndexChanged: setAction(currentIndex)
-    flickableDirection: Flickable.HorizontalFlick
-
     Component.onDestruction: if (currentIndex == 0) {
         conf.setString("ui_start_action", "search")
     } else if (currentIndex == 1) {
         conf.setString("ui_start_action", "track")
     }
-    
-    height: Theme.itemSizeMedium
+
+    height: currentIndex == 0 ? placeHeader.height : trackView.height
+    contentX: currentIndex * root.width
     contentWidth: content.width
+    flickableDirection: Flickable.HorizontalFlick
 
     Behavior on height {
         enabled: !track_details.menu
@@ -134,12 +119,11 @@ SilicaFlickable {
     
     onMovementEnded: {
         if (contentX < root.width / 2) {
-            contentX = 0
             currentIndex = 0
         } else {
-            contentX = root.width
             currentIndex = 1
         }
+        contentX = root.width * currentIndex
         track_details.wptMoving = false
     }
 
