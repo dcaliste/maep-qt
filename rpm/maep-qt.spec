@@ -16,7 +16,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.5
+Version: 1.4.5.1
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
