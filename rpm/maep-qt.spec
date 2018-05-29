@@ -10,13 +10,13 @@ Name: harbour-maep-qt
 
 # Harbour requirements.
 %define __provides_exclude_from ^%{_datadir}/.*$
-%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libsqlite3.*|libpixman-1.*|libfreetype.*|libicui18n.*|libicuuc.*|libicudata.*|libc.*|ld-linux.*|libdl.*$
+%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libpixman-1.*|libfreetype.*|libc.*|ld-linux.*|libdl.*$
 %{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.5
+Version: 1.4.6
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
@@ -63,12 +63,8 @@ install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libsqlite3.so.0 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libicui18n.so.52 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libicuuc.so.52 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libicudata.so.52 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 
 %files
@@ -79,6 +75,11 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 /usr/bin
 
 %changelog
+* Tue May 29 2018 - Damien Caliste <dcaliste@free.fr> 1.4.6-1
+- Make the list of sources configurable (can show / hide existing sources).
+- Sort place search based on distance to current position.
+- Correct place search result not scrolling.
+
 * Thu Mar 30 2017 - Damien Caliste <dcaliste@free.fr> 1.4.5-1
 - Declare the OpenCycleMap to www.thunderforest.com to obtain an API key.
 - Correct the long-lasting bug of map jumping position when drag is released.
