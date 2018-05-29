@@ -1,6 +1,6 @@
 /*
  * main.qml
- * Copyright (C) Damien Caliste 2013-2014 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2018 <dcaliste@free.fr>
  *
  * main.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License

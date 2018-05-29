@@ -1,6 +1,6 @@
 /*
  * header.qml
- * Copyright (C) Damien Caliste 2014 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2014-2018 <dcaliste@free.fr>
  *
  * header.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License

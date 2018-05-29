@@ -1,0 +1,5 @@
+RPMS/
+*.o
+moc_*
+Makefile
+harbour-maep-qt
