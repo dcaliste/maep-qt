@@ -28,15 +28,15 @@ SilicaFlickable {
 
     PullDownMenu {
         MenuItem {
-            text: "Miscellaneous"
+            text: qsTr("Miscellaneous")
             onClicked: { viewable = "info" }
         }
         MenuItem {
-            text: "License"
+            text: qsTr("License")
             onClicked: { viewable = "license" }
         }
         MenuItem {
-            text: "Authors"
+            text: qsTr("Authors")
             onClicked: { viewable = "authors" }
         }
     }
@@ -44,7 +44,7 @@ SilicaFlickable {
     contentHeight: title.height + content.height
     contentWidth: childrenRect.width
 
-    PageHeader { id: title; title: "About Mæp" }
+    PageHeader { id: title; title: qsTr("About Mæp") }
     Column {
         id: content
         width: parent.width - Theme.horizontalPageMargin
@@ -59,7 +59,7 @@ SilicaFlickable {
         Label {
             id: subtitle
             width: parent.width
-            text: "A small and fast tile map"
+            text: qsTr("A small and fast tile map")
             color: Theme.secondaryHighlightColor
             font.pixelSize: Theme.fontSizeMedium
             horizontalAlignment: Text.AlignHCenter
@@ -67,7 +67,7 @@ SilicaFlickable {
         Label {
             id: lbl_version
             width: parent.width
-            text: "Version " + version + " - " + date
+            text: qsTr("Version ") + version + " - " + date
             color: Theme.primaryColor
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter
@@ -75,7 +75,7 @@ SilicaFlickable {
         Label {
             id: copyright
             width: parent.width
-            text: "Copyright 2009-2018"
+            text: qsTr("Copyright ") + "2009-2018"
             color: Theme.primaryColor
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter
@@ -98,7 +98,7 @@ SilicaFlickable {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Label {
                     id: lbl_title_authors
-                    text: "Authors"
+                    text: qsTr("Authors")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeMedium
                     anchors.topMargin: Theme.paddingSmall
@@ -120,7 +120,7 @@ SilicaFlickable {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Label {
                     id: lbl_title_license
-                    text: "License"
+                    text: qsTr("License")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeMedium
                     anchors.topMargin: Theme.paddingSmall
@@ -142,7 +142,7 @@ SilicaFlickable {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Label {
                     id: lbl_title_bugs
-                    text: "Report bugs"
+                    text: qsTr("Report bugs")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeMedium
                     anchors.topMargin: Theme.paddingSmall
@@ -150,9 +150,9 @@ SilicaFlickable {
                 Label {
                     id: lbl_bugs
                     width: parent.width - Theme.paddingMedium * 2
-                    text: "Please report bugs or feature requests via the Mæp " +
+                    text: qsTr("Please report bugs or feature requests via the Mæp " +
                     "bug tracker. This bug tracker can directly be reached via " +
-                    "the following link:"
+                    "the following link:")
                     color: Theme.primaryColor
                     font.pixelSize: Theme.fontSizeExtraSmall
                     wrapMode: Text.WordWrap
@@ -162,14 +162,14 @@ SilicaFlickable {
                 }
                 Button {
                     id: bt_bugs
-                    text: "Open bug tracker"
+                    text: qsTr("Open bug tracker")
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: lbl_bugs.bottom
                     onClicked: { Qt.openUrlExternally("https://github.com/dcaliste/maep-qt/issues") }
                 }
                 Label {
                     id: lbl_title_donate
-                    text: "Donate"
+                    text: qsTr("Donate")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeMedium
                     anchors.topMargin: Theme.paddingSmall
@@ -178,11 +178,11 @@ SilicaFlickable {
                 Label {
                     id: lbl_donate
                     width: parent.width - Theme.paddingMedium * 2
-                    text: "If you like Mæp and want to support its future development " +
+                    text: qsTr("If you like Mæp and want to support its future development " +
                     "please consider donating to the developer. You can either " +
                     "donate via paypal to till@harbaum.org or you can just click " +
                     "the button below which will open the appropriate web page in " +
-                    "your browser."
+                    "your browser.")
                     color: Theme.primaryColor
                     font.pixelSize: Theme.fontSizeExtraSmall
                     wrapMode: Text.WordWrap
@@ -192,7 +192,7 @@ SilicaFlickable {
                 }
                 Button {
                     id: bt_donate
-                    text: "Donate through Paypal"
+                    text: qsTr("Donate through Paypal")
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: lbl_donate.bottom
                     onClicked: { Qt.openUrlExternally("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7400558") }

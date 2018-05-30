@@ -102,15 +102,15 @@ Column {
                     minimumValue: Theme.paddingSmall / 2
                     maximumValue: Theme.paddingLarge
                     stepSize: (maximumValue - minimumValue) / 8
-                    label: "track width"
+                    label: qsTr("track width")
                     onValueChanged: root.requestWidth(value)
                 }
                 MenuItem {
-                    text: "clear"
+                    text: qsTr("clear")
                     onClicked: root.requestDelete()
                 }
                 MenuItem {
-                    text: "save on device"
+                    text: qsTr("save on device")
                     onClicked: pageStack.push(tracksave, { track: track })
                 }
                 /*MenuItem {
@@ -126,7 +126,7 @@ Column {
                 title: track
                        ? track.path.length > 0
                          ? basename(track.path)
-                         : "Unsaved track"
+                         : qsTr("Unsaved track")
                        : ""
                 height: Theme.itemSizeMedium
 
@@ -156,7 +156,7 @@ Column {
                     font.pixelSize: Theme.fontSizeSmall
                     text: if (track && track.duration > 0) {
                         length(track.length) + " (" + duration(track.duration) + ")"
-                    } else "no accurate data"
+                    } else qsTr("no accurate data")
                 }
                 Label {
                     function speed(length, time) {
@@ -248,10 +248,10 @@ Column {
                 enabled: wptview.currentIndex == model.index
                 opacity: enabled ? 1.0 : 0.4
                 width: wptview.width
-                placeholderText: newWpt ? "new waypoint description" : "waypoint " + (model.index + 1) + "has no name"
-                label: newWpt ? "new waypoint at GPS position" : "name of waypoint " + (model.index + 1)
+                placeholderText: newWpt ? qsTr("new waypoint description") : "waypoint " + (model.index + 1) + "has no name"
+                label: newWpt ? qsTr("new waypoint at GPS position") : "name of waypoint " + (model.index + 1)
                 text: (track) ? track.getWayPoint(model.index, Track.FIELD_NAME) : ""
-                EnterKey.text: newWpt ? text.length > 0 ? "add" : "cancel" : "update"
+                EnterKey.text: newWpt ? text.length > 0 ? qsTr("add") : qsTr("cancel") : qsTr("update")
                 EnterKey.onClicked: {
                     if (text.length > 0 && newWpt) {
                         track.addWayPoint(currentPlace, text, "", "")

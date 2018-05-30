@@ -26,7 +26,7 @@ SilicaFlickable {
 
     PageHeader {
         id: title
-        title: "Settings"
+        title: qsTr("Settings")
     }
 
     Column {
@@ -37,9 +37,9 @@ SilicaFlickable {
         anchors.horizontalCenter: parent.horizontalCenter
 
         TextSwitch {
-	    text: "Draw map double pixel"
-            description: "The tiles of the zoom level above are " +
-            "used instead of the normal ones. The rendering appears as if zoomed."
+	        text: qsTr("Draw map double pixel")
+            description: qsTr("The tiles of the zoom level above are " +
+            "used instead of the normal ones. The rendering appears as if zoomed.")
 	    checked: map.double_pixel
             automaticCheck: false
 	    onClicked: { map.double_pixel = !map.double_pixel }
@@ -48,19 +48,19 @@ SilicaFlickable {
         }
 
         ComboBox {
-            label: "Compass mode"
+            label: qsTr("Compass mode")
             width: page.width
-            description: "Either point towards physical north pole, or show " +
+            description: qsTr("Either point towards physical north pole, or show " +
                          "device orientation relative to map. When switched " +
-                         "off, the sensor is completely disabled."
+                         "off, the sensor is completely disabled.")
 
             currentIndex: map.compass_mode
             onCurrentIndexChanged: map.compass_mode = currentIndex
 
             menu: ContextMenu {
-                MenuItem { text: "Off" }
-                MenuItem { text: "Point north" }
-                MenuItem { text: "Device orientation" }
+                MenuItem { text: qsTr("Off") }
+                MenuItem { text: qsTr("Point north") }
+                MenuItem { text: qsTr("Device orientation") }
             }
         }
 
@@ -74,17 +74,17 @@ SilicaFlickable {
                 minimumValue: 0.
                 maximumValue: 10.
                 stepSize: 1.
-                label: "GPS refresh rate"
+                label: qsTr("GPS refresh rate")
                 value: map.gps_refresh_rate / 1000.
-                valueText: (value > 0) ? value + " s" : "no update"
+                valueText: (value > 0) ? value + " s" : qsTr("no update")
                 onValueChanged: { map.gps_refresh_rate = value * 1000 }
             }
             Label {
                 anchors.top: refresh.bottom
                 width: parent.width - 3 * Theme.paddingLarge
 
-                text: "Minimum time between two GPS updates." +
-                " If set to 0, there will be no GPS update."
+                text: qsTr("Minimum time between two GPS updates." +
+                " If set to 0, there will be no GPS update.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 wrapMode: Text.WordWrap
@@ -103,19 +103,19 @@ SilicaFlickable {
                 minimumValue: 0.
                 maximumValue: 15.
                 stepSize: 1.
-                label: "Track autosave rate"
+                label: qsTr("Track autosave rate")
                 value: map.track_autosave_rate / 60.
-                valueText: (value > 0) ? value + " min." : "on demand"
+                valueText: (value > 0) ? value + " min." : qsTr("on demand")
                 onValueChanged: { map.track_autosave_rate = value * 60 }
             }
             Label {
                 anchors.top: autosave.bottom
                 width: parent.width - 3 * Theme.paddingLarge
 
-                text: "Time between two automatic track dumps on disk." +
+                text: qsTr("Time between two automatic track dumps on disk." +
                 " Autosaving a track without providing a filename" +
                 " will result to the track being saved in" +
-                " $HOME/.local/share/harbour-maep-qt/track.gpx"
+                " $HOME/.local/share/harbour-maep-qt/track.gpx")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 wrapMode: Text.WordWrap
@@ -134,17 +134,17 @@ SilicaFlickable {
                 minimumValue: 0.
                 maximumValue: 100.
                 stepSize: 10.
-                label: "Track metric accuracy"
+                label: qsTr("Track metric accuracy")
                 value: map.track_metric_accuracy
-                valueText: (value > 0) ? value + " m." : "keep all"
+                valueText: (value > 0) ? value + " m." : qsTr("keep all")
                 onValueChanged: { map.track_metric_accuracy = value }
             }
             Label {
                 anchors.top: metric.bottom
                 width: parent.width - 3 * Theme.paddingLarge
 
-                text: "Points in track are displayed if horizontal" +
-                " accuracy is below this value."
+                text: qsTr("Points in track are displayed if horizontal" +
+                " accuracy is below this value.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 wrapMode: Text.WordWrap

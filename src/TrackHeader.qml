@@ -27,12 +27,12 @@ Column {
 
     function deleteTrack() {
         remorse.execute(remorseHook,
-                        "Clear current track", map.setTrack)
+                        qsTr("Clear current track"), map.setTrack)
     }
 
     PageHeader {
         height: Theme.itemSizeMedium
-        title: root.track ? "Track" : "No track"
+        title: root.track ? qsTr("Track") : qsTr("No track")
     }
     BackgroundItem {
         id: item_current
@@ -58,7 +58,7 @@ Column {
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "capture GPS position"
+                text: qsTr("capture GPS position")
                 color: item_gps.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
@@ -80,7 +80,7 @@ Column {
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "import a local file"
+                text: qsTr("import a local file")
                 color: item_file.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }
@@ -102,7 +102,7 @@ Column {
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "last autosaved track"
+                text: qsTr("last autosaved track")
                 color: item_backup.highlighted ? Theme.highlightColor : Theme.primaryColor
             }
         }

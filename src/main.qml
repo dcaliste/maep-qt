@@ -165,18 +165,18 @@ ApplicationWindow
             PullDownMenu {
                 id: mainMenu
                 MenuItem {
-                    text: "About Mæp"
+                    text: qsTr("About Mæp")
                     onClicked: pageStack.push(aboutpage)
                 }
                 MenuItem {
-                    text: "Settings"
+                    text: qsTr("Settings")
                     onClicked: pageStack.push(settingspage)
                 }
                 MenuItem {
                     TextSwitch {
                         id: orientationcheck
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Screen rotation"
+                        text: qsTr("Screen rotation")
                         checked: map.screen_rotation
                         onCheckedChanged: { map.screen_rotation = checked }
                     }
@@ -186,7 +186,7 @@ ApplicationWindow
                     TextSwitch {
                         id: wikicheck
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Wikipedia"
+                        text: qsTr("Wikipedia")
                         checked: map.wiki_status
                         onCheckedChanged: { map.wiki_status = checked }
                     }
@@ -196,14 +196,14 @@ ApplicationWindow
                     TextSwitch {
                         id: trackcheck
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Track capture"
+                        text: qsTr("Track capture")
                         checked: map.track_capture
                         onCheckedChanged: { map.track_capture = checked }
                     }
                     onClicked: {trackcheck.checked = !trackcheck.checked}
                 }
                 MenuItem {
-                    text: "import track from device"
+                    text: qsTr("import track from device")
                     onClicked: page.importTrack()
                 }
                 /*MenuItem {
@@ -265,7 +265,7 @@ ApplicationWindow
                     }
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.pixelSize: Theme.fontSizeSmall
-                    text: if (map.track && map.track.duration > 0) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else "no accurate data"
+                    text: if (map.track && map.track.duration > 0) { length(map.track.length) + " (" + duration(map.track.duration) + ")"} else qsTr("no accurate data")
                 }
                 Label {
                     function speed(length, time) {
@@ -362,7 +362,7 @@ ApplicationWindow
                 anchors.top: page.isPortrait ? coordinates.bottom : thumbnail.bottom
             }
             Button {
-                text: "Open Wikipedia page"
+                text: qsTr("Open Wikipedia page")
                 /*onClicked: { pageStack.pushAttached(wikipedia); pageStack.navigateForward() }*/
                 onClicked: { Qt.openUrlExternally(map.wiki_entry.url) }
                 anchors.top: body.bottom
@@ -454,7 +454,7 @@ ApplicationWindow
                 id: chooser
                 anchors.fill: parent
                 saveMode: true
-                title: DialogHeader { title: "Save current track" }
+                title: DialogHeader { title: qsTr("Save current track") }
                 saveText: track.path.substring(track.path.lastIndexOf("/") + 1)
                 onSelectionChanged: { overwrite(selection) }
                 onEntryChanged: { save(entry) }
@@ -481,13 +481,13 @@ ApplicationWindow
             FileChooser {
                 id: chooser
                 anchors.fill: parent
-                title: DialogHeader { title: "Select a track file" }
+                title: DialogHeader { title: qsTr("Select a track file") }
                 onSelectionChanged: { load(selection) }
             }
             
             Notification {
                 id: notification
-                previewSummary: "Loading a track file"
+                previewSummary: qsTr("Loading a track file")
             }
         }
     }

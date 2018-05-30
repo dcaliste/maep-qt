@@ -79,11 +79,12 @@ Page {
         header: Column {
             width: parent.width
             PageHeader {
-                title: manageMode ? "Manage tile sources" : "Select a tile source"
+                title: manageMode ? qsTr("Manage tile sources")
+                                  : qsTr("Select a tile source")
             }
             Label {
                 width: parent.width - 2 * Theme.horizontalPageMargin - 2 * Theme.paddingLarge
-                text: "Long tap to display options"
+                text: qsTr("Long tap to display options")
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.secondaryColor
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -93,7 +94,7 @@ Page {
 
         PullDownMenu {
             MenuItem {
-                text: manageMode ? "Switch to selection" : "Switch to management"
+                text: manageMode ? qsTr("Switch to selection") : qsTr("Switch to management")
                 onClicked: manageMode = !manageMode
             }
         }
@@ -104,9 +105,9 @@ Page {
             delegate: SectionHeader {
                 text: {
                     if (section == SourceModel.SECTION_BASE) {
-                        return "base tiles"
+                        return qsTr("base tiles")
                     } else if (section == SourceModel.SECTION_OVERLAY) {
-                        return "overlay tiles"
+                        return qsTr("overlay tiles")
                     } else {
                         return ""
                     }
@@ -178,7 +179,7 @@ Page {
                 id: contextMenu
                 ContextMenu {
                     MenuItem {
-                        text: "Open map copyright in browser"
+                        text: qsTr("Open map copyright in browser")
                         onClicked: Qt.openUrlExternally(copyrightUrl)
                     }
                 }
