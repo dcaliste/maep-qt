@@ -447,7 +447,7 @@ static const MaepSource* _preset(MaepSourceManager *manager, MaepSourceId id)
     case MAEP_SOURCE_OSM_PUBLIC_TRANSPORT:
         source = _sourceNew
             ("Public Transport",
-             "http://tile.xn--pnvkarte-m4a.de/tilegen/#Z/#X/#Y.png", "png",
+             "http://tile.memomaps.de/tilegen/#Z/#X/#Y.png", "png",
              "CC-BY-SA license (© by MeMomaps)",
              "http://memomaps.de",
              1, 18, DEFAULT_PERIOD, TRUE);
