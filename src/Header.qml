@@ -103,27 +103,27 @@ SilicaFlickable {
 
     Repeater {
         z: 2
-        visible: page.status == PageStatus.Active
         model: content.children.length - 1
         delegate: GlassItem {
+            visible: page.status == PageStatus.Active
             x: root.width * (modelData + 1) - width / 2
             color: Theme.primaryColor
             radius: 0.22
             falloffRadius: 0.18
             MouseArea {
                 anchors.fill: parent
-                onClicked: root.setAction(mouse.x < width / 2 ? modelData + 1 : modelData)
+                onClicked: currentIndex = mouse.x < width / 2 ? modelData + 1 : modelData
             }
         }
     }
     
     onMovementEnded: {
+        contentX = Qt.binding(function() { return root.width * currentIndex })
         if (contentX < root.width / 2) {
             currentIndex = 0
         } else {
             currentIndex = 1
         }
-        contentX = root.width * currentIndex
         track_details.wptMoving = false
     }
 
