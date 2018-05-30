@@ -3,3 +3,4 @@ RPMS/
 moc_*
 Makefile
 harbour-maep-qt
+translations/*.qm

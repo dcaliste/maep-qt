@@ -69,10 +69,11 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
-/usr/share/applications
-/usr/share/icons
-/usr/share/%{name}
-/usr/bin
+%{_datadir}/applications
+%{_datadir}/icons
+%{_datadir}/%{name}
+%{_datadir}/%{name}/translations
+%{_bindir}
 
 %changelog
 * Tue May 29 2018 - Damien Caliste <dcaliste@free.fr> 1.4.6-1

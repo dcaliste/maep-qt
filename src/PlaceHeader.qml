@@ -47,12 +47,13 @@ Column {
                 - (search_icon.visible ? search_icon.width : 0)
                 - (busy.visible ? busy.width : 0)
             textLeftMargin: 0
-            placeholderText: "Enter a place name"
-            label: busy.visible ? "Searching…"
+            placeholderText: qsTr("Enter a place name")
+            label: busy.visible ? qsTr("Searching…")
                 : resultVisible
-                    ? resultList.model.length + " place(s) found" : "Place search"
+                    ? resultList.model.length + qsTr(" place(s) found")
+                    : qsTr("Place search")
             anchors.verticalCenter: parent.verticalCenter
-            EnterKey.text: "search"
+            EnterKey.text: qsTr("search")
             EnterKey.onClicked: {
                 searching = true
                 resultList.model = undefined

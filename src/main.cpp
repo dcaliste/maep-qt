@@ -2,6 +2,7 @@
 #include "osm-gps-map/osm-gps-map-qt.h"
 #include "../qmlLibs/qquickfolderlistmodel.h"
 
+#include <QtCore/QTranslator>
 #include <QGuiApplication>
 #ifdef HAS_BOOSTER
 #include <MDeclarativeCache>
@@ -20,7 +21,7 @@
 
 namespace Maep {
   QGuiApplication *createApplication(int &argc, char **argv);
-  QQuickView *createView(const QString &file);
+  QQuickView *createView();
   void showView(QQuickView* view);
 }
 
@@ -32,7 +33,7 @@ QGuiApplication *Maep::createApplication(int &argc, char **argv)
     return new QGuiApplication(argc, argv);
 #endif
 }
-QQuickView *Maep::createView(const QString &file)
+QQuickView *Maep::createView()
 {
     QQuickView *view;
 #ifdef HAS_BOOSTER
@@ -41,42 +42,39 @@ QQuickView *Maep::createView(const QString &file)
     view = new QQuickView;
 #endif
     
-    bool isDesktop = qApp->arguments().contains("-desktop");
-    
-    QString path;
+    QString path, file;
 
     QQuickWindow::setDefaultAlphaBuffer(true);
 
-    if (isDesktop)
+    if (qApp->arguments().contains("-desktop"))
       {
         path = qApp->applicationDirPath() + QDir::separator();
 #ifdef DESKTOP
         view->setViewport(new QGLWidget);
 #endif
+        file = QStringLiteral("main-nosilica.qml");
       }
     else
-      path = QString(DEPLOYMENT_PATH);
-    if(file.contains(":"))
-      view->setSource(QUrl(file));
+      {
+        path = QString(DEPLOYMENT_PATH);
+        file = QStringLiteral("main.qml");
+      }
+    if(QCoreApplication::applicationFilePath().startsWith("/opt/sdk/"))
+      {
+        // Quick deployed under /opt/sdk
+        // parse the base path from application binary's path and use it as base
+        QString basePath = QCoreApplication::applicationFilePath();
+        basePath.chop(basePath.length() -  basePath.indexOf("/", 9)); // first index after /opt/sdk/
+        view->engine()->addImportPath(basePath + path);
+        if (!path.endsWith("/"))
+          path += "/";
+        view->setSource(QUrl::fromLocalFile(basePath + path + file));
+      }
     else
       {
-        if(QCoreApplication::applicationFilePath().startsWith("/opt/sdk/"))
-          {
-            // Quick deployed under /opt/sdk
-            // parse the base path from application binary's path and use it as base
-            QString basePath = QCoreApplication::applicationFilePath();
-            basePath.chop(basePath.length() -  basePath.indexOf("/", 9)); // first index after /opt/sdk/
-            view->engine()->addImportPath(basePath + path);
-            if (!path.endsWith("/"))
-              path += "/";
-            view->setSource(QUrl::fromLocalFile(basePath + path + file));
-          }
-        else
-          {
-            view->engine()->addImportPath(path);
-            // Otherwise use deployement path as is
-            view->setSource(QUrl::fromLocalFile(path + QDir::separator() + file));
-          }
+         view->engine()->addImportPath(path);
+         // Otherwise use deployement path as is
+         view->setSource(QUrl::fromLocalFile(path + QDir::separator() + file));
       }
     return view;
 }
@@ -96,8 +94,6 @@ void Maep::showView(QQuickView* view) {
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-  bool isDesktop;
-
   qmlRegisterType<QQuickFolderListModel>("harbour.maep.qt", 1, 0, "FolderListModel");
 
   qmlRegisterType<Maep::Conf>("harbour.maep.qt", 1, 0, "Conf");
@@ -110,9 +106,12 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
   qmlRegisterType<Maep::SourceModelFilter>("harbour.maep.qt", 1, 0, "SourceModelFilter");
 
   QScopedPointer<QGuiApplication> app(Maep::createApplication(argc, argv));
-  isDesktop = app->arguments().contains("-desktop");
+  QTranslator translator;
+  if (translator.load(QLocale::system().name(),
+                      DEPLOYMENT_PATH "/translations"))
+      QGuiApplication::installTranslator(&translator);
 
-  QScopedPointer<QQuickView> view(Maep::createView((isDesktop)?"main-nosilica.qml":"main.qml"));
+  QScopedPointer<QQuickView> view(Maep::createView());
   Maep::showView(view.data());
     
   return app->exec();

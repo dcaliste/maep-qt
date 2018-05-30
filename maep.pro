@@ -51,9 +51,21 @@ qml.files = src/main.qml src/Header.qml src/PlaceHeader.qml src/TrackHeader.qml 
 resources.path = $$DEPLOYMENT_PATH
 resources.files = data/wikipedia_w.48.png data/icon-camera-zoom-wide.png data/icon-camera-zoom-tele.png data/icon-cover-remove.png data/AUTHORS data/COPYING
 
-INSTALLS += target desktop icon86 icon108 icon128 icon256 qml resources
+INSTALLS += target desktop icon86 icon108 icon128 icon256 qml resources qm
 
 OTHER_FILES += rpm/maep-qt.spec
+
+TS_FILE = translations/$${TARGET}.ts
+TRANSLATIONS = translations/fr_FR.ts
+qm.files = $$replace(TRANSLATIONS, \.ts, .qm)
+qm.path = $$DEPLOYMENT_PATH/translations
+qm.CONFIG += no_check_exist
+# update the ts files in the src dir and then copy them to the out dir
+qm.commands += lupdate -noobsolete src/ -ts $${TS_FILE} $$TRANSLATIONS && \
+    mkdir -p translations && \
+    [ \"$${OUT_PWD}\" != \"$${_PRO_FILE_PWD_}\" ] && \
+    cp -af $${TRANSLATIONS_IN} $${OUT_PWD}/translations || :
+qm.commands += ; lrelease $${TRANSLATIONS} || :
 
 # This part is to circumvent harbour limitations.
 QMAKE_RPATHDIR = $$DEPLOYMENT_PATH/lib
