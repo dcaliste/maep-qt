@@ -121,7 +121,7 @@
     </message>
     <message>
         <source>Minimum time between two GPS updates. If set to 0, there will be no GPS update.</source>
-        <translation>Intervalle minimum entre deux rafraîchissement du GPS. À zéro, la position n&apos;est pas mise à jour.</translation>
+        <translation>Intervalle minimum entre deux rafraîchissements du GPS. À zéro, la position n&apos;est pas mise à jour.</translation>
     </message>
     <message>
         <source>Track autosave rate</source>
@@ -214,7 +214,7 @@
     <name>TrackView</name>
     <message>
         <source>track width</source>
-        <translation>largeur du tracée</translation>
+        <translation>largeur du tracé</translation>
     </message>
     <message>
         <source>clear</source>
@@ -222,7 +222,7 @@
     </message>
     <message>
         <source>save on device</source>
-        <translation>enregistrer</translation>
+        <translation>sauvegarder</translation>
     </message>
     <message>
         <source>Unsaved track</source>
@@ -277,7 +277,7 @@
     </message>
     <message>
         <source>import track from device</source>
-        <translation>Importer la trace depuis l&apos;appareil</translation>
+        <translation>Importer une trace depuis l&apos;appareil</translation>
     </message>
     <message>
         <source>no accurate data</source>
