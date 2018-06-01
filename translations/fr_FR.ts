@@ -1,59 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="fr_FR">
+<?xml version="1.0" ?><!DOCTYPE TS><TS language="fr_FR" version="2.1">
 <context>
     <name>About</name>
     <message>
         <source>Miscellaneous</source>
-        <translation type="unfinished"></translation>
+        <translation>Divers</translation>
     </message>
     <message>
         <source>License</source>
-        <translation type="unfinished"></translation>
+        <translation>Lisense</translation>
     </message>
     <message>
         <source>Authors</source>
-        <translation type="unfinished"></translation>
+        <translation>Auteurs</translation>
     </message>
     <message>
         <source>About Mæp</source>
-        <translation type="unfinished"></translation>
+        <translation>À propos de Mæp</translation>
     </message>
     <message>
         <source>A small and fast tile map</source>
-        <translation type="unfinished"></translation>
+        <translation>Une carte tuilée, rapide et compacte</translation>
     </message>
     <message>
         <source>Version </source>
-        <translation type="unfinished"></translation>
+        <translation>Version</translation>
     </message>
     <message>
         <source>Copyright </source>
-        <translation type="unfinished"></translation>
+        <translation>Copyright</translation>
     </message>
     <message>
         <source>Report bugs</source>
-        <translation type="unfinished"></translation>
+        <translation>Rapport de bugs</translation>
     </message>
     <message>
         <source>Please report bugs or feature requests via the Mæp bug tracker. This bug tracker can directly be reached via the following link:</source>
-        <translation type="unfinished"></translation>
+        <translation>Merci d&apos;utiliser l&apos;outil de suivi de Mæp pour les bugs ou les demandes de fonctionnalités. Accéder à l&apos;outil de suivi directement avec ce lien :</translation>
     </message>
     <message>
         <source>Open bug tracker</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrir l&apos;outil de suivi</translation>
     </message>
     <message>
         <source>Donate</source>
-        <translation type="unfinished"></translation>
+        <translation>Donner</translation>
     </message>
     <message>
         <source>If you like Mæp and want to support its future development please consider donating to the developer. You can either donate via paypal to till@harbaum.org or you can just click the button below which will open the appropriate web page in your browser.</source>
-        <translation type="unfinished"></translation>
+        <translation>Si vous aimez Mæp et souhaiter soutenir son développement, vous pouvez donner de l&apos;argent au développeur. Vous pouvez donner en utilisant Paypal à till@harbaum.org ou simplement utiliser le bouton ci-dessous qui ouvrira une fenêtre dans le navigateur.</translation>
     </message>
     <message>
         <source>Donate through Paypal</source>
-        <translation type="unfinished"></translation>
+        <translation>Donner par Paypal</translation>
     </message>
 </context>
 <context>
@@ -83,223 +81,223 @@
     <name>Settings</name>
     <message>
         <source>Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Paramètres</translation>
     </message>
     <message>
         <source>Draw map double pixel</source>
-        <translation type="unfinished"></translation>
+        <translation>Dessiner les pixels en taille double</translation>
     </message>
     <message>
         <source>The tiles of the zoom level above are used instead of the normal ones. The rendering appears as if zoomed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les tuiles du niveau de zoom supérieur sont utilisées. Le rendu apparaît alors comme zoomé.</translation>
     </message>
     <message>
         <source>Compass mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Mode du compas</translation>
     </message>
     <message>
         <source>Either point towards physical north pole, or show device orientation relative to map. When switched off, the sensor is completely disabled.</source>
-        <translation type="unfinished"></translation>
+        <translation>Pointe vers le pôle nord magnétique ou affiche l&apos;orientation relative de l&apos;appareil par rapport à la carte. Éteint, le compas est totalement désactivé.</translation>
     </message>
     <message>
         <source>Off</source>
-        <translation type="unfinished"></translation>
+        <translation>Éteint</translation>
     </message>
     <message>
         <source>Point north</source>
-        <translation type="unfinished"></translation>
+        <translation>Pointe au nord</translation>
     </message>
     <message>
         <source>Device orientation</source>
-        <translation type="unfinished"></translation>
+        <translation>Orientation de l&apos;appareil</translation>
     </message>
     <message>
         <source>GPS refresh rate</source>
-        <translation type="unfinished"></translation>
+        <translation>Taux de rafraîchissement du GPS</translation>
     </message>
     <message>
         <source>no update</source>
-        <translation type="unfinished"></translation>
+        <translation>Sans</translation>
     </message>
     <message>
         <source>Minimum time between two GPS updates. If set to 0, there will be no GPS update.</source>
-        <translation type="unfinished"></translation>
+        <translation>Intervalle minimum entre deux rafraîchissement du GPS. À zéro, la position n&apos;est pas mise à jour.</translation>
     </message>
     <message>
         <source>Track autosave rate</source>
-        <translation type="unfinished"></translation>
+        <translation>Enregistrement automatique de la trace GPS</translation>
     </message>
     <message>
         <source>on demand</source>
-        <translation type="unfinished"></translation>
+        <translation>À la demande</translation>
     </message>
     <message>
         <source>Time between two automatic track dumps on disk. Autosaving a track without providing a filename will result to the track being saved in $HOME/.local/share/harbour-maep-qt/track.gpx</source>
-        <translation type="unfinished"></translation>
+        <translation>Intervalle entre deux sauvegardes automatiques. Les traces sans nom de fichier sont enregistrées dans $HOME/.local/share/harbour-maep-qt/track.gpx</translation>
     </message>
     <message>
         <source>Track metric accuracy</source>
-        <translation type="unfinished"></translation>
+        <translation>Précision en mètres des traces GPS</translation>
     </message>
     <message>
         <source>keep all</source>
-        <translation type="unfinished"></translation>
+        <translation>Garder tous les points</translation>
     </message>
     <message>
         <source>Points in track are displayed if horizontal accuracy is below this value.</source>
-        <translation type="unfinished"></translation>
+        <translation>Les points des traces GPS sont affichés si leur précision horizontale est inférieure à cette valeur.</translation>
     </message>
 </context>
 <context>
     <name>Sources</name>
     <message>
         <source>Manage tile sources</source>
-        <translation type="unfinished"></translation>
+        <translation>Gestion des sources de fonds de carte</translation>
     </message>
     <message>
         <source>Select a tile source</source>
-        <translation type="unfinished"></translation>
+        <translation>Sélectionner un fond de carte</translation>
     </message>
     <message>
         <source>Long tap to display options</source>
-        <translation type="unfinished"></translation>
+        <translation>Appui long pour afficher les options</translation>
     </message>
     <message>
         <source>Switch to selection</source>
-        <translation type="unfinished"></translation>
+        <translation>Basculer en mode sélection</translation>
     </message>
     <message>
         <source>Switch to management</source>
-        <translation type="unfinished"></translation>
+        <translation>Basculer en mode gestion</translation>
     </message>
     <message>
         <source>base tiles</source>
-        <translation type="unfinished"></translation>
+        <translation>Fonds de carte de base</translation>
     </message>
     <message>
         <source>overlay tiles</source>
-        <translation type="unfinished"></translation>
+        <translation>Surcouches</translation>
     </message>
     <message>
         <source>Open map copyright in browser</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrir le copyright dans le navigateur</translation>
     </message>
 </context>
 <context>
     <name>TrackHeader</name>
     <message>
         <source>Clear current track</source>
-        <translation type="unfinished"></translation>
+        <translation>Effacer la trace courante</translation>
     </message>
     <message>
         <source>Track</source>
-        <translation type="unfinished"></translation>
+        <translation>Trace GPS</translation>
     </message>
     <message>
         <source>No track</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucune trace</translation>
     </message>
     <message>
         <source>capture GPS position</source>
-        <translation type="unfinished"></translation>
+        <translation>Acquisition de la position GPS</translation>
     </message>
     <message>
         <source>import a local file</source>
-        <translation type="unfinished"></translation>
+        <translation>Importer un fichier local</translation>
     </message>
     <message>
         <source>last autosaved track</source>
-        <translation type="unfinished"></translation>
+        <translation>Dernière trace enregistrée</translation>
     </message>
 </context>
 <context>
     <name>TrackView</name>
     <message>
         <source>track width</source>
-        <translation type="unfinished"></translation>
+        <translation>largeur du tracée</translation>
     </message>
     <message>
         <source>clear</source>
-        <translation type="unfinished"></translation>
+        <translation>effacer</translation>
     </message>
     <message>
         <source>save on device</source>
-        <translation type="unfinished"></translation>
+        <translation>enregistrer</translation>
     </message>
     <message>
         <source>Unsaved track</source>
-        <translation type="unfinished"></translation>
+        <translation>Tracé non enregistré</translation>
     </message>
     <message>
         <source>no accurate data</source>
-        <translation type="unfinished"></translation>
+        <translation>Données non précises</translation>
     </message>
     <message>
         <source>new waypoint description</source>
-        <translation type="unfinished"></translation>
+        <translation>Description d&apos;un nouveau point</translation>
     </message>
     <message>
         <source>new waypoint at GPS position</source>
-        <translation type="unfinished"></translation>
+        <translation>Nouveau point à la position GPS</translation>
     </message>
     <message>
         <source>add</source>
-        <translation type="unfinished"></translation>
+        <translation>ajouter</translation>
     </message>
     <message>
         <source>cancel</source>
-        <translation type="unfinished"></translation>
+        <translation>annuler</translation>
     </message>
     <message>
         <source>update</source>
-        <translation type="unfinished"></translation>
+        <translation>mettre à jour</translation>
     </message>
 </context>
 <context>
     <name>main</name>
     <message>
         <source>About Mæp</source>
-        <translation type="unfinished"></translation>
+        <translation>À propos de Mæp</translation>
     </message>
     <message>
         <source>Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Paramètres</translation>
     </message>
     <message>
         <source>Screen rotation</source>
-        <translation type="unfinished"></translation>
+        <translation>Rotation de l&apos;écran</translation>
     </message>
     <message>
         <source>Wikipedia</source>
-        <translation type="unfinished"></translation>
+        <translation>Wikipédia</translation>
     </message>
     <message>
         <source>Track capture</source>
-        <translation type="unfinished"></translation>
+        <translation>Acquisition de traces</translation>
     </message>
     <message>
         <source>import track from device</source>
-        <translation type="unfinished"></translation>
+        <translation>Importer la trace depuis l&apos;appareil</translation>
     </message>
     <message>
         <source>no accurate data</source>
-        <translation type="unfinished"></translation>
+        <translation>Données non précises</translation>
     </message>
     <message>
         <source>Open Wikipedia page</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrir la page Wikipédia</translation>
     </message>
     <message>
         <source>Save current track</source>
-        <translation type="unfinished"></translation>
+        <translation>Enregistrer la trace courante</translation>
     </message>
     <message>
         <source>Select a track file</source>
-        <translation type="unfinished"></translation>
+        <translation>Sélectionner un fichier de trace</translation>
     </message>
     <message>
         <source>Loading a track file</source>
-        <translation type="unfinished"></translation>
+        <translation>Chargement d&apos;un fichier de trace</translation>
     </message>
 </context>
 </TS>
