@@ -16,7 +16,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.6
+Version: 1.4.7
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
@@ -76,6 +76,11 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 %{_bindir}
 
 %changelog
+* Thu Jun 07 2018 - Damien Caliste <dcaliste@free.fr> 1.4.7-1
+- Correct glass dot not disappearing on page transition.
+- Update tile source for public transportation.
+- Translate in French, see https://www.transifex.com/dcaliste/maep.
+
 * Tue May 29 2018 - Damien Caliste <dcaliste@free.fr> 1.4.6-1
 - Make the list of sources configurable (can show / hide existing sources).
 - Sort place search based on distance to current position.
