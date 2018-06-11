@@ -38,6 +38,8 @@ ApplicationWindow
                       SourceModel.SECTION_BASE)
             addPreset(SourceModel.SOURCE_OSM_PUBLIC_TRANSPORT,
                       SourceModel.SECTION_BASE)
+            addPreset(SourceModel.SOURCE_HIKE_AND_BIKE,
+                      SourceModel.SECTION_BASE)
             addPreset(SourceModel.SOURCE_MML_PERUSKARTTA,
                       SourceModel.SECTION_BASE)
             addPreset(SourceModel.SOURCE_MML_ORTOKUVA,
@@ -53,6 +55,8 @@ ApplicationWindow
             addPreset(SourceModel.SOURCE_VIRTUAL_EARTH_HYBRID,
                       SourceModel.SECTION_BASE)
             addPreset(SourceModel.SOURCE_OPENSEAMAP,
+                      SourceModel.SECTION_OVERLAY)
+            addPreset(SourceModel.SOURCE_HILL_SHADING,
                       SourceModel.SECTION_OVERLAY)
         }
     }

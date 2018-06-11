@@ -52,6 +52,8 @@ typedef enum {
     MAEP_SOURCE_MML_PERUSKARTTA,
     MAEP_SOURCE_MML_ORTOKUVA,
     MAEP_SOURCE_MML_TAUSTAKARTTA,
+    MAEP_SOURCE_HIKE_AND_BIKE,
+    MAEP_SOURCE_HILL_SHADING,
     MAEP_SOURCE_LAST,
 
     MAEP_SOURCE_USER_DEFINED = 100
@@ -66,8 +68,9 @@ typedef enum {
 #define MAEP_SOURCE_HAS_YS  (1 << 6)
 #define MAEP_SOURCE_HAS_R   (1 << 7)
 #define MAEP_SOURCE_HAS_GOOGLE_DOMAIN (1 << 8)
+#define MAEP_SOURCE_HAS_TR  (1 << 9)
 //....
-#define MAEP_SOURCE_FLAG_END (1 << 9)
+#define MAEP_SOURCE_FLAG_END (1 << 10)
 
 typedef struct _MaepSource MaepSource;
 

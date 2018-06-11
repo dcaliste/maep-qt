@@ -382,7 +382,8 @@ Maep::GpsMap::~GpsMap()
         g_object_get(overlay, "map-source", &source, NULL);
         g_object_unref(overlay);
         overlaySourceId = source ? maep_source_get_id(source) : int(MAEP_SOURCE_NULL);
-        g_boxed_free(MAEP_TYPE_SOURCE, source);
+        if (source)
+          g_boxed_free(MAEP_TYPE_SOURCE, source);
     }
   overlay = NULL;
 

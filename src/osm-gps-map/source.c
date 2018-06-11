@@ -56,6 +56,7 @@ struct _MaepSource
 #define URI_MARKER_Q0   "#W"
 #define URI_MARKER_YS   "#U"
 #define URI_MARKER_R    "#R"
+#define URI_MARKER_T    "#T"
 
 static int _inspect_map_uri(const gchar *repo_uri)
 {
@@ -86,6 +87,9 @@ static int _inspect_map_uri(const gchar *repo_uri)
 
     if (g_strrstr(repo_uri, URI_MARKER_R))
         uri_format |= MAEP_SOURCE_HAS_R;
+
+    if (g_strrstr(repo_uri, URI_MARKER_T))
+        uri_format |= MAEP_SOURCE_HAS_TR;
 
     if (g_strrstr(repo_uri, "google.com"))
         uri_format |= MAEP_SOURCE_HAS_GOOGLE_DOMAIN;
@@ -413,6 +417,20 @@ static const MaepSource* _preset(MaepSourceManager *manager, MaepSourceId id)
              "CC 4.0 licence (© Maanmittauslaitos)",
              "http://www.maanmittauslaitos.fi/avoimen-tietoaineiston-cc-40-lisenssi",
              1, 20, DEFAULT_PERIOD, TRUE);
+        break;
+    case MAEP_SOURCE_HIKE_AND_BIKE:
+        source = _sourceNew
+            ("Hike and bike",
+             "http://#T.tiles.wmflabs.org/hikebike/#Z/#X/#Y.png", "png",
+             "© OpenStreetMap contributors",
+             "http://www.hikebikemap.org", 1, 18, DEFAULT_PERIOD, TRUE);
+        break;
+    case MAEP_SOURCE_HILL_SHADING:
+        source = _sourceNew
+            ("Hill shading",
+             "http://#T.tiles.wmflabs.org/hillshading/#Z/#X/#Y.png", "png",
+             "© NASA (SRTM3 v2)",
+             "http://www2.jpl.nasa.gov/srtm/", 1, 18, DEFAULT_PERIOD, TRUE);
         break;
     case MAEP_SOURCE_OPENAERIALMAP:
         /* OpenAerialMap is down, offline till furthur notice
@@ -963,6 +981,7 @@ gchar* maep_source_get_tile_uri(const MaepSource *source,
     char *url;
     unsigned int i;
     char location[22];
+    const char letters[3] = {'a', 'b', 'c'};
 
     g_return_val_if_fail(source, NULL);
 
@@ -1018,6 +1037,11 @@ gchar* maep_source_get_tile_uri(const MaepSource *source,
         case MAEP_SOURCE_HAS_R:
             s = g_strdup_printf("%d", g_random_int_range(0,4));
             url = replace_string(url, URI_MARKER_R, s);
+            //g_debug("FOUND " URI_MARKER_R);
+            break;
+        case MAEP_SOURCE_HAS_TR:
+            s = g_strdup_printf("%c", letters[g_random_int_range(0,3)]);
+            url = replace_string(url, URI_MARKER_T, s);
             //g_debug("FOUND " URI_MARKER_R);
             break;
         default:
