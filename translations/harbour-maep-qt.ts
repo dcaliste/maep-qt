@@ -117,6 +117,7 @@
         <source>%n place(s) found</source>
         <translation type="unfinished">
             <numerusform></numerusform>
+            <numerusform></numerusform>
         </translation>
     </message>
     <message>
