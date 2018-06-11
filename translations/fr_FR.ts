@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="fr_FR">
+<?xml version="1.0" ?><!DOCTYPE TS><TS language="fr_FR" version="2.1">
 <context>
     <name>About</name>
     <message>
@@ -49,50 +47,50 @@
     </message>
     <message>
         <source>Version %1 - %2</source>
-        <translation type="unfinished"></translation>
+        <translation>Version %1 - %2</translation>
     </message>
     <message>
         <source>Copyright %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Copyright %1</translation>
     </message>
 </context>
 <context>
     <name>FileChooser</name>
     <message>
         <source>enter a new file name</source>
-        <translation type="unfinished"></translation>
+        <translation>taper un nouveau nom de fichier</translation>
     </message>
     <message>
         <source>or select an existing one</source>
-        <translation type="unfinished"></translation>
+        <translation>ou choisissez-en un existant</translation>
     </message>
     <message>
         <source>My Jolla</source>
-        <translation type="unfinished"></translation>
+        <translation>Mon Jolla</translation>
     </message>
     <message>
         <source>No files</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucun fichier</translation>
     </message>
     <message>
         <source>sort by</source>
-        <translation type="unfinished"></translation>
+        <translation>trié par</translation>
     </message>
     <message>
         <source>name</source>
-        <translation type="unfinished"></translation>
+        <translation>nom</translation>
     </message>
     <message>
         <source>date</source>
-        <translation type="unfinished"></translation>
+        <translation>date</translation>
     </message>
     <message>
         <source>type</source>
-        <translation type="unfinished"></translation>
+        <translation>type</translation>
     </message>
     <message>
         <source>reversed</source>
-        <translation type="unfinished"></translation>
+        <translation>descendant</translation>
     </message>
 </context>
 <context>
@@ -115,18 +113,15 @@
     </message>
     <message numerus="yes">
         <source>%n place(s) found</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
-        </translation>
+        <translation><numerusform>%n lieu trouvé</numerusform><numerusform>%n lieux trouvés</numerusform></translation>
     </message>
     <message>
         <source>at %L1 km</source>
-        <translation type="unfinished"></translation>
+        <translation>à %L1 km</translation>
     </message>
     <message>
         <source>at %1 m</source>
-        <translation type="unfinished"></translation>
+        <translation>à %1 m</translation>
     </message>
 </context>
 <context>
@@ -201,15 +196,15 @@
     </message>
     <message>
         <source>%1 s</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 s</translation>
     </message>
     <message>
         <source>%1 min.</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 min.</translation>
     </message>
     <message>
         <source>%1 m</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 m</translation>
     </message>
 </context>
 <context>
@@ -318,27 +313,27 @@
     </message>
     <message>
         <source>%1 s</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 s</translation>
     </message>
     <message>
         <source>%1 min</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 min.</translation>
     </message>
     <message>
         <source>%1 h %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 h %2</translation>
     </message>
     <message>
         <source>%L1 km</source>
-        <translation type="unfinished"></translation>
+        <translation>%L1 km</translation>
     </message>
     <message>
         <source>%1 m</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 m</translation>
     </message>
     <message>
         <source>%1 km/h</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 km/h</translation>
     </message>
 </context>
 <context>
@@ -389,48 +384,49 @@
     </message>
     <message>
         <source>%1 s</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 s</translation>
     </message>
     <message>
         <source>%1 min</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 min.</translation>
     </message>
     <message>
         <source>%1 h %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 h %2</translation>
     </message>
     <message>
         <source>%L1 km</source>
-        <translation type="unfinished"></translation>
+        <translation>%L1 km</translation>
     </message>
     <message>
         <source>%1 m</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 m</translation>
     </message>
     <message>
         <source>%1 km/h</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 km/h</translation>
     </message>
     <message>
         <source>at %L1 km</source>
-        <translation type="unfinished"></translation>
+        <translation>à %L1 km</translation>
     </message>
     <message>
         <source>at %1 m</source>
-        <translation type="unfinished"></translation>
+        <translation>à %1 m</translation>
     </message>
     <message>
         <source>coordinates: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>coordonnées : %1
+</translation>
     </message>
     <message>
         <source>source: geonames.org</source>
-        <translation type="unfinished"></translation>
+        <translation>source : geonames.org</translation>
     </message>
     <message>
         <source>Overwrite file?</source>
-        <translation type="unfinished"></translation>
+        <translation>Écraser le fichier ?</translation>
     </message>
 </context>
 </TS>
