@@ -1187,7 +1187,8 @@ osm_gps_map_set_property (GObject *object, guint prop_id, const GValue *value, G
             priv->source = g_value_get_boxed(value);
             if(priv->source != old) {
                 g_message("Change map source to %s.",
-                          maep_source_get_friendly_name(priv->source));
+                          priv->source ?
+                          maep_source_get_friendly_name(priv->source) : "none");
                 /* we now have to switch the entire map */
 
                 /* flush the ram cache */
