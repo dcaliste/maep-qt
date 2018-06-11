@@ -903,6 +903,13 @@ osm_gps_map_redraw (OsmGpsMap *map)
         return FALSE;
     }
 
+    if ((priv->center_rlat == G_MAXFLOAT) ||
+        (priv->center_rlon == G_MAXFLOAT)) {
+        g_message("not a useful position yet for source %s ...",
+                  maep_source_get_friendly_name(priv->source));
+        return FALSE;
+    }
+
     /* don't redraw the entire map while the OSD is doing */
     /* some animation or the like. This is to keep the animation */
     /* fluid */
@@ -997,6 +1004,8 @@ osm_gps_map_init (OsmGpsMap *object)
 
     priv->viewport_width = 0;
     priv->viewport_height = 0;
+    priv->center_rlat = G_MAXFLOAT;
+    priv->center_rlon = G_MAXFLOAT;
     priv->dirty = cairo_region_create();
 
     priv->manager = maep_source_manager_get_instance();
