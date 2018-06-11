@@ -246,21 +246,21 @@ ApplicationWindow
                 Label {
                     function duration(time) {
                         if (time < 60) {
-                            return time + " s"
+                            return qsTr("%1 s").arg(time)
                         } else if (time < 3600) {
                             var m = Math.floor(time / 60)
-                            return  m + " min"
+                            return  qsTr("%1 min").arg(m)
                         } else {
                             var h = Math.floor(time / 3600)
                             var m = Math.floor((time - h * 3600) / 60)
-                            return h + " h " + m
+                            return qsTr("%1 h %2").arg(h).arg(m)
                         }
                     }
                     function length(lg) {
                         if (lg >= 1000) {
-                            return (lg / 1000).toFixed(1) + " km"
+                            return qsTr("%L1 km").arg((lg / 1000).toFixed(1))
                         } else {
-                            return lg.toFixed(0) + " m"
+                            return qsTr("%1 m").arg(lg.toFixed(0))
                         }
                     }
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -270,7 +270,7 @@ ApplicationWindow
                 Label {
                     function speed(length, time) {
                         if (time > 0) {
-                            return (length / time * 3.6).toFixed(2) + " km/h"
+                            return qsTr("%1 km/h").arg((length / time * 3.6).toFixed(2))
                         } else {
                             return ""
                         }
@@ -338,14 +338,14 @@ ApplicationWindow
             }
             Label {
                 property real dist: map.coordinate.distanceTo(map.wiki_entry.coordinate)
-                property string at: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
+                property string at: dist >= 1000 ? qsTr("at %L1 km").arg((dist / 1000).toFixed(1)) : qsTr("at %1 m").arg(dist.toFixed(0))
                 id: coordinates
                 anchors.top: page.isPortrait ? thumbnail.bottom : undefined
                 anchors.right: parent.right
                 anchors.left: page.isPortrait ? parent.left : thumbnail.right
                 anchors.rightMargin: Theme.paddingMedium
                 anchors.verticalCenter: page.isPortrait ? undefined : thumbnail.verticalCenter
-                text: "coordinates: " + map.wiki_entry.coordinateToString() + "\n" + at
+                text: qsTr("coordinates: %1\n").arg(map.wiki_entry.coordinateToString()) + at
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
                 horizontalAlignment: Text.AlignRight
@@ -376,7 +376,7 @@ ApplicationWindow
                 font.pixelSize: Theme.fontSizeExtraSmall
                 font.italic: true
                 color: Theme.secondaryColor
-                text: "source: geonames.org"
+                text: qsTr("source: geonames.org")
             }
         }
     }
@@ -441,7 +441,7 @@ ApplicationWindow
             function overwrite(url) {
                 console.log("overwritting " + url)
                 console.log("export track" + track)
-                remorse.execute("Overwrite file ?", function() { save(url) })
+                remorse.execute(qsTr("Overwrite file?"), function() { save(url) })
             }
             onOpened: { var url = conf.getString("track_path")
                 if (url.length > 0) {

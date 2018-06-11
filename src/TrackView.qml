@@ -1,6 +1,6 @@
 /*
  * TrackView.qml
- * Copyright (C) Damien Caliste 2014 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2014-2018 <dcaliste@free.fr>
  *
  * TrackView.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -133,21 +133,21 @@ Column {
                 Label {
                     function duration(time) {
                         if (time < 60) {
-                            return time + " s"
+                            return qsTr("%1 s").arg(time)
                         } else if (time < 3600) {
                             var m = Math.floor(time / 60)
-                            return  m + " min"
+                            return  qsTr("%1 min").arg(m)
                         } else {
                             var h = Math.floor(time / 3600)
                             var m = Math.floor((time - h * 3600) / 60)
-                            return h + " h " + m
+                            return qsTr("%1 h %2").arg(h).arg(m)
                         }
                     }
                     function length(lg) {
                         if (lg >= 1000) {
-                            return (lg / 1000).toFixed(1) + " km"
+                            return qsTr("%L1 km").arg((lg / 1000).toFixed(1))
                         } else {
-                            return lg.toFixed(0) + " m"
+                            return qsTr("%1 m").arg(lg.toFixed(0))
                         }
                     }
                     parent: pageHeader.extraContent
@@ -161,7 +161,7 @@ Column {
                 Label {
                     function speed(length, time) {
                         if (time > 0) {
-                            return (length / time * 3.6).toFixed(2) + " km/h"
+                            return qsTr("%1 km/h").arg((length / time * 3.6).toFixed(2))
                         } else {
                             return ""
                         }

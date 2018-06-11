@@ -76,7 +76,7 @@ SilicaFlickable {
                 stepSize: 1.
                 label: qsTr("GPS refresh rate")
                 value: map.gps_refresh_rate / 1000.
-                valueText: (value > 0) ? value + " s" : qsTr("no update")
+                valueText: (value > 0) ? qsTr("%1 s").arg(value) : qsTr("no update")
                 onValueChanged: { map.gps_refresh_rate = value * 1000 }
             }
             Label {
@@ -105,7 +105,7 @@ SilicaFlickable {
                 stepSize: 1.
                 label: qsTr("Track autosave rate")
                 value: map.track_autosave_rate / 60.
-                valueText: (value > 0) ? value + " min." : qsTr("on demand")
+                valueText: (value > 0) ? qsTr("%1 min.").arg(value) : qsTr("on demand")
                 onValueChanged: { map.track_autosave_rate = value * 60 }
             }
             Label {
@@ -136,7 +136,7 @@ SilicaFlickable {
                 stepSize: 10.
                 label: qsTr("Track metric accuracy")
                 value: map.track_metric_accuracy
-                valueText: (value > 0) ? value + " m." : qsTr("keep all")
+                valueText: (value > 0) ? qsTr("%1 m").arg(value) : qsTr("keep all")
                 onValueChanged: { map.track_metric_accuracy = value }
             }
             Label {

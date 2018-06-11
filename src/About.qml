@@ -67,7 +67,7 @@ SilicaFlickable {
         Label {
             id: lbl_version
             width: parent.width
-            text: qsTr("Version ") + version + " - " + date
+            text: qsTr("Version %1 - %2").arg(version).arg(date)
             color: Theme.primaryColor
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter
@@ -75,7 +75,7 @@ SilicaFlickable {
         Label {
             id: copyright
             width: parent.width
-            text: qsTr("Copyright ") + "2009-2018"
+            text: qsTr("Copyright %1").arg("2009 - 2018")
             color: Theme.primaryColor
             font.pixelSize: Theme.fontSizeSmall
             horizontalAlignment: Text.AlignHCenter

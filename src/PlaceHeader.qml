@@ -50,7 +50,7 @@ Column {
             placeholderText: qsTr("Enter a place name")
             label: busy.visible ? qsTr("Searching…")
                 : resultVisible
-                    ? resultList.model.length + qsTr(" place(s) found")
+                    ? qsTr("%n place(s) found", "", resultList.model.length)
                     : qsTr("Place search")
             anchors.verticalCenter: parent.verticalCenter
             EnterKey.text: qsTr("search")
@@ -119,7 +119,7 @@ Column {
 	        Label {
 	            property real dist: currentPlace.distanceTo(model.coordinate)
 	            font.pixelSize: Theme.fontSizeExtraSmall
-	            text: dist >= 1000 ? "at " + (dist / 1000).toFixed(1) + " km" : "at " + dist.toFixed(0) + " m"
+	            text: dist >= 1000 ? qsTr("at %L1 km").arg((dist / 1000).toFixed(1)) : qsTr("at %1 m").arg(dist.toFixed(0))
 	            color: Theme.secondaryColor
 	            anchors.right: img_go.left
 	            anchors.bottom: parent.bottom

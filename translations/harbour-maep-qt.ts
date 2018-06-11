@@ -24,14 +24,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Version </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copyright </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Report bugs</source>
         <translation type="unfinished"></translation>
     </message>
@@ -55,6 +47,53 @@
         <source>Donate through Paypal</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Version %1 - %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>FileChooser</name>
+    <message>
+        <source>enter a new file name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>or select an existing one</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>My Jolla</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>sort by</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>reversed</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PlaceHeader</name>
@@ -67,15 +106,25 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source> place(s) found</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Place search</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>search</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>%n place(s) found</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>at %L1 km</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>at %1 m</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -147,6 +196,18 @@
     </message>
     <message>
         <source>Points in track are displayed if horizontal accuracy is below this value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 m</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -254,6 +315,30 @@
         <source>update</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>%1 s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%L1 km</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 km/h</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>main</name>
@@ -299,6 +384,51 @@
     </message>
     <message>
         <source>Loading a track file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 min</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 h %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%L1 km</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 km/h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>at %L1 km</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>at %1 m</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>coordinates: %1
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>source: geonames.org</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Overwrite file?</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
