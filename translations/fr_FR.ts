@@ -7,7 +7,7 @@
     </message>
     <message>
         <source>License</source>
-        <translation>Lisense</translation>
+        <translation>Licence</translation>
     </message>
     <message>
         <source>Authors</source>
@@ -27,7 +27,7 @@
     </message>
     <message>
         <source>Please report bugs or feature requests via the Mæp bug tracker. This bug tracker can directly be reached via the following link:</source>
-        <translation>Merci d&apos;utiliser l&apos;outil de suivi de Mæp pour les bugs ou les demandes de fonctionnalités. Accéder à l&apos;outil de suivi directement avec ce lien :</translation>
+        <translation>Merci d&apos;utiliser l&apos;outil de suivi de Mæp pour les bugs ou les demandes de fonctionnalités. Accédez à l&apos;outil de suivi directement avec ce lien :</translation>
     </message>
     <message>
         <source>Open bug tracker</source>
@@ -39,7 +39,7 @@
     </message>
     <message>
         <source>If you like Mæp and want to support its future development please consider donating to the developer. You can either donate via paypal to till@harbaum.org or you can just click the button below which will open the appropriate web page in your browser.</source>
-        <translation>Si vous aimez Mæp et souhaiter soutenir son développement, vous pouvez donner de l&apos;argent au développeur. Vous pouvez donner en utilisant Paypal à till@harbaum.org ou simplement utiliser le bouton ci-dessous qui ouvrira une fenêtre dans le navigateur.</translation>
+        <translation>Si vous aimez Mæp et souhaitez soutenir son développement, vous pouvez donner de l&apos;argent au développeur. Vous pouvez donner en utilisant Paypal à till@harbaum.org ou simplement utiliser le bouton ci-dessous qui ouvrira une fenêtre dans le navigateur.</translation>
     </message>
     <message>
         <source>Donate through Paypal</source>
@@ -164,7 +164,7 @@
     </message>
     <message>
         <source>no update</source>
-        <translation>Sans</translation>
+        <translation>sans</translation>
     </message>
     <message>
         <source>Minimum time between two GPS updates. If set to 0, there will be no GPS update.</source>
@@ -176,7 +176,7 @@
     </message>
     <message>
         <source>on demand</source>
-        <translation>À la demande</translation>
+        <translation>à la demande</translation>
     </message>
     <message>
         <source>Time between two automatic track dumps on disk. Autosaving a track without providing a filename will result to the track being saved in $HOME/.local/share/harbour-maep-qt/track.gpx</source>
@@ -188,7 +188,7 @@
     </message>
     <message>
         <source>keep all</source>
-        <translation>Garder tous les points</translation>
+        <translation>garder tous les points</translation>
     </message>
     <message>
         <source>Points in track are displayed if horizontal accuracy is below this value.</source>
@@ -262,11 +262,11 @@
     </message>
     <message>
         <source>import a local file</source>
-        <translation>Importer un fichier local</translation>
+        <translation>importer un fichier local</translation>
     </message>
     <message>
         <source>last autosaved track</source>
-        <translation>Dernière trace enregistrée</translation>
+        <translation>dernière trace enregistrée</translation>
     </message>
 </context>
 <context>
@@ -293,11 +293,11 @@
     </message>
     <message>
         <source>new waypoint description</source>
-        <translation>Description d&apos;un nouveau point</translation>
+        <translation>description d&apos;un nouveau point</translation>
     </message>
     <message>
         <source>new waypoint at GPS position</source>
-        <translation>Nouveau point à la position GPS</translation>
+        <translation>nouveau point à la position GPS</translation>
     </message>
     <message>
         <source>add</source>
@@ -360,11 +360,11 @@
     </message>
     <message>
         <source>import track from device</source>
-        <translation>Importer une trace depuis l&apos;appareil</translation>
+        <translation>importer une trace depuis l&apos;appareil</translation>
     </message>
     <message>
         <source>no accurate data</source>
-        <translation>Données non précises</translation>
+        <translation>données non précises</translation>
     </message>
     <message>
         <source>Open Wikipedia page</source>
