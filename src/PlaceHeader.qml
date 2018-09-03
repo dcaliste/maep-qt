@@ -49,7 +49,7 @@ Column {
             textLeftMargin: 0
             placeholderText: qsTr("Enter a place name")
             label: busy.visible ? qsTr("Searching…")
-                : resultVisible
+                : resultModel
                     ? qsTr("%n place(s) found", "", resultList.model.length)
                     : qsTr("Place search")
             anchors.verticalCenter: parent.verticalCenter
