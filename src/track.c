@@ -720,9 +720,8 @@ static void track_save_point(track_point_t *point, xmlNodePtr node) {
       xmlNewChild(node, NULL, BAD_CAST "extensions", NULL);
 
     if(point->h_acc != G_MAXFLOAT) {
-      char *lstr = g_strdup_printf("%g", point->h_acc);
-      xmlNewTextChild(ext, NULL, BAD_CAST "h_acc", BAD_CAST lstr);
-      g_free(lstr);
+      g_ascii_dtostr(str, sizeof(str), point->h_acc);
+      xmlNewTextChild(ext, NULL, BAD_CAST "h_acc", BAD_CAST str);
     }
 
     if (!isnan(point->hr) || !isnan(point->cad)) {
