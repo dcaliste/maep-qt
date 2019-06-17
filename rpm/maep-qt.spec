@@ -16,7 +16,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.8
+Version: 1.4.9
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
@@ -76,6 +76,11 @@ install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
 %{_bindir}
 
 %changelog
+* Tue Aug 07 2018 - Damien Caliste <dcaliste@free.fr> 1.4.9-1
+- Translate in Chinese, see https://www.transifex.com/dcaliste/maep.
+- Fix horizontal accuracy exportation in track files.
+- Update packaging for new harbour rules.
+
 * Tue Aug 07 2018 - Damien Caliste <dcaliste@free.fr> 1.4.8-1
 - Translate in Spanish, see https://www.transifex.com/dcaliste/maep.
 - Add Hike and Bike source and the hill shading overlay.
