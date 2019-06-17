@@ -56,7 +56,7 @@ INSTALLS += target desktop icon86 icon108 icon128 icon256 qml resources qm
 OTHER_FILES += rpm/maep-qt.spec
 
 TS_FILE = translations/$${TARGET}.ts
-TRANSLATIONS = translations/fr_FR.ts translations/es.ts
+TRANSLATIONS = translations/fr_FR.ts translations/es.ts translations/zh_CN.ts
 qm.files = $$replace(TRANSLATIONS, \.ts, .qm)
 qm.path = $$DEPLOYMENT_PATH/translations
 qm.CONFIG += no_check_exist
