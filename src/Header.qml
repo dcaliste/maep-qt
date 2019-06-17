@@ -107,7 +107,8 @@ SilicaFlickable {
         delegate: GlassItem {
             visible: page.status == PageStatus.Active
             x: root.width * (modelData + 1) - width / 2
-            color: Theme.primaryColor
+            color: Theme.lightPrimaryColor
+            backgroundColor: Theme.backgroundGlowColor
             radius: 0.22
             falloffRadius: 0.18
             MouseArea {
