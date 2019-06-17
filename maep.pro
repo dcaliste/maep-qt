@@ -42,8 +42,8 @@ icon108.path = $$PREFIX/share/icons/hicolor/108x108/apps
 icon108.files = data/108x108/harbour-maep-qt.png
 icon128.path = $$PREFIX/share/icons/hicolor/128x128/apps
 icon128.files = data/128x128/harbour-maep-qt.png
-icon256.path = $$PREFIX/share/icons/hicolor/256x256/apps
-icon256.files = data/256x256/harbour-maep-qt.png
+icon172.path = $$PREFIX/share/icons/hicolor/172x172/apps
+icon172.files = data/172x172/harbour-maep-qt.png
 
 qml.path = $$DEPLOYMENT_PATH
 qml.files = src/main.qml src/Header.qml src/PlaceHeader.qml src/TrackHeader.qml src/TrackView.qml src/Sources.qml src/About.qml src/Settings.qml src/FileChooser.qml
@@ -51,7 +51,7 @@ qml.files = src/main.qml src/Header.qml src/PlaceHeader.qml src/TrackHeader.qml 
 resources.path = $$DEPLOYMENT_PATH
 resources.files = data/wikipedia_w.48.png data/icon-camera-zoom-wide.png data/icon-camera-zoom-tele.png data/icon-cover-remove.png data/AUTHORS data/COPYING
 
-INSTALLS += target desktop icon86 icon108 icon128 icon256 qml resources qm
+INSTALLS += target desktop icon86 icon108 icon128 icon172 qml resources qm
 
 OTHER_FILES += rpm/maep-qt.spec
 
