@@ -10,9 +10,7 @@ Name: harbour-maep-qt
 
 # Harbour requirements.
 %define __provides_exclude_from ^%{_datadir}/.*$
-%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libpixman-1.*|libfreetype.*|libc.*|ld-linux.*|libdl.*$
-%{!?qtc_qmake5:%define qtc_qmake5 %qmake5}
-%{!?qtc_make:%define qtc_make make}
+%define __requires_exclude ^libjpeg.*|libcairo.*|libsoup-2.4.*|libdconf.*|libpixman-1.*|libfreetype.*|libpsl.*$
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
@@ -51,8 +49,8 @@ rm -rf $RPM_BUILD_ROOT
 %setup -q -n %{name}-%{version}
 
 %build
-%qtc_qmake5
-%qtc_make %{?jobs:-j%jobs}
+%qmake5
+make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
@@ -65,7 +63,7 @@ install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
 install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /lib/ld-linux.so.? %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p /usr/lib/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
