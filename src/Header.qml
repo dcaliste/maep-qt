@@ -24,6 +24,8 @@ SilicaFlickable {
 
     property alias searchFocus: placeHeader.searchFocus
     property alias searchText: placeHeader.text
+    property alias searching: placeHeader.searching
+    property alias resultModel: placeHeader.resultModel
 
     function searchResults(lst) {
         placeHeader.searchResults(lst)

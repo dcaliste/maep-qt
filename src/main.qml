@@ -517,4 +517,130 @@ ApplicationWindow
             }
         }
     }
+
+    Component.onCompleted: {
+        var query = readCLIArguments(Qt.application.arguments,":");
+        var addr = "";
+
+        if ("parameters" in query) {
+            if ("address" in query.parameters)
+                addr = query.parameters.address;
+        }
+
+        startSearch(addr);
+    }
+
+    function readCLIArguments(argList, sepStr) {
+        // checks argList[] for "-q" = "--query", "--address"
+        // uses an url parser for 'query', but not for 'address'
+        var result = { scheme: "", action: "", comment: "", parameters: {} }
+        var nrArg = argList.length, dStr = "", i = 0, decode = true
+
+        if (sepStr === undefined)
+            sepStr = ":"
+
+        while(i < nrArg-1) {
+            if (argList[i] === "-q" || argList[i] === "--query") {
+                result = schemeComponents(argList[i+1], decode, sepStr)
+                i = nrArg
+            } else if (argList[i] === "--address") {
+                result.parameters.address = argList[i+1]
+                i = nrArg
+            }
+            i++
+        }
+
+        return result
+    }
+
+    function schemeComponents(url, decode, sepStr) {
+        // modified from www.sitepoint.com/get-url-parameters-with-javascript/
+        // url - string to be parsed
+        // decode - is decodeURIComponent() used for the parameter values?
+        // sepStr - separator between the scheme name and the query - ":" or "://" usually
+        var result = {}, queryParams = {}, j=0, schemeStr = url;
+
+        if (sepStr === undefined)
+            sepStr = ":"
+        if (decode === undefined)
+            decode = true
+
+        // if query string exists
+        if (schemeStr) {
+            j = schemeStr.indexOf(sepStr)
+            result.scheme = schemeStr.substring(0,j)
+
+            j += sepStr.length
+            schemeStr = schemeStr.substring(j) // from j to end
+
+            j = schemeStr.indexOf("?")
+            result.action = schemeStr.substring(0, j)
+
+            schemeStr = schemeStr.substring(j+1)
+
+            j = schemeStr.indexOf("#")
+            if (j >= 0) {
+                result.comment = schemeStr.substring(j+1)
+               schemeStr = schemeStr.substring(0, j)
+            }
+
+            // split our query string into its component parts
+            var arr = schemeStr.split('&');
+
+            for (var i = 0; i < arr.length; i++) {
+                // separate the keys and the values
+                var a = arr[i].split('=');
+
+                // set parameter name and value (use 'true' if empty)
+                var paramName = a[0];
+                var paramValue = typeof (a[1]) === 'undefined' ? true : a[1];
+                if (decode && typeof (paramValue) === typeof ("")) // if value is string
+                    paramValue = decodeURIComponent(paramValue)
+
+                // if the paramName ends with square brackets, e.g. colors[] or colors[2]
+                if (paramName.match(/\[(\d+)?\]$/)) {
+
+                    // create key if it doesn't exist
+                    var key = paramName.replace(/\[(\d+)?\]/, '');
+                    if (!queryParams[key]) queryParams[key] = [];
+
+                    // if it's an indexed array e.g. colors[2]
+                    if (paramName.match(/\[\d+\]$/)) {
+                        // get the index value and add the entry at the appropriate position
+                        var index = /\[(\d+)\]/.exec(paramName)[1];
+                        queryParams[key][index] = paramValue;
+                    } else {
+                        // otherwise add the value to the end of the array
+                        queryParams[key].push(paramValue);
+                    }
+                } else {
+                    // we're dealing with a string
+                    if (!queryParams[paramName]) {
+                        // if it doesn't exist, create property
+                        queryParams[paramName] = paramValue;
+                    } else if (queryParams[paramName] && typeof queryParams[paramName] === 'string'){
+                        // if property does exist and it's a string, convert it to an array
+                        queryParams[paramName] = [queryParams[paramName]];
+                        queryParams[paramName].push(paramValue);
+                    } else {
+                        // otherwise add the property
+                        queryParams[paramName].push(paramValue);
+                    }
+                }
+            }
+        }
+        result.parameters = queryParams
+        return result;
+    }
+
+    function startSearch(address) {
+        if (address > "") {
+            header.searching = true;
+            header.resultModel = undefined;
+            header.searchText = address;
+            map.focus = true;
+            map.setSearchRequest(address);
+        }
+        return
+    }
 }
