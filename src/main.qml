@@ -519,125 +519,162 @@ ApplicationWindow
     }
 
     Component.onCompleted: {
-        var query = readCLIArguments(Qt.application.arguments,":");
+        var query = readCLIArguments(Qt.application.arguments);
         var addr = "";
 
         if ("parameters" in query) {
-            if ("address" in query.parameters)
+            if ("address" in query.parameters) {
                 addr = query.parameters.address;
+            }
         }
 
-        startSearch(addr);
+        if (Qt.application.arguments.length > 1) {
+            try {
+                if (!(addr > "")) // addr === "" || null || undefined
+                    console.log(JSON.stringify(query))
+                else
+                    console.log("address = " + addr)
+            } catch (err) {
+                console.log("error in reading command line arguments: " + err)
+            }
+
+            startSearch(addr, true);
+        }
+
     }
 
-    function readCLIArguments(argList, sepStr) {
+    function readCLIArguments(argList, toArray, decode) {
         // checks argList[] for "-q" = "--query", "--address"
         // uses an url parser for 'query', but not for 'address'
-        var result = { scheme: "", action: "", comment: "", parameters: {} }
-        var nrArg = argList.length, dStr = "", i = 0, decode = true
+        var result = { scheme: "", authority: "", path: "", fragment: "", parameters: {} }
+        var nrArg = argList.length, dStr = "", i = 0
 
-        if (sepStr === undefined)
-            sepStr = ":"
+        if (toArray === undefined)
+            toArray = false;
+        if (decode === undefined)
+            decode = true;
 
         while(i < nrArg-1) {
             if (argList[i] === "-q" || argList[i] === "--query") {
-                result = schemeComponents(argList[i+1], decode, sepStr)
-                i = nrArg
+                result = schemeComponents(argList[i+1], toArray, decode);
+                i = nrArg;
             } else if (argList[i] === "--address") {
-                result.parameters.address = argList[i+1]
-                i = nrArg
+                result.parameters.address = argList[i+1];
+                i = nrArg;
             }
-            i++
+            i++;
         }
 
         return result
     }
 
-    function schemeComponents(url, decode, sepStr) {
-        // modified from www.sitepoint.com/get-url-parameters-with-javascript/
-        // url - string to be parsed
+    function schemeComponents(url, toArray, decode) {
+        // splits url into scheme:[//authority]path[?query][#fragment]
         // decode - is decodeURIComponent() used for the parameter values?
-        // sepStr - separator between the scheme name and the query - ":" or "://" usually
-        var result = {}, queryParams = {}, j=0, schemeStr = url;
+        // sepStr - separator between the scheme name and the query - ":"
+        // toArray - does "key=value1&key=value2" result in array (true) or overwriting (false)
+        var result = { scheme: "", authority: "", path: "", fragment: "", parameters: {} };
+        var queryParams = {}, i=0, j=0;
 
-        if (sepStr === undefined)
-            sepStr = ":"
+        if (toArray === undefined)
+            toArray = false;
         if (decode === undefined)
-            decode = true
+            decode = true;
 
         // if query string exists
-        if (schemeStr) {
-            j = schemeStr.indexOf(sepStr)
-            result.scheme = schemeStr.substring(0,j)
+        if (url) {
+            j = url.indexOf(":");
+            result.scheme = url.substring(0, j);
 
-            j += sepStr.length
-            schemeStr = schemeStr.substring(j) // from j to end
+            url = url.substring(j+1); // [//authority]path[?query][#fragment]
 
-            j = schemeStr.indexOf("?")
-            result.action = schemeStr.substring(0, j)
+            if (url.indexOf("//") === 0) {
+                url = url.substring(2);
+            }
+            j = url.indexOf("/"); // start of path
+            if (j > 0) {
+                result.authority = url.substring(0,j);
+                url = url.substring(j); // path[?query][#fragment]
+            }
 
-            schemeStr = schemeStr.substring(j+1)
-
-            j = schemeStr.indexOf("#")
+            j = url.indexOf("#");
             if (j >= 0) {
-                result.comment = schemeStr.substring(j+1)
-               schemeStr = schemeStr.substring(0, j)
+                result.fragment = url.substring(j+1, url.length);
+                url = url.substring(0, j); // path[?query]
             }
 
-            // split our query string into its component parts
-            var arr = schemeStr.split('&');
-
-            for (var i = 0; i < arr.length; i++) {
-                // separate the keys and the values
-                var a = arr[i].split('=');
-
-                // set parameter name and value (use 'true' if empty)
-                var paramName = a[0];
-                var paramValue = typeof (a[1]) === 'undefined' ? true : a[1];
-                if (decode && typeof (paramValue) === typeof ("")) // if value is string
-                    paramValue = decodeURIComponent(paramValue)
-
-                // if the paramName ends with square brackets, e.g. colors[] or colors[2]
-                if (paramName.match(/\[(\d+)?\]$/)) {
-
-                    // create key if it doesn't exist
-                    var key = paramName.replace(/\[(\d+)?\]/, '');
-                    if (!queryParams[key]) queryParams[key] = [];
-
-                    // if it's an indexed array e.g. colors[2]
-                    if (paramName.match(/\[\d+\]$/)) {
-                        // get the index value and add the entry at the appropriate position
-                        var index = /\[(\d+)\]/.exec(paramName)[1];
-                        queryParams[key][index] = paramValue;
-                    } else {
-                        // otherwise add the value to the end of the array
-                        queryParams[key].push(paramValue);
-                    }
-                } else {
-                    // we're dealing with a string
-                    if (!queryParams[paramName]) {
-                        // if it doesn't exist, create property
-                        queryParams[paramName] = paramValue;
-                    } else if (queryParams[paramName] && typeof queryParams[paramName] === 'string'){
-                        // if property does exist and it's a string, convert it to an array
-                        queryParams[paramName] = [queryParams[paramName]];
-                        queryParams[paramName].push(paramValue);
-                    } else {
-                        // otherwise add the property
-                        queryParams[paramName].push(paramValue);
-                    }
-                }
-            }
+            j = url.indexOf("?");
+            if (j >= 0) {
+                result.path = url.substring(0, j);
+                url = url.substring(j+1); // query
+                queryParams = readParameters(url, toArray, decode);
+            } else
+                result.path = url;
         }
-        result.parameters = queryParams
+
+        result.parameters = queryParams;
         return result;
     }
 
-    function startSearch(address) {
+    function readParameters(str, toArray, decode) {
+        // str - string consisting of "key[=value]"-strings separated by "&"'s
+        // decode - whether to run decodeURIComponent(value)
+        // toArray - in case of multiple incidences of a key name, should the values be store in an array or overwritten
+        // modified from www.sitepoint.com/get-url-parameters-with-javascript/
+        var parameters = {}, kvlist = [], keyValue = [], i = 0, j, key, keyArray, value;
+
+        if (toArray === undefined)
+            toArray = false;
+        if (decode === undefined)
+            decode = true;
+
+        kvlist = str.split('&'); // array of "key[=value]"-strings
+
+        while (i < kvlist.length) {
+            // separate the keys and the values
+            keyValue = kvlist[i].split('='); // array of one or two strings
+
+            // set value to 'true' if no '='s
+            if (keyValue.length === 1)
+                value = true
+            else if (decode)
+                value = decodeURIComponent(keyValue[1]);
+
+            // a single value or an array, e.g. color, colors[] or colors[2]
+            key = keyValue[0];
+            if (key.match(/\[\d*\]$/)) { // colors[] or colors[2]
+                keyArray = key;
+                // create key if it doesn't exist
+                key = keyArray.replace(/\[\d*\]$/, '');
+                if (!(key in parameters))
+                    parameters[key] = [];
+
+                if (keyArray.match(/\[\d+\]$/)) { // colors[2]
+                    // get the index value and add the entry at the appropriate position
+                    j = 1.0*(/\d+/.exec(keyArray.match(/\[\d+\]$/))); // RegExp returns a string
+                    parameters[key][j] = value;
+                } else {
+                    // otherwise add the value to the end of the array
+                    parameters[key].push(value);
+                }
+            } else { // no brackets
+                if (toArray && key in parameters) {
+                    // if property exists and it's not boolean, convert it to an array
+                    if (typeof (parameters[key]) === typeof (""))
+                        parameters[key] = [parameters[key]];
+                    parameters[key].push(value);
+                } else
+                    parameters[key] = value;
+            }
+            i++;
+        }
+
+        return parameters
+    }
+
+    function startSearch(address, changeText) {
         if (address > "") {
-            header.searching = true;
-            header.resultModel = undefined;
-            header.searchText = address;
+            header.search(address, changeText);
             map.focus = true;
             map.setSearchRequest(address);
         }
