@@ -522,10 +522,8 @@ ApplicationWindow
         var query = readCLIArguments(Qt.application.arguments);
         var addr = "";
 
-        if ("parameters" in query) {
-            if ("address" in query.parameters) {
+        if ("parameters" in query && "address" in query.parameters) {
                 addr = query.parameters.address;
-            }
         }
 
         if (Qt.application.arguments.length > 1) {
