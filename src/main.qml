@@ -517,4 +517,165 @@ ApplicationWindow
             }
         }
     }
+
+    Component.onCompleted: {
+        var query = readCLIArguments(Qt.application.arguments);
+        var addr = "";
+
+        if ("parameters" in query && "address" in query.parameters) {
+                addr = query.parameters.address;
+        }
+
+        if (Qt.application.arguments.length > 1) {
+            try {
+                if (!(addr > "")) // addr === "" || null || undefined
+                    console.log(JSON.stringify(query))
+                else
+                    console.log("address = " + addr)
+            } catch (err) {
+                console.log("error in reading command line arguments: " + err)
+            }
+
+            startSearch(addr, true);
+        }
+
+    }
+
+    function readCLIArguments(argList, toArray, decode) {
+        // checks argList[] for "-q" = "--query", "--address"
+        // uses an url parser for 'query', but not for 'address'
+        var result = { scheme: "", authority: "", path: "", fragment: "", parameters: {} }
+        var nrArg = argList.length, dStr = "", i = 0
+
+        if (toArray === undefined)
+            toArray = false;
+        if (decode === undefined)
+            decode = true;
+
+        while(i < nrArg-1) {
+            if (argList[i] === "-q" || argList[i] === "--query") {
+                result = schemeComponents(argList[i+1], toArray, decode);
+                i = nrArg;
+            } else if (argList[i] === "--address") {
+                result.parameters.address = argList[i+1];
+                i = nrArg;
+            }
+            i++;
+        }
+
+        return result
+    }
+
+    function schemeComponents(url, toArray, decode) {
+        // splits url into scheme:[//authority]path[?query][#fragment]
+        // decode - is decodeURIComponent() used for the parameter values?
+        // sepStr - separator between the scheme name and the query - ":"
+        // toArray - does "key=value1&key=value2" result in array (true) or overwriting (false)
+        var result = { scheme: "", authority: "", path: "", fragment: "", parameters: {} };
+        var queryParams = {}, i=0, j=0;
+
+        if (toArray === undefined)
+            toArray = false;
+        if (decode === undefined)
+            decode = true;
+
+        // if query string exists
+        if (url) {
+            j = url.indexOf(":");
+            result.scheme = url.substring(0, j);
+
+            url = url.substring(j+1); // [//authority]path[?query][#fragment]
+
+            if (url.indexOf("//") === 0) {
+                url = url.substring(2);
+            }
+            j = url.indexOf("/"); // start of path
+            if (j > 0) {
+                result.authority = url.substring(0,j);
+                url = url.substring(j); // path[?query][#fragment]
+            }
+
+            j = url.indexOf("#");
+            if (j >= 0) {
+                result.fragment = url.substring(j+1, url.length);
+                url = url.substring(0, j); // path[?query]
+            }
+
+            j = url.indexOf("?");
+            if (j >= 0) {
+                result.path = url.substring(0, j);
+                url = url.substring(j+1); // query
+                queryParams = readParameters(url, toArray, decode);
+            } else
+                result.path = url;
+        }
+
+        result.parameters = queryParams;
+        return result;
+    }
+
+    function readParameters(str, toArray, decode) {
+        // str - string consisting of "key[=value]"-strings separated by "&"'s
+        // decode - whether to run decodeURIComponent(value)
+        // toArray - in case of multiple incidences of a key name, should the values be store in an array or overwritten
+        // modified from www.sitepoint.com/get-url-parameters-with-javascript/
+        var parameters = {}, kvlist = [], keyValue = [], i = 0, j, key, keyArray, value;
+
+        if (toArray === undefined)
+            toArray = false;
+        if (decode === undefined)
+            decode = true;
+
+        kvlist = str.split('&'); // array of "key[=value]"-strings
+
+        while (i < kvlist.length) {
+            // separate the keys and the values
+            keyValue = kvlist[i].split('='); // array of one or two strings
+
+            // set value to 'true' if no '='s
+            if (keyValue.length === 1)
+                value = true
+            else if (decode)
+                value = decodeURIComponent(keyValue[1]);
+
+            // a single value or an array, e.g. color, colors[] or colors[2]
+            key = keyValue[0];
+            if (key.match(/\[\d*\]$/)) { // colors[] or colors[2]
+                keyArray = key;
+                // create key if it doesn't exist
+                key = keyArray.replace(/\[\d*\]$/, '');
+                if (!(key in parameters))
+                    parameters[key] = [];
+
+                if (keyArray.match(/\[\d+\]$/)) { // colors[2]
+                    // get the index value and add the entry at the appropriate position
+                    j = 1.0*(/\d+/.exec(keyArray.match(/\[\d+\]$/))); // RegExp returns a string
+                    parameters[key][j] = value;
+                } else {
+                    // otherwise add the value to the end of the array
+                    parameters[key].push(value);
+                }
+            } else { // no brackets
+                if (toArray && key in parameters) {
+                    // if property exists and it's not boolean, convert it to an array
+                    if (typeof (parameters[key]) === typeof (""))
+                        parameters[key] = [parameters[key]];
+                    parameters[key].push(value);
+                } else
+                    parameters[key] = value;
+            }
+            i++;
+        }
+
+        return parameters
+    }
+
+    function startSearch(address, changeText) {
+        if (address > "") {
+            header.search(address, changeText);
+            map.focus = true;
+            map.setSearchRequest(address);
+        }
+        return
+    }
 }

@@ -21,7 +21,6 @@ import Sailfish.Silica 1.0
 Column {
     property alias text: search.text
     property alias searchFocus: search.focus
-    property alias searchText: search.text
     property alias resultVisible: resultList.visible
     property alias resultModel: resultList.model
     property alias searching: busy.running
@@ -33,6 +32,14 @@ Column {
     function searchResults(lst) {
         searching = false
         resultList.model = lst
+    }
+
+    function search(text, changeText) {
+        if (changeText)
+            search.text = text // address from command line
+        searching = true
+        resultList.model = undefined
+        searchRequest(text)
     }
 
     PageHeader {
@@ -55,9 +62,7 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             EnterKey.text: qsTr("search")
             EnterKey.onClicked: {
-                searching = true
-                resultList.model = undefined
-                searchRequest(text)
+                search(text, false)
 	        }
             onFocusChanged: { if (focus) { selectAll() } }
         }
