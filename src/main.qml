@@ -66,14 +66,16 @@ ApplicationWindow
         allowedOrientations: map.screen_rotation ? Orientation.All : pageStack.currentOrientation
 
         function importTrack() {
-            var dialog = pageStack.push(trackopen)
-            dialog.accepted.connect(function() {
-                if (!dialog.track.isEmpty()) {
-                    map.track_capture = false // disable track capture to avoid
-                                              // adding new point from current
-                                              // location to old tracks.
-                    map.setTrack(dialog.track)
-                }
+            var obj = pageStack.animatorPush(trackopen)
+            obj.pageCompleted.connect(function(dialog) {
+                dialog.accepted.connect(function() {
+                    if (!dialog.track.isEmpty()) {
+                        map.track_capture = false // disable track capture to avoid
+                                                  // adding new point from current
+                                                  // location to old tracks.
+                        map.setTrack(dialog.track)
+                    }
+                })
             })
         }
 
@@ -94,7 +96,7 @@ ApplicationWindow
                 property int track_metric_accuracy: conf.getInt("track_metric_accuracy", 30)
                 anchors.fill: parent
                 onSearchRequest: { header.searchFocus = true }
-                onWikiEntryChanged: { pageStack.push(wiki) }
+                onWikiEntryChanged: { pageStack.animatorPush(wiki) }
                 onWikiStatusChanged: { wikicheck.checked = status }
                 onSearchResults: header.searchResults(search_results)
                 onTrack_captureChanged: {
@@ -144,7 +146,7 @@ ApplicationWindow
                     width: parent.width - zoomout.width - zoomin.width - autocenter.width
                     text: map.sourceLabel
                     /*font.pixelSize: Theme.fontSizeSmall*/
-                    onClicked: { pageStack.push("Sources.qml", {"map": map, "sources": sources}) }
+                    onClicked: { pageStack.animatorPush("Sources.qml", {"map": map, "sources": sources}) }
                 }
                 IconButton {
                     id: autocenter

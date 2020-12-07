@@ -111,7 +111,7 @@ Column {
                 }
                 MenuItem {
                     text: qsTr("save on device")
-                    onClicked: pageStack.push(tracksave, { track: track })
+                    onClicked: pageStack.animatorPush(tracksave, { track: track })
                 }
                 /*MenuItem {
                     text: "export to OSM"
