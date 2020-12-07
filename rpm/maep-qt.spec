@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.9
+Version: 1.4.10
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
@@ -74,6 +74,10 @@ install -m 644 -p /usr/lib/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 %{_bindir}
 
 %changelog
+* Mon Dec 07 2020 - Damien Caliste <dcaliste@free.fr> 1.4.10-1
+- Adjust packaging for SailfishOS 3.3.
+- Fix missing page transition for sources.
+
 * Tue Aug 07 2018 - Damien Caliste <dcaliste@free.fr> 1.4.9-1
 - Translate in Chinese, see https://www.transifex.com/dcaliste/maep.
 - Fix horizontal accuracy exportation in track files.
