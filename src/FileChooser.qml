@@ -53,7 +53,7 @@ Item {
                 placeholderText: qsTr("enter a new file name")
                 validator: RegExpValidator { regExp: /^[^/]+$/ }
                 inputMethodHints: Qt.ImhNoPredictiveText
-                EnterKey.text: sqTr("save")
+                EnterKey.text: qsTr("save")
                 EnterKey.onClicked: { if (acceptableInput) { chooser_item.entry = folderModel.folder + "/" + text } }
                 onFocusChanged: { if (focus) { selectAll() } }
             }
