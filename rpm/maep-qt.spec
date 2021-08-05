@@ -18,6 +18,7 @@ Version: 1.4.10
 Release: 1
 Group: Applications/Engineering
 License: GPLv2
+URL: https://github.com/dcaliste/maep-qt
 Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
 Requires: sailfishsilica-qt5
@@ -68,11 +69,13 @@ install -m 644 -p /usr/lib/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
-%{_datadir}/applications
-%{_datadir}/icons
+%{_datadir}/applications/%{name}.desktop
+%{_datadir}/icons/hicolor/86x86/apps/%{name}.png
+%{_datadir}/icons/hicolor/108x108/apps/%{name}.png
+%{_datadir}/icons/hicolor/128x128/apps/%{name}.png
+%{_datadir}/icons/hicolor/172x172/apps/%{name}.png
 %{_datadir}/%{name}
-%{_datadir}/%{name}/translations
-%{_bindir}
+%{_bindir}/%{name}
 
 %changelog
 * Mon Dec 07 2020 - Damien Caliste <dcaliste@free.fr> 1.4.10-1
