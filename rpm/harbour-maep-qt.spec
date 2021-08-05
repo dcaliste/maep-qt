@@ -53,19 +53,20 @@ rm -rf $RPM_BUILD_ROOT
 %build
 %qmake5
 make %{?jobs:-j%jobs}
+strip %{name}
 
 %install
 rm -rf %{buildroot}
 %qmake5_install
 # Copy here the blacklisted libraries
 install -d %{buildroot}/usr/share/%{name}/lib
-install -m 644 -p /usr/lib/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
-install -m 644 -p /usr/lib/libpsl.so %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libjpeg.so.62 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libcairo.so.2 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libsoup-2.4.so.1 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libdconf.so.1 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libpixman-1.so.0 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libfreetype.so.6 %{buildroot}/usr/share/%{name}/lib/
+install -m 644 -p %{_libdir}/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 
 %files
 %defattr(-,root,root,-)
