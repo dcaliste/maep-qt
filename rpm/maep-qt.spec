@@ -30,6 +30,7 @@ BuildRequires: pkgconfig(Qt5Core)
 BuildRequires: pkgconfig(Qt5Qml)
 BuildRequires: pkgconfig(Qt5Quick)
 BuildRequires: pkgconfig(Qt5Positioning)
+BuildRequires: pkgconfig(Qt5Sensors)
 BuildRequires: pkgconfig(gobject-2.0)
 BuildRequires: pkgconfig(cairo)
 BuildRequires: pkgconfig(libsoup-2.4)
@@ -78,7 +79,7 @@ install -m 644 -p /usr/lib/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 - Adjust packaging for SailfishOS 3.3.
 - Fix missing page transition for sources.
 
-* Tue Aug 07 2018 - Damien Caliste <dcaliste@free.fr> 1.4.9-1
+* Mon Jun 17 2019 - Damien Caliste <dcaliste@free.fr> 1.4.9-1
 - Translate in Chinese, see https://www.transifex.com/dcaliste/maep.
 - Fix horizontal accuracy exportation in track files.
 - Update packaging for new harbour rules.
