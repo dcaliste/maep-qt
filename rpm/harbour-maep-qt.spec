@@ -17,7 +17,7 @@ Summary: Map browser with GPS capabilities
 Version: 1.4.10
 Release: 1
 Group: Applications/Engineering
-License: GPLv2
+License: GPLv3
 URL: https://github.com/dcaliste/maep-qt
 Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
