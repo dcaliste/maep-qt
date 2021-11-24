@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.10
+Version: 1.4.11
 Release: 1
 Group: Applications/Engineering
 License: GPLv3
@@ -80,6 +80,9 @@ install -m 644 -p %{_libdir}/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 %{_bindir}/%{name}
 
 %changelog
+* Wed Nov 24 2021 - Damien Caliste <dcaliste@free.fr> 1.4.11-1
+- Adjust for jailed applications.
+
 * Mon Dec 07 2020 - Damien Caliste <dcaliste@free.fr> 1.4.10-1
 - Adjust packaging for SailfishOS 3.3.
 - Fix missing page transition for sources.
