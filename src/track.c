@@ -312,7 +312,7 @@ static char *build_path(void) {
 
   return g_strdup_printf("%s/track.trk", track_path);
 #else
-  return g_strdup_printf("%s/%s/track.gpx", g_get_user_data_dir(), APP);
+  return g_strdup_printf("%s/%s/%s/track.gpx", g_get_user_cache_dir(), ORG, APP);
 #endif
 }
 

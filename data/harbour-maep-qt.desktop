@@ -9,3 +9,4 @@ Comment=Map browser with GPS capabilities
 [X-Sailjail]
 Permissions=Location;Documents;Downloads;PublicDir;RemovableMedia;Internet
 ApplicationName=harbour-maep-qt
+OrganizationName=Maep

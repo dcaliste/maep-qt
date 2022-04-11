@@ -245,7 +245,7 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                          std::max(static_cast<gint>(COMPASS_MODE_OFF), compassMode));
 
   maep_conf_get_color(MAEP_CONF_KEY_TRACK_COLOR, color, defaultColor);
-  path = g_build_filename(g_get_user_cache_dir(), APP, NULL);
+  path = g_build_filename(g_get_user_cache_dir(), ORG, APP, NULL);
   cache_dir = g_strdup_printf("%s%s", MAEP_SOURCE_MANAGER_CACHE_FRIENDLY, path);
 
   /* Backward compatibility, move old path. */

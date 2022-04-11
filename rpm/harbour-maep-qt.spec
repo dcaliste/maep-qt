@@ -14,7 +14,7 @@ Name: harbour-maep-qt
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary: Map browser with GPS capabilities
-Version: 1.4.11
+Version: 1.4.12
 Release: 1
 Group: Applications/Engineering
 License: GPLv3
@@ -54,7 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 %build
 %qmake5
 make %{?jobs:-j%jobs}
-strip %{name}
+if test -f %{name} ; then strip %{name}; fi
 
 %install
 rm -rf %{buildroot}
@@ -80,6 +80,10 @@ install -m 644 -p %{_libdir}/libpsl.so %{buildroot}/usr/share/%{name}/lib/
 %{_bindir}/%{name}
 
 %changelog
+* Mon Apr 11 2022 - Damien Caliste <dcaliste@free.fr> 1.4.12-1
+- Add an organisation name so cache can be kept inside the jail
+  when not already existing.
+
 * Wed Nov 24 2021 - Damien Caliste <dcaliste@free.fr> 1.4.11-1
 - Adjust for jailed applications.
 
