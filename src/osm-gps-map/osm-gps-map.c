@@ -1526,7 +1526,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                          "Viewport width",
                                                          "width of the viewable area",
                                                          1, /* minimum property value */
-                                                         2048, /* maximum property value */
+                                                         4096, /* maximum property value */
                                                          1,
                                                          G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
@@ -1537,7 +1537,7 @@ osm_gps_map_class_init (OsmGpsMapClass *klass)
                                                           "Viewport height",
                                                           "height of the viewable area",
                                                           1, /* minimum property value */
-                                                          2048, /* maximum property value */
+                                                          4096, /* maximum property value */
                                                           1,
                                                           G_PARAM_READABLE | G_PARAM_WRITABLE);
     g_object_class_install_property (object_class,
