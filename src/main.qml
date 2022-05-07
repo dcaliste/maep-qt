@@ -133,12 +133,14 @@ ApplicationWindow
                     id: zoomout
                     anchors.verticalCenter: parent.verticalCenter
                     icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-wide.png"
+                    enabled: map.canZoomOut
                     onClicked: { map.zoomOut() }
                 }
                 IconButton {
                     id: zoomin
                     anchors.verticalCenter: parent.verticalCenter
                     icon.source: "file:///usr/share/harbour-maep-qt/icon-camera-zoom-tele.png"
+                    enabled: map.canZoomIn
                     onClicked: { map.zoomIn() }
                 }
                 Button {

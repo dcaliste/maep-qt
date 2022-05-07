@@ -203,6 +203,7 @@ namespace Maep {
 static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_double_pixel(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
 static void osm_gps_map_qt_auto_center(Maep::GpsMap *widget, GParamSpec *pspec, OsmGpsMap *map);
+static void osm_gps_map_qt_zoom(Maep::GpsMap *widget);
 static void osm_gps_map_qt_source(Maep::GpsMap *widget);
 static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget);
 static void osm_gps_map_qt_wiki(Maep::GpsMap *widget, MaepGeonamesEntry *entry, MaepWikiContext *wiki);
@@ -290,6 +291,8 @@ Maep::GpsMap::GpsMap(QQuickItem *parent)
                            G_CALLBACK(Maep::GpsMapCClosures::repaint_from_map), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::latitude",
                            G_CALLBACK(osm_gps_map_qt_coordinate), this);
+  g_signal_connect_swapped(G_OBJECT(map), "notify::zoom",
+                           G_CALLBACK(osm_gps_map_qt_zoom), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::auto-center",
                            G_CALLBACK(osm_gps_map_qt_auto_center), this);
   g_signal_connect_swapped(G_OBJECT(map), "notify::double-pixel",
@@ -649,6 +652,21 @@ void Maep::GpsMap::zoomOut()
   osm_gps_map_set_factor(map, 1.f);
   if (factor <= 1.)
     osm_gps_map_zoom_out(map);
+}
+
+bool Maep::GpsMap::canZoomIn() const
+{
+  gint zoom, max_zoom;
+
+  g_object_get(G_OBJECT(map), "zoom", &zoom, "max-zoom", &max_zoom, NULL);
+  return (zoom < max_zoom);
+}
+bool Maep::GpsMap::canZoomOut() const
+{
+  gint zoom, min_zoom;
+
+  g_object_get(G_OBJECT(map), "zoom", &zoom, "min-zoom", &min_zoom, NULL);
+  return (zoom > min_zoom);
 }
 
 #define OSM_GPS_MAP_SCROLL_STEP     (10)
@@ -1057,6 +1075,11 @@ static void osm_gps_map_qt_coordinate(Maep::GpsMap *widget, GParamSpec *pspec, O
 
   g_object_get(G_OBJECT(map), "latitude", &lat, "longitude", &lon, NULL);
   widget->setCoordinate(lat, lon);
+}
+static void osm_gps_map_qt_zoom(Maep::GpsMap *widget)
+{
+    emit widget->canZoomInChanged();
+    emit widget->canZoomOutChanged();
 }
 // QString Maep::GpsMap::orientationTo(QGeoCoordinate coord)
 // {

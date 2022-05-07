@@ -301,6 +301,8 @@ class GpsMap : public QQuickPaintedItem
   Q_PROPERTY(QGeoCoordinate coordinate READ getCoord WRITE setLookAt NOTIFY coordinateChanged)
   Q_PROPERTY(QGeoCoordinate gps_coordinate READ getGpsCoord NOTIFY gpsCoordinateChanged)
 
+  Q_PROPERTY(bool canZoomIn READ canZoomIn NOTIFY canZoomInChanged)
+  Q_PROPERTY(bool canZoomOut READ canZoomOut NOTIFY canZoomOutChanged)
   Q_PROPERTY(bool auto_center READ autoCenter WRITE setAutoCenter NOTIFY autoCenterChanged)
 
   Q_PROPERTY(bool wiki_status READ wikiStatus WRITE setWikiStatus NOTIFY wikiStatusChanged)
@@ -392,6 +394,8 @@ class GpsMap : public QQuickPaintedItem
     g_object_get(map, "auto-center", &set, NULL);
     return set;
   }
+  bool canZoomIn() const;
+  bool canZoomOut() const;
   inline int source() const {
     int id;
     MaepSource *source;
@@ -453,6 +457,8 @@ class GpsMap : public QQuickPaintedItem
   void doublePixelChanged(bool status);
   void coordinateChanged();
   void gpsCoordinateChanged();
+  void canZoomInChanged();
+  void canZoomOutChanged();
   void autoCenterChanged(bool status);
   void wikiStatusChanged(bool status);
   void wikiEntryChanged();
