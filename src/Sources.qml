@@ -119,7 +119,8 @@ Page {
         delegate: ListItem {
             menu: contextMenu
             contentHeight: Theme.itemSizeMedium
-            opacity: model.enabled ? 1. : 0.4
+            opacity: model.enabled && enabled ? 1. : Theme.opacityLow
+            enabled: model.active || manageMode
             Label {
                 text: label
                 width: parent.width - img.width
@@ -132,7 +133,7 @@ Page {
             Label {
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
-                text: copyrightNotice
+                text: model.active ? copyrightNotice : qsTr("tile service discontinued")
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.horizontalPageMargin + Theme.paddingSmall
                 anchors.bottom: parent.bottom
@@ -146,13 +147,18 @@ Page {
                 anchors.leftMargin: Theme.horizontalPageMargin + Theme.paddingSmall
                 anchors.verticalCenter: parent.verticalCenter
                 Image {
-                    visible: section == SourceModel.SECTION_BASE
+                    visible: !model.active
+                    anchors.centerIn: parent
+                    source: "image://theme/icon-m-dismiss"
+                }
+                Image {
+                    visible: model.active && section == SourceModel.SECTION_BASE
                     anchors.fill: parent
                     clip: true; fillMode: Image.Pad
                     source: visible ? map.getCenteredTile(sourceId) : ""
                 }
                 Switch {
-                    visible: section == SourceModel.SECTION_OVERLAY
+                    visible: model.active && section == SourceModel.SECTION_OVERLAY
                     anchors.fill: parent
                     //icon.clip: true; icon.fillMode: Image.Pad
                     //icon.source: map.getCenteredTile(model.source)

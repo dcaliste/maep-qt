@@ -424,6 +424,7 @@ static const MaepSource* _preset(MaepSourceManager *manager, MaepSourceId id)
              "http://#T.tiles.wmflabs.org/hikebike/#Z/#X/#Y.png", "png",
              "© OpenStreetMap contributors",
              "http://www.hikebikemap.org", 1, 18, DEFAULT_PERIOD, TRUE);
+        source->active = FALSE;
         break;
     case MAEP_SOURCE_HILL_SHADING:
         source = _sourceNew
@@ -431,6 +432,7 @@ static const MaepSource* _preset(MaepSourceManager *manager, MaepSourceId id)
              "http://#T.tiles.wmflabs.org/hillshading/#Z/#X/#Y.png", "png",
              "© NASA (SRTM3 v2)",
              "http://www2.jpl.nasa.gov/srtm/", 1, 18, DEFAULT_PERIOD, TRUE);
+        source->active = FALSE;
         break;
     case MAEP_SOURCE_OPENAERIALMAP:
         /* OpenAerialMap is down, offline till furthur notice

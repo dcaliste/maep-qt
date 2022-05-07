@@ -35,6 +35,7 @@ Maep::SourceModel::SourceModel(QObject *parent)
     roles.insert(CopyrightUrl, "copyrightUrl");
     roles.insert(Section, "section");
     roles.insert(Enabled, "enabled");
+    roles.insert(Active, "active");
 
     values = maep_conf_get_uint_list(MAEP_CONF_KEY_LIST, &ln);
     if (values)
@@ -106,6 +107,9 @@ QVariant Maep::SourceModel::data(const QModelIndex& index, int role) const
               const gchar *url;
               maep_source_get_repo_copyright(sources.at(row).source, NULL, &url);
               result.setValue<QString>(url);
+              break;
+            case Active:
+              result.setValue<bool>(maep_source_is_valid(sources.at(row).source));
               break;
             case Enabled:
               result.setValue<bool>(sources.at(row).enabled);

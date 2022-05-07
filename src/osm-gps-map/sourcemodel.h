@@ -56,7 +56,8 @@ public:
         CopyrightNotice,
         CopyrightUrl,
         Section,
-        Enabled
+        Enabled,
+        Active
     };
 
     enum SourceId {
