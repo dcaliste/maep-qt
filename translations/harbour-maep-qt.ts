@@ -94,6 +94,10 @@
         <source>reversed</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>save</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PlaceHeader</name>
@@ -244,6 +248,10 @@
     </message>
     <message>
         <source>Open map copyright in browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>tile service discontinued</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
