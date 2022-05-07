@@ -195,13 +195,6 @@ track_ref_free (OsmTrackRef *st)
     g_slice_free(OsmTrackRef, st);
 }
 
-static void
-my_log_handler (const gchar * log_domain, GLogLevelFlags log_level, const gchar * message, gpointer user_data)
-{
-    if (!(log_level & G_LOG_LEVEL_DEBUG) || ENABLE_DEBUG)
-        g_log_default_handler (log_domain, log_level, message, user_data);
-}
-
 static float
 osm_gps_map_get_scale_at_lat(int zoom, gfloat factor, float rlat)
 {
@@ -1023,8 +1016,6 @@ osm_gps_map_init (OsmGpsMap *object)
     priv->tile_cache = g_hash_table_new_full (g_str_hash, g_str_equal,
                                               g_free, (GDestroyNotify)cached_tile_free);
     priv->max_tile_cache_size = 20;
-
-    g_log_set_handler (G_LOG_DOMAIN, G_LOG_LEVEL_MASK, my_log_handler, NULL);
 }
 
 /* strcmp0 was introduced with glib 2.16 */
@@ -1312,12 +1303,12 @@ osm_gps_map_set_viewport (OsmGpsMap *map, guint width, guint height)
     g_return_if_fail(OSM_IS_GPS_MAP(map));
     priv = map->priv;
 
-    g_message("Set view port to %dx%d for source %s.", width, height,
-              maep_source_get_friendly_name(priv->source));
     if (priv->viewport_width == width &&
         priv->viewport_height == height)
         return;
 
+    g_debug("Set view port to %dx%d for source %s.", width, height,
+              maep_source_get_friendly_name(priv->source));
     /* Set viewport. */
     priv->viewport_width = width;
     priv->viewport_height = height;
