@@ -1,4 +1,6 @@
-<?xml version="1.0" ?><!DOCTYPE TS><TS language="fr_FR" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="fr_FR">
 <context>
     <name>About</name>
     <message>
@@ -92,6 +94,10 @@
         <source>reversed</source>
         <translation>descendant</translation>
     </message>
+    <message>
+        <source>save</source>
+        <translation>enregistrer</translation>
+    </message>
 </context>
 <context>
     <name>PlaceHeader</name>
@@ -113,7 +119,10 @@
     </message>
     <message numerus="yes">
         <source>%n place(s) found</source>
-        <translation><numerusform>%n lieu trouvé</numerusform><numerusform>%n lieux trouvés</numerusform></translation>
+        <translation>
+            <numerusform>%n lieu trouvé</numerusform>
+            <numerusform>%n lieux trouvés</numerusform>
+        </translation>
     </message>
     <message>
         <source>at %L1 km</source>
@@ -240,6 +249,10 @@
     <message>
         <source>Open map copyright in browser</source>
         <translation>Ouvrir le copyright dans le navigateur</translation>
+    </message>
+    <message>
+        <source>tile service discontinued</source>
+        <translation>service de cartographie interrompu</translation>
     </message>
 </context>
 <context>
