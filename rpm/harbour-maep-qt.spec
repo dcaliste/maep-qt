@@ -46,6 +46,18 @@ Maep is a tile based map utility for services like OpenStreetMap, Google maps
 and Virtual earth. This is the same map renderer that is also being used by
 GPXView and OSM2Go.
 
+# This description section includes metadata for SailfishOS:Chum, see
+# https://github.com/sailfishos-chum/main/blob/main/Metadata.md
+%if "%{?vendor}" == "chum"
+PackageName: Mæp
+Categories:
+ - Science
+ - Maps
+Icon: https://github.com/dcaliste/maep-qt/blob/master/data/maep.svg
+Url:
+  Homepage: https://github.com/dcaliste/maep-qt
+  Bugtracker: https://github.com/dcaliste/maep-qt/issues
+%endif
 
 %prep
 rm -rf $RPM_BUILD_ROOT
