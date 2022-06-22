@@ -1,6 +1,6 @@
 /*
  * main.qml
- * Copyright (C) Damien Caliste 2013-2018 <dcaliste@free.fr>
+ * Copyright (C) Damien Caliste 2013-2022 <dcaliste@free.fr>
  *
  * main.qml is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License
@@ -81,13 +81,9 @@ ApplicationWindow
 
         Item {
             anchors.top: topPart.bottom
+            anchors.topMargin: -topPart.contentY
             width: page.width
             height: page.height - topPart.height
-
-            opacity: mainMenu.active ? Theme.highlightBackgroundOpacity : 1.
-            Behavior on opacity {
-                NumberAnimation {easing.type: Easing.InOutCubic}
-            }
 
             GpsMap {
                 id: map
