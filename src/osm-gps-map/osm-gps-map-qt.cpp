@@ -593,18 +593,18 @@ void Maep::GpsMap::mapUpdate()
 
 void Maep::GpsMap::paintTo(QPainter *painter, int width, int height)
 {
-  int w, h;
+  int w;
 
   if (!img || !surf)
     return;
 
   w = cairo_image_surface_get_width(surf);
-  h = cairo_image_surface_get_height(surf);
+  // h = cairo_image_surface_get_height(surf);
   // g_message("Paint to %dx%d from %fx%f - %fx%f.", width, height,
   //           (w - width) * 0.5, (h - height) * 0.5,
   //           (w + width) * 0.5, (h + height) * 0.5);
   QRectF target(0, 0, width, height);
-  QRectF source((w - width) * 0.5, (h - height) * 0.5,
+  QRectF source((w - width) * 0.5, 0.,
                 width, height);
   painter->drawImage(target, *img, source);
 }

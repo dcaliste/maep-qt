@@ -82,8 +82,8 @@ ApplicationWindow
         Item {
             anchors.top: topPart.bottom
             anchors.topMargin: topPart.contentY < 0 ? -topPart.contentY : 0
+            anchors.bottom: parent.bottom
             width: page.width
-            height: page.height - topPart.height
 
             GpsMap {
                 id: map
