@@ -890,6 +890,8 @@ void Maep::GpsMap::setSource(int value)
     return;
 
   g_object_set(map, "map-source", maep_source_manager_getById(sources, value), NULL);
+  emit canZoomInChanged();
+  emit canZoomOutChanged();
 }
 static void osm_gps_map_qt_overlay_source(Maep::GpsMap *widget)
 {
