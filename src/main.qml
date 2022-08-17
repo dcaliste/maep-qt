@@ -81,7 +81,7 @@ ApplicationWindow
 
         Item {
             anchors.top: topPart.bottom
-            anchors.topMargin: -topPart.contentY
+            anchors.topMargin: topPart.contentY < 0 ? -topPart.contentY : 0
             width: page.width
             height: page.height - topPart.height
 
@@ -165,6 +165,7 @@ ApplicationWindow
             contentHeight: header.height
             clip: page.status != PageStatus.Active || !mainMenu.active
             flickableDirection: Flickable.VerticalFlick
+            z: -1
 
             PullDownMenu {
                 id: mainMenu
